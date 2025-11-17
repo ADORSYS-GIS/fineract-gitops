@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanCollateral
+metadata:
+  name: collateral-loan-003-2
+  labels:
+    collateral-type: vehicle
+spec:
+  loanAccountId: LOAN-003
+  collateralTypeId: Vehicle
+  value: 1200000.0
+  description: Toyota Hilux 2020 - Registration DLA-4567-AB
+  location: Akwa, Douala
+  condition: Very Good
+  valuationDate: '2024-01-18'
+  valuationBy: Auto Valuer

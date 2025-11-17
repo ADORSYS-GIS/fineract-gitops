@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: logging-uat
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: logging
+    app.kubernetes.io/part-of: fineract-platform
+    environment: uat
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main
+    path: apps/logging/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  revisionHistoryLimit: 10

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-app-config
+  labels:
+    app: web-app
+    component: frontend
+data:
+  # Fineract API Configuration
+  # Note: API calls go through Kubernetes Ingress NGINX, not directly to Fineract
+  # The web-app container nginx only serves static files
+  fineractApiUrl: "https://$(APPS_HOSTNAME)"
+  fineractApiProvider: "/fineract-provider/api"
+  fineractApiVersion: "/v1"
+
+  # Tenant Configuration
+  fineractPlatformTenantId: "default"
+
+  # OAuth2-Proxy Configuration
+  # Logout redirects to OAuth2-Proxy, which handles Keycloak logout
+  oauth2ProxyLogoutUrl: "/oauth2/sign_out"
+
+  # Application Configuration
+  defaultLanguage: "en-US"
+
+  # Session timeout (0 = disabled, session managed by OAuth2-Proxy + Keycloak)
+  # OAuth2-Proxy handles session expiry with cookie_expire=4h and cookie_refresh=20m
+  sessionIdleTimeout: "0"

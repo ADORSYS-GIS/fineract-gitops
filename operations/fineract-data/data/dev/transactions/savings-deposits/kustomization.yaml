@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: savings-deposits-data
+  files:
+  - "deposit-fran\xE7ois-nkomo-4.yaml"
+  - deposit-grace-fotso-3.yaml
+  - deposit-grace-fotso-9.yaml
+  - deposit-jean-dupont-0.yaml
+  - deposit-jean-dupont-6.yaml
+  - deposit-justine-moukouri-5.yaml
+  - deposit-marie-kamga-1.yaml
+  - deposit-marie-kamga-8.yaml
+  - deposit-paul-ekambi-2.yaml
+  - deposit-paul-ekambi-7.yaml

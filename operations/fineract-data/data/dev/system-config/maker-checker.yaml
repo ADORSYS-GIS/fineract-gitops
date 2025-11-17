@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: maker-checker
+  labels:
+    config-scope: global
+spec:
+  name: maker-checker
+  enabled: true
+  value: 'true'
+  trapDoor: false
+  description: Enable maker-checker globally

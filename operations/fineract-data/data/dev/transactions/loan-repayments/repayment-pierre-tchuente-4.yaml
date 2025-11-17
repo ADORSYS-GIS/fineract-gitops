@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanRepayment
+metadata:
+  name: repayment-pierre-tchuente-4
+  labels:
+    transaction-type: repayment
+spec:
+  loanAccountId: LOAN-005
+  transactionDate: '2024-03-22'
+  transactionAmount: 31500.0
+  paymentTypeId: Cash
+  receiptNumber: REP-005
+  note: Monthly repayment

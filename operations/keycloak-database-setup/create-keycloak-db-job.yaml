@@ -1,0 +1,132 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-keycloak-db
+  annotations:
+    description: "Creates Keycloak database and user in RDS PostgreSQL (idempotent)"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-2"
+  labels:
+    app.kubernetes.io/name: database-setup
+    app.kubernetes.io/part-of: fineract-platform
+    app.kubernetes.io/component: database
+spec:
+  ttlSecondsAfterFinished: 300  # Auto-delete after 5 minutes
+  template:
+    metadata:
+      name: keycloak-db-setup
+      labels:
+        app: keycloak-db-setup
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: create-db
+        # Image tag managed by Kustomize image transformers per environment
+        # Default: postgres:15-alpine (from environment kustomization.yaml)
+        image: postgres
+        # SENSITIVE DATA IN ENVIRONMENT VARIABLES:
+        # Same pattern as create-databases-job.yaml
+        # See operations/database-init/base/create-databases-job.yaml lines 23-61
+        # for comprehensive security documentation including:
+        # - Security trade-offs
+        # - Rationale for env var approach
+        # - 3 more secure alternatives (mounted files, .pgpass, external secrets)
+        # - Production recommendations
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "========================================="
+          echo "Keycloak Database Setup (Idempotent)"
+          echo "========================================="
+          echo "Connecting to RDS PostgreSQL..."
+
+          # Use Fineract credentials (which have CREATEDB privileges)
+          export PGHOST="${RDS_HOST}"
+          export PGPORT="5432"
+          export PGUSER="${FINERACT_USER}"
+          export PGPASSWORD="${FINERACT_PASSWORD}"
+          export PGDATABASE="postgres"
+
+          # Check if keycloak database exists
+          echo "Checking if 'keycloak' database exists..."
+          if psql -lqt | cut -d \| -f 1 | grep -qw keycloak; then
+            echo "✓ Database 'keycloak' already exists, skipping creation"
+          else
+            echo "Creating keycloak database..."
+            psql -c "CREATE DATABASE keycloak;"
+            echo "✓ Database 'keycloak' created successfully"
+          fi
+
+          # Check if keycloak user exists
+          echo "Checking if 'keycloak' user exists..."
+          if psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='keycloak'" | grep -q 1; then
+            echo "✓ User 'keycloak' already exists, skipping creation"
+          else
+            echo "Creating keycloak user..."
+            psql -c "CREATE USER keycloak WITH PASSWORD '${KEYCLOAK_PASSWORD}';"
+            echo "✓ User 'keycloak' created successfully"
+          fi
+
+          echo "Granting database privileges to keycloak user..."
+          psql -c "GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;"
+
+          echo "Connecting to keycloak database for schema grants..."
+          export PGDATABASE="keycloak"
+          psql -c "GRANT ALL ON SCHEMA public TO keycloak;"
+          psql -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO keycloak;"
+          psql -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO keycloak;"
+          psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO keycloak;"
+          psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO keycloak;"
+
+          echo "========================================="
+          echo "✅ Keycloak database setup complete (idempotent)"
+          echo "   - Database: keycloak"
+          echo "   - User: keycloak"
+          echo "   - Privileges: ALL"
+          echo "========================================="
+        env:
+        # RDS endpoint from fineract-db-credentials secret
+        - name: RDS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+
+        # Fineract user credentials (has CREATEDB privileges)
+        - name: FINERACT_USER
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+
+        - name: FINERACT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+
+        # Keycloak database password from keycloak-db-credentials secret
+        - name: KEYCLOAK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-credentials
+              key: password
+
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 999  # postgres user
+          capabilities:
+            drop:
+            - ALL

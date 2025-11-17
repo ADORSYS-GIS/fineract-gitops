@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanCollateral
+metadata:
+  name: collateral-loan-004-3
+  labels:
+    collateral-type: commercial-property
+spec:
+  loanAccountId: LOAN-004
+  collateralTypeId: Commercial Property
+  value: 3000000.0
+  description: 'Commercial building with 3 shops - Title deed #DLA-2022-089'
+  location: Bonaberi, Douala
+  condition: Good
+  valuationDate: '2024-01-25'
+  valuationBy: Real Estate Appraiser

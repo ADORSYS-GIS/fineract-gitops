@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: fineract-uat-limits
+  namespace: fineract-uat
+  labels:
+    environment: uat
+  annotations:
+    description: "Default resource limits for UAT pods"
+spec:
+  limits:
+  # Container limits
+  - type: Container
+    default:
+      cpu: "2"
+      memory: 4Gi
+    defaultRequest:
+      cpu: 200m
+      memory: 512Mi
+    max:
+      cpu: "8"
+      memory: 16Gi
+    min:
+      cpu: 50m
+      memory: 128Mi
+
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "16"
+      memory: 32Gi
+
+  # PVC limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: 100Gi
+    min:
+      storage: 1Gi

@@ -1,0 +1,19 @@
+apiVersion: fineract.apache.org/v1
+kind: FinancialReport
+metadata:
+  name: overdue-loans-report
+  labels:
+    report-category: financial
+spec:
+  reportName: Overdue Loans Report
+  reportType: Balance Sheet
+  useReport: true
+  reportSql: "SELECT\n    c.display_name as client_name,\n    c.account_no as client_account,\n\
+    \    l.account_no as loan_account,\n    p.name as product_name,\n    o.name as\
+    \ office_name,\n    l.principal_outstanding_derived as outstanding_principal,\n\
+    \    l.interest_outstanding_derived as outstanding_interest,\n    DATEDIFF(CURDATE(),\
+    \ l.overdue_since_date_derived) as days_overdue,\n    s.display_name as loan_officer\n\
+    FROM m_loan l\nJOIN m_client c ON l.client_id = c.id\nJOIN m_product_loan p ON\
+    \ l.product_id = p.id\nJOIN m_office o ON l.office_id = o.id\nLEFT JOIN m_staff\
+    \ s ON l.loan_officer_id = s.id\nWHERE l.loan_status_id = 300\n    AND l.overdue_since_date_derived\
+    \ IS NOT NULL\nORDER BY days_overdue DESC, outstanding_principal DESC"

@@ -1,0 +1,21 @@
+# Centralized LoadBalancer DNS Configuration for Dev Environment
+# This file is the single source of truth for LoadBalancer hostnames
+# Auto-updated by: scripts/update-loadbalancer-dns.sh
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadbalancer-config
+  namespace: fineract-dev
+data:
+  # AWS ELB DNS name for the Nginx Ingress Controller LoadBalancer
+  # This value is automatically extracted from the cluster after deployment
+  LOADBALANCER_DNS: "ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com"
+
+  # For production, this would be replaced with actual domain names:
+  # APPS_HOSTNAME: "apps.fineract.com"
+  # AUTH_HOSTNAME: "auth.fineract.com"
+
+  # For dev, both apps and auth use the same LoadBalancer DNS
+  APPS_HOSTNAME: "ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com"
+  AUTH_HOSTNAME: "ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com"

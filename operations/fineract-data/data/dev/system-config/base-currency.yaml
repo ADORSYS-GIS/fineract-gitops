@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: base-currency
+  labels:
+    config-type: General
+spec:
+  name: BASE_CURRENCY
+  enabled: true
+  value: XAF
+  description: ''

@@ -1,0 +1,62 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # Deploy early - infrastructure
+    description: "cert-manager for automatic SSL/TLS certificate management"
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: develop
+    # Use dev overlay for environment-specific contact emails
+    # For UAT/Production clusters, change to overlays/uat or overlays/production
+    path: apps/cert-manager/overlays/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # Required for CRDs
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+        - /webhooks/0/failurePolicy
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+
+  info:
+    - name: Component
+      value: Certificate Management
+    - name: Type
+      value: Infrastructure (Cluster-scoped)
+    - name: Purpose
+      value: "Automatic SSL/TLS certificates with Let's Encrypt"
+    - name: Scope
+      value: Cluster-wide
+    - name: Version
+      value: v1.13+
+    - name: Auto-Deploy
+      value: "true"

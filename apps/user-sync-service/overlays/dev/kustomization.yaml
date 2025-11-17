@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+bases:
+  - ../../base
+
+# Environment-specific labels
+commonLabels:
+  environment: dev
+  deployment-method: argocd
+
+# ConfigMap overrides for dev environment
+configMapGenerator:
+  - name: user-sync-config
+    behavior: merge
+    literals:
+      - KEYCLOAK_URL=http://keycloak-service.keycloak.svc.cluster.local:8080
+      - KEYCLOAK_REALM=fineract
+      - ADMIN_CLI_CLIENT_ID=admin-cli
+      - PORT=5000
+
+# Patches for dev-specific configuration
+patches:
+  # Use latest image for dev environment
+  - target:
+      kind: Deployment
+      name: fineract-keycloak-sync
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: fineract-keycloak-sync:v1.0.0
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+      # Disable sync service (scaled to 0) - custom image not built yet
+      - op: replace
+        path: /spec/replicas
+        value: 0

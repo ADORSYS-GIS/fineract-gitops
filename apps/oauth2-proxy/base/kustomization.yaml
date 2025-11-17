@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: oauth2-proxy-base
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+commonLabels:
+  app.kubernetes.io/managed-by: argocd
+  app.kubernetes.io/part-of: fineract-platform
+
+resources:
+- configmap.yaml
+# secret.yaml removed - secrets managed via Sealed Secrets
+- deployment.yaml
+- service.yaml
+
+# Centralized configuration for OAuth2 Proxy
+# These values should be overridden in environment overlays
+configMapGenerator:
+- name: oauth2-proxy-config-static
+  literals:
+  - REALM_NAME=fineract  # Keycloak realm name
+  - OIDC_ISSUER_URL=https://auth.fineract.example.com/realms/fineract
+  - REDIRECT_URL=https://apps.fineract.example.com/oauth2/callback
+  - WHITELIST_DOMAINS=.fineract.example.com
+  - COOKIE_DOMAINS=.fineract.example.com
+
+images:
+- name: quay.io/oauth2-proxy/oauth2-proxy
+  newTag: v7.5.1

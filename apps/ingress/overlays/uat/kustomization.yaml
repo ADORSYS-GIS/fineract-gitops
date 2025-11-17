@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-uat
+
+resources:
+  - ../../base
+
+# Override hostname and certificate configuration for UAT environment
+configMapGenerator:
+  - name: ingress-config
+    behavior: replace
+    literals:
+      - apps-hostname=apps.uat.fineract.com
+      - auth-hostname=auth.uat.fineract.com
+      - cluster-issuer=letsencrypt-staging  # UAT uses Let's Encrypt staging for testing
+
+commonLabels:
+  environment: uat
+  deployment-type: aws
+  managed-by: argocd

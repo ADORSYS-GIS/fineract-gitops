@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-data-production
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: fineract-operations
+    app.kubernetes.io/component: data-operations
+    app.kubernetes.io/environment: production
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main
+    path: operations/fineract-data/kubernetes/overlays/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    # Manual sync for production - require approval
+    automated:
+      prune: true
+      selfHeal: false  # No auto-heal in production
+      allowEmpty: false
+
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+
+    retry:
+      limit: 3  # Fewer retries in production
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  ignoreDifferences:
+    - group: batch
+      kind: Job
+      jsonPointers:
+        - /status
+        - /spec/template/metadata/labels
+        - /spec/template/metadata/annotations

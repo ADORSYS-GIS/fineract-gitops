@@ -1,0 +1,112 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fineract-network-policy
+  labels:
+    app: fineract
+spec:
+  podSelector:
+    matchLabels:
+      app: fineract
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow from Nginx Ingress Controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+
+  # Allow from same namespace (read/write/batch can talk to each other)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fineract
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow from monitoring (Prometheus scraping)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  egress:
+  # Allow to RDS PostgreSQL (external to cluster)
+  # Uses ipBlock to allow egress outside cluster to AWS RDS
+  # VPC CIDR is typically 10.0.0.0/16 (configurable in Terraform)
+  # RDS is protected by:
+  # 1. Security groups (Terraform-managed, only allows from EKS nodes)
+  # 2. Database authentication (username/password)
+  # 3. Network isolation (private subnets)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+          - 10.0.0.0/8      # Private networks
+          - 172.16.0.0/12   # Private networks
+          - 192.168.0.0/16  # Private networks
+    ports:
+    - protocol: TCP
+      port: 5432
+
+  # Allow to fineract-redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: fineract-redis
+    ports:
+    - protocol: TCP
+      port: 6379
+
+  # Allow to Keycloak
+  - to:
+    - podSelector:
+        matchLabels:
+          app: keycloak
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow to S3 (external to cluster)
+  # Uses ipBlock to allow HTTPS egress to AWS S3
+  # S3 is protected by:
+  # 1. IRSA (IAM Roles for Service Accounts) - only Fineract pods have access
+  # 2. S3 bucket policies (Terraform-managed)
+  # 3. VPC endpoint for S3 (optional, configured in Terraform)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+          - 10.0.0.0/8      # Private networks
+          - 172.16.0.0/12   # Private networks
+          - 192.168.0.0/16  # Private networks
+    ports:
+    - protocol: TCP
+      port: 443
+
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

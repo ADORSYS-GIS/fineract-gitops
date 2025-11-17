@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: code-values-data
+  files:
+  - businesstype.yaml
+  - clientclassification.yaml
+  - clienttype.yaml
+  - educationlevel.yaml
+  - gender.yaml
+  - guarantorrelationship.yaml
+  - loanclosurereason.yaml
+  - loanpurpose.yaml
+  - maritalstatus.yaml
+  - savingsclosurereason.yaml

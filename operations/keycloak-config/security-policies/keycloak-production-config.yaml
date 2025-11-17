@@ -1,0 +1,186 @@
+---
+# Keycloak Production Configuration
+# Environment variables for production deployment that disable admin console
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-production-env
+  # namespace managed by Kustomize overlay
+  labels:
+    app: keycloak
+    environment: production
+data:
+  # Disable admin console features
+  KC_FEATURES: "admin-fine-grained-authz,-admin,-admin2"
+
+  # Production hostname (dynamically set per environment)
+  KC_HOSTNAME: "${AUTH_HOSTNAME}"
+  KC_HOSTNAME_STRICT: "true"
+  KC_HOSTNAME_STRICT_HTTPS: "true"
+
+  # Proxy configuration
+  KC_PROXY: "edge"
+
+  # Health checks
+  KC_HEALTH_ENABLED: "true"
+  KC_METRICS_ENABLED: "true"
+
+  # HTTP configuration
+  KC_HTTP_ENABLED: "true"
+  KC_HTTP_PORT: "8080"
+
+  # Logging
+  KC_LOG_LEVEL: "INFO"
+  KC_LOG_CONSOLE_OUTPUT: "json"
+
+  # Database (PostgreSQL)
+  # KC_DB_URL_HOST Configuration Strategy:
+  # BASE: "postgresql-service" (in-cluster PostgreSQL for dev/testing)
+  # OVERRIDE: Per-environment via Kustomize patches or ConfigMap overlays
+  #
+  # ENVIRONMENTS:
+  # - dev: Uses in-cluster postgresql-service (helm chart deployment)
+  # - uat: Can use RDS endpoint from Terraform (fineract-uat-keycloak-db.xxx.rds.amazonaws.com)
+  # - prod: MUST use RDS endpoint from Terraform outputs
+  #
+  # HOW TO OVERRIDE (3 options):
+  # 1. Kustomize ConfigMap patch (recommended):
+  #    - Create environments/<env>/keycloak-db-patch.yaml
+  #    - Patch KC_DB_URL_HOST value
+  #    - Example: see environments/dev/kustomization.yaml
+  #
+  # 2. Environment variable injection (for dynamic values):
+  #    - Use initContainer to fetch RDS endpoint from AWS
+  #    - Write to shared volume
+  #    - Source in main container
+  #
+  # 3. External ConfigMap (manual):
+  #    - Create separate ConfigMap with DB_HOST
+  #    - Reference via envFrom in deployment patch
+  #
+  # CURRENT APPROACH: Kustomize patch per environment (GitOps-friendly)
+  # Security credentials (username/password) come from sealed secrets
+  KC_DB: "postgres"
+  KC_DB_URL_HOST: "postgresql-service"
+  KC_DB_URL_DATABASE: "keycloak"
+
+---
+# Production-specific deployment patch
+# This patches the Keycloak deployment for production
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  # namespace managed by Kustomize overlay
+spec:
+  template:
+    metadata:
+      annotations:
+        # Force pod restart on config change
+        checksum/config: "production-v1"
+    spec:
+      containers:
+      - name: keycloak
+        envFrom:
+        - configMapRef:
+            name: keycloak-production-env
+        args:
+        - start
+        - --optimized
+        - --spi-theme-static-max-age=-1
+        - --spi-theme-cache-themes=false
+        - --spi-theme-cache-templates=false
+
+---
+# Emergency access procedure documentation
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-emergency-access
+  # namespace managed by Kustomize overlay
+  labels:
+    app: keycloak
+    type: documentation
+data:
+  EMERGENCY_ACCESS.md: |
+    # Keycloak Admin Console - Emergency Access Procedure
+
+    ## ⚠️ WARNING: Production Admin Console is Disabled
+
+    The Keycloak admin console is **disabled in production** for security reasons.
+    All configuration changes MUST be made via GitOps (keycloak-config-cli).
+
+    ## When Emergency Access is Required
+
+    Emergency access should ONLY be used for:
+    - Critical security incidents
+    - Data corruption requiring manual intervention
+    - Breaking configuration that prevents GitOps from working
+
+    ## Procedure
+
+    ### 1. Get Approval
+    - Obtain written approval from Security Lead and Engineering Manager
+    - Document reason for emergency access
+    - Create incident ticket
+
+    ### 2. Port Forward (Temporary Access)
+    ```bash
+    # This bypasses network policies temporarily
+    kubectl port-forward -n fineract svc/keycloak-service 8080:8080
+    ```
+
+    ### 3. Access Admin Console
+    Open: http://localhost:8080/admin
+
+    Login with Keycloak admin credentials (from secret):
+    ```bash
+    kubectl get secret keycloak-admin-credentials -n fineract -o yaml
+    ```
+
+    ### 4. Make MINIMAL Changes
+    - Only make the absolutely necessary changes
+    - Document all changes made
+    - Screenshot before/after states
+
+    ### 5. Sync Changes to GitOps
+    After making manual changes, update the Git repository:
+    ```bash
+    # Export current configuration
+    # Update operations/keycloak-config/config/realm-fineract.yaml
+    # Commit and push
+    git add operations/keycloak-config/
+    git commit -m "ops: sync emergency Keycloak changes"
+    git push
+    ```
+
+    ### 6. Audit Trail
+    - Document all changes in incident ticket
+    - Update runbook if procedure needs improvement
+    - Post-incident review within 24 hours
+
+    ### 7. Revoke Access
+    - Kill port-forward process
+    - Rotate Keycloak admin credentials if compromised
+    - Review audit logs
+
+    ## Audit Log Query
+    ```bash
+    # Check who accessed admin console
+    kubectl logs -n fineract deployment/keycloak | grep "admin-console"
+
+    # Export audit events
+    kubectl exec -n fineract deployment/keycloak -- \
+      /opt/keycloak/bin/kc.sh export \
+      --dir /tmp/export \
+      --realm fineract
+    ```
+
+    ## Prevention
+
+    To avoid needing emergency access:
+    - Always test configuration changes in dev/staging first
+    - Use GitOps for ALL configuration changes
+    - Maintain comprehensive test coverage
+    - Keep realm configuration in version control
+    - Regular backups with Velero

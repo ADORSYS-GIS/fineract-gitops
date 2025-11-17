@@ -1,0 +1,9 @@
+apiVersion: fineract.apache.org/v1
+kind: Fund
+metadata:
+  name: own-capital
+  labels:
+    fund-type: general
+spec:
+  name: Own Capital
+  externalId: FUND-001

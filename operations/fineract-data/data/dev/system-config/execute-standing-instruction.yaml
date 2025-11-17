@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: SchedulerJob
+metadata:
+  name: execute-standing-instruction
+  labels:
+    job-type: scheduled
+spec:
+  jobName: Execute Standing Instruction
+  displayName: Execute Standing Instruction
+  cronExpression: 0 0 0 1/1 * ? *
+  active: true
+  description: Execute standing instructions (recurring payments) daily

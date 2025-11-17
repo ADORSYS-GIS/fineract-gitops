@@ -1,0 +1,70 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-apiserver
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: kube-apiserver
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  # Select kube-apiserver endpoints
+  selector:
+    matchLabels:
+      component: apiserver
+      provider: kubernetes
+
+  # Scrape from kube-system namespace
+  namespaceSelector:
+    matchNames:
+    - default
+
+  # Endpoint configuration
+  endpoints:
+  - port: https
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      serverName: kubernetes
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubelet
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: kubelet
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  # Select kubelet endpoints
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubelet
+
+  # Scrape from kube-system namespace
+  namespaceSelector:
+    matchNames:
+    - kube-system
+
+  # Endpoint configuration
+  endpoints:
+  - port: https-metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      insecureSkipVerify: true
+
+  - port: https-metrics
+    path: /metrics/cadvisor
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      insecureSkipVerify: true

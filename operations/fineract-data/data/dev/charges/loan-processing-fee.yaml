@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: Charge
+metadata:
+  name: loan-processing-fee
+  labels:
+    charge-applies-to: loan
+    charge-type: Loan
+spec:
+  name: Loan Processing Fee
+  currency: XAF
+  amount: 2.0
+  chargeAppliesTo: LOAN
+  chargeTimeType: DISBURSEMENT
+  chargeCalculationType: Percentage of Amount
+  active: true
+  penalty: false

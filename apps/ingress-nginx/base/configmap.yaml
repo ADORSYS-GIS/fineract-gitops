@@ -1,0 +1,188 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+data:
+  # ============================================================================
+  # Security Configuration
+  # ============================================================================
+
+  # Allow snippet annotations (required for advanced ingress configurations)
+  # NOTE: Enable only if you trust all users who can create Ingress resources
+  allow-snippet-annotations: "true"
+
+  # ============================================================================
+  # General Nginx Configuration
+  # ============================================================================
+
+  # Enable real IP forwarding (important for K3s and cloud load balancers)
+  use-forwarded-headers: "true"
+  compute-full-forwarded-for: "true"
+
+  # Proxy settings
+  proxy-body-size: "50m"
+  proxy-connect-timeout: "600"
+  proxy-read-timeout: "600"
+  proxy-send-timeout: "600"
+
+  # Client settings
+  client-header-buffer-size: "64k"
+  large-client-header-buffers: "4 64k"
+
+  # SSL/TLS settings
+  ssl-protocols: "TLSv1.2 TLSv1.3"
+  ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+  ssl-prefer-server-ciphers: "true"
+
+  # HSTS (HTTP Strict Transport Security)
+  hsts: "true"
+  hsts-max-age: "31536000"
+  hsts-include-subdomains: "true"
+  hsts-preload: "true"
+
+  # Security headers (global defaults, can be overridden per-ingress)
+  add-headers: "ingress-nginx/custom-headers"
+
+  # Logging
+  log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id $http_x_auth_request_user'
+
+  # ============================================================================
+  # Read/Write Routing Logic
+  # ============================================================================
+
+  # Map block for determining backend service based on HTTP method
+  # This will be used in Ingress annotations via configuration-snippet
+  http-snippet: |
+    # Map HTTP method to backend service for read/write separation
+    map $request_method $fineract_backend {
+        GET     "fineract-read-service.fineract-dev.svc.cluster.local:8080";
+        HEAD    "fineract-read-service.fineract-dev.svc.cluster.local:8080";
+        OPTIONS "fineract-read-service.fineract-dev.svc.cluster.local:8080";
+        default "fineract-write-service.fineract-dev.svc.cluster.local:8080";
+    }
+
+    # Map for admin endpoints (always route to write service)
+    map $request_uri $is_admin_endpoint {
+        default 0;
+        "~^/fineract-provider/api/v1/users"                 1;
+        "~^/fineract-provider/api/v1/permissions"           1;
+        "~^/fineract-provider/api/v1/roles"                 1;
+        "~^/fineract-provider/api/v1/codes"                 1;
+        "~^/fineract-provider/api/v1/hooks"                 1;
+        "~^/fineract-provider/api/v1/jobs"                  1;
+        "~^/fineract-provider/api/v1/configurations"        1;
+        "~^/fineract-provider/api/v1/systemconfig"          1;
+        "~^/fineract-provider/api/v1/audits"                1;
+        "~^/fineract-provider/api/v1/datatables"            1;
+        "~^/fineract-provider/api/v1/entitytoentitymapping" 1;
+        "~^/fineract-provider/api/v1/globalconfig"          1;
+    }
+
+    # Determine final backend service
+    map $is_admin_endpoint $final_backend {
+        1       "fineract-write-service.fineract-dev.svc.cluster.local:8080";
+        default $fineract_backend;
+    }
+
+    # OAuth2 Proxy auth endpoint
+    map $request_uri $oauth2_proxy_auth_url {
+        default "http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth";
+    }
+
+    # Rate limiting zones
+    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=100r/s;
+    limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=10r/s;
+
+    # ============================================================================
+    # RBAC Endpoint Categorization
+    # ============================================================================
+
+    # Map for RBAC endpoint categorization
+    map $request_uri $endpoint_category {
+        default                                           "general";
+
+        # Admin-only endpoints (level 4 - highest privilege)
+        "~^/fineract-provider/api/v1/users"               "admin-only";
+        "~^/fineract-provider/api/v1/staff"               "admin-only";
+        "~^/fineract-provider/api/v1/permissions"         "admin-only";
+        "~^/fineract-provider/api/v1/roles"               "admin-only";
+        "~^/fineract-provider/api/v1/systemconfig"        "admin-only";
+        "~^/fineract-provider/api/v1/codes"               "admin-only";
+        "~^/fineract-provider/api/v1/hooks"               "admin-only";
+        "~^/fineract-provider/api/v1/jobs"                "admin-only";
+        "~^/fineract-provider/api/v1/configurations"      "admin-only";
+
+        # Accounting endpoints (level 3 - admin + accountant)
+        "~^/fineract-provider/api/v1/glaccounts"          "accounting";
+        "~^/fineract-provider/api/v1/journalentries"      "accounting";
+        "~^/fineract-provider/api/v1/accountingrules"     "accounting";
+
+        # Management endpoints (level 2 - admin + branch-manager)
+        "~^/fineract-provider/api/v1/offices"             "management";
+        "~^/fineract-provider/api/v1/clients"             "management";
+        "~^/fineract-provider/api/v1/groups"              "management";
+        "~^/fineract-provider/api/v1/centers"             "management";
+        "~^/fineract-provider/api/v1/loanproducts"        "management";
+        "~^/fineract-provider/api/v1/savingsproducts"     "management";
+
+        # Teller operations (level 2 - admin + branch-manager + teller)
+        "~^/fineract-provider/api/v1/teller"              "teller-ops";
+        "~^/fineract-provider/api/v1/cashiers"            "teller-ops";
+    }
+
+    # Check if user has required role for endpoint category
+    map "$endpoint_category:$http_x_auth_request_roles" $rbac_allowed {
+        default                                           1;  # Allow by default if authenticated
+
+        # Admin-only endpoints
+        "~^admin-only:.*admin.*"                          1;
+        "~^admin-only:.*"                                 0;
+
+        # Accounting endpoints (admin or accountant)
+        "~^accounting:.*(admin|accountant).*"             1;
+        "~^accounting:.*"                                 0;
+
+        # Management endpoints (admin or branch-manager)
+        "~^management:.*(admin|branch-manager).*"         1;
+        "~^management:.*"                                 0;
+
+        # Teller operations (admin, branch-manager, or teller)
+        "~^teller-ops:.*(admin|branch-manager|teller).*"  1;
+        "~^teller-ops:.*"                                 0;
+    }
+
+  # ============================================================================
+  # Performance Tuning
+  # ============================================================================
+
+  # Worker processes
+  worker-processes: "auto"
+  worker-connections: "10240"
+
+  # Keepalive
+  keep-alive: "75"
+  keep-alive-requests: "100"
+
+  # Buffers
+  proxy-buffer-size: "128k"
+  proxy-buffers: "4 256k"
+  proxy-busy-buffers-size: "256k"
+
+  # Enable gzip compression
+  use-gzip: "true"
+  gzip-level: "5"
+  gzip-types: "application/json application/javascript text/css text/plain text/xml application/xml"
+
+  # ============================================================================
+  # Monitoring and Observability
+  # ============================================================================
+
+  # Enable Prometheus metrics
+  enable-opentelemetry: "false"
+
+  # Custom error pages (optional)
+  # custom-http-errors: "404,503"

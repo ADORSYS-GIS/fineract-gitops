@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "fineract-deployments"
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: main  # Deploy from main branch
+    path: argocd/applications/uat
+    directory:
+      recurse: false
+      exclude: 'app-of-apps.yaml'  # Don't include self
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    # Manual sync required for UAT
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Fineract UAT Environment - App of Apps
+    - name: Environment
+      value: UAT
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Branch
+      value: main
+    - name: Applications
+      value: "PostgreSQL HA, Redis, Keycloak, OAuth2 Proxy, Fineract, Monitoring, Logging"
+    - name: Deployment Order
+      value: "Sync waves 1-11 (databases → services → apps)"

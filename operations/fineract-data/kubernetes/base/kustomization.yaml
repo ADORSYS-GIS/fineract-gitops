@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # RBAC resources (includes ServiceAccount)
+  - rbac.yaml
+
+  # Wave-based Jobs (Consolidated from 39 to 6)
+  # Each job handles multiple related entities sequentially
+  - jobs/job-01-system-foundation.yaml  # Wave 5: 9 entities (code values, offices, staff, roles, currency, working days, account formats, maker-checker, scheduler jobs)
+  - jobs/job-02-products.yaml            # Wave 10: 11 entities (loan products, savings products, charges, collateral types, guarantor types, floating rates, delinquency buckets, notification templates, data tables, tellers, reports)
+  - jobs/job-03-accounting.yaml          # Wave 21: 9 entities (chart of accounts, fund sources, payment types, tax groups, loan provisioning, financial activity mappings, product accounting)
+  - jobs/job-04-entities.yaml            # Wave 30: 5 entities (demo clients, savings accounts, loan accounts, loan collateral, loan guarantors)
+  - jobs/job-05-transactions.yaml        # Wave 35: 4 entities (savings deposits, savings withdrawals, loan repayments, inter-branch transfers)
+  - jobs/job-06-calendar.yaml            # Wave 40: 1 entity (holidays)
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: fineract-data-loader
+  app.kubernetes.io/component: data-initialization
+  app.kubernetes.io/part-of: fineract
+
+# Wave-based job execution order (consolidated from 39 to 6 jobs):
+# Wave 5:  System Foundation (code values, offices, staff, roles, currency, working days, account formats, maker-checker, scheduler jobs)
+# Wave 10: Products (loan/savings products, charges, collateral, guarantor types, floating rates, delinquency buckets, notifications, data tables, tellers, reports)
+# Wave 21: Accounting (chart of accounts, fund sources, payment types, tax groups, loan provisioning, financial activity mappings, product accounting)
+# Wave 30: Entities (demo clients, savings accounts, loan accounts, loan collateral, loan guarantors)
+# Wave 35: Transactions (savings deposits/withdrawals, loan repayments, inter-branch transfers)
+# Wave 40: Calendar (holidays)

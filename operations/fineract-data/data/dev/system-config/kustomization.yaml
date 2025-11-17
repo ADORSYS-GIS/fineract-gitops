@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: sms-email-config-data
+  files:
+  - gmail-from-email.yaml
+  - gmail-from-name.yaml
+  - gmail-smtp-host.yaml
+  - gmail-smtp-password.yaml
+  - gmail-smtp-port.yaml
+  - gmail-smtp-username.yaml
+  - gmail-use-tls.yaml
+  - infobip-api-key.yaml
+  - infobip-base-url.yaml
+  - infobip-sender-id.yaml
+  - system-enable-email-notifications.yaml
+  - system-enable-sms-notifications.yaml
+  - system-max-retry-attempts.yaml
+  - system-retry-delay-minutes.yaml
+  - twilio-account-sid.yaml
+  - twilio-auth-token.yaml
+  - twilio-from-phone-number.yaml

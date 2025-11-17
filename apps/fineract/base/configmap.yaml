@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fineract-config
+  labels:
+    app.kubernetes.io/name: fineract
+    app.kubernetes.io/part-of: fineract-platform
+data:
+  # Empty ConfigMap - Fineract configuration is done via environment variables
+  # This ConfigMap is mounted to /etc/fineract but currently contains no files
+  # Add configuration files here if needed (e.g., application.properties, logback.xml)
+
+  # Example: application.properties can be added if additional config is needed
+  # application.properties: |
+  #   # Additional Fineract configuration
+
+  .keep: |
+    # This file ensures the directory is created even when empty

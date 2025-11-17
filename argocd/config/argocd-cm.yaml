@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/managed-by: gitops
+data:
+  # Git repository configuration
+  repositories: |
+    - url: https://github.com/ADORSYS-GIS/fineract-gitops.git
+      name: fineract-gitops
+      type: git
+
+  # Repository credentials (use Sealed Secrets for production)
+  # repository.credentials: |
+  #   - url: https://github.com/
+  #     usernameSecret:
+  #       name: github-creds
+  #       key: username
+  #     passwordSecret:
+  #       name: github-creds
+  #       key: password
+
+  # Helm repositories (if using Helm charts in the future)
+  # helm.repositories: |
+  #   - url: https://charts.bitnami.com/bitnami
+  #     name: bitnami
+
+  # Application configuration
+  application.instanceLabelKey: argocd.argoproj.io/instance
+
+  # Resource tracking method
+  application.resourceTrackingMethod: annotation
+
+  # Timeout for application operations (5 minutes)
+  timeout.reconciliation: 300s
+
+  # Diff customization
+  resource.customizations.health.argoproj.io_Application: |
+    hs = {}
+    hs.status = "Progressing"
+    hs.message = ""
+    if obj.status ~= nil then
+      if obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+    end
+    return hs
+
+  # Kustomize build options
+  kustomize.buildOptions: --enable-helm
+
+  # Resource exclusions (ignore certain resources from sync)
+  resource.exclusions: |
+    - apiGroups:
+      - cilium.io
+      kinds:
+      - CiliumIdentity
+      clusters:
+      - "*"
+
+  # Resource inclusions removed - ArgoCD will manage all standard K8s resources
+  # Only ArgoCD CRDs (Application, AppProject) and application resources are needed
+
+  # Status badge configuration
+  statusbadge.enabled: "true"
+
+  # User management (use SSO in production)
+  # users.anonymous.enabled: "false"
+
+  # Dex connector for SSO (optional - configure for production)
+  # dex.config: |
+  #   connectors:
+  #   - type: oidc
+  #     id: keycloak
+  #     name: Keycloak
+  #     config:
+  #       issuer: https://keycloak.example.com/auth/realms/master
+  #       clientID: argocd
+  #       clientSecret: $dex.keycloak.clientSecret
+  #       requestedScopes:
+  #         - openid
+  #         - profile
+  #         - email
+  #         - groups
+
+  # URL for ArgoCD UI
+  url: https://argocd.example.com  # Replace with actual URL
+
+  # Admin settings
+  admin.enabled: "true"
+
+  # Exec configuration
+  exec.enabled: "false"  # Disable for security
+
+  # Server side apply
+  application.sync.policy.serverSideApply: "true"
+
+  # Resource actions (optional)
+  # resource.customizations.actions.apps_Deployment: |
+  #   discovery.lua: |
+  #     actions = {}
+  #     actions["restart"] = {}
+  #     return actions
+  #   definitions:
+  #   - name: restart
+  #     action.lua: |
+  #       local os = require("os")
+  #       if obj.spec.template.metadata == nil then
+  #           obj.spec.template.metadata = {}
+  #       end
+  #       if obj.spec.template.metadata.annotations == nil then
+  #           obj.spec.template.metadata.annotations = {}
+  #       end
+  #       obj.spec.template.metadata.annotations["kubectl.kubernetes.io/restartedAt"] = os.date("!%Y-%m-%dT%XZ")
+  #       return obj

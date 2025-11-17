@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    name: cert-manager
+    purpose: certificate-management
+    managed-by: argocd
+  annotations:
+    description: "cert-manager for automated SSL/TLS certificate management"

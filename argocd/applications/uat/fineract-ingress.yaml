@@ -1,0 +1,53 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-ingress
+  namespace: argocd
+  labels:
+    environment: uat
+    component: ingress-resources
+  annotations:
+    # Sync wave 6 - Deploy after OAuth2 Proxy (wave 5) and Redis (wave 3)
+    argocd.argoproj.io/sync-wave: "6"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # UAT syncs from main branch
+    path: apps/ingress/overlays/uat
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-uat
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Description
+      value: "Fineract Ingress resources with OAuth2 Proxy auth, read/write routing, and RBAC"
+    - name: Phase
+      value: "Phase 2 - Nginx Ingress Configuration"
+    - name: Sync Wave
+      value: "6 (after OAuth2 Proxy and Redis)"
+    - name: Dependencies
+      value: "Ingress-Nginx (wave 1), Redis (wave 3), OAuth2 Proxy (wave 5)"
+    - name: Includes
+      value: "ingress.yaml (public, oauth2, protected endpoints)"
+    - name: Environment
+      value: "uat (apps.uat.fineract.com, auth.uat.fineract.com)"
+    - name: Auto-Deploy
+      value: "false - manual sync required"

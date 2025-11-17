@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: allow-transactions-on-non-working-day
+  labels:
+    config-scope: global
+spec:
+  name: allow-transactions-on-non_working_day
+  enabled: false
+  value: 'false'
+  trapDoor: false
+  description: Block transactions on holidays and weekends

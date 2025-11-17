@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Tax Group",
+  "description": "Schema for validating Fineract tax group configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["Taxgroup"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["name", "taxComponents"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Tax group name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Tax group description"
+        },
+        "taxComponents": {
+          "type": "array",
+          "minItems": 1,
+          "description": "List of tax components in this group",
+          "items": {
+            "type": "object",
+            "required": ["name", "percentage", "creditGLCode", "creditAccountType", "startDate"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Tax component name"
+              },
+              "percentage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Tax percentage"
+              },
+              "creditGLCode": {
+                "type": "string",
+                "minLength": 1,
+                "description": "GL account code for credit"
+              },
+              "creditAccountType": {
+                "type": "string",
+                "enum": ["Asset", "Liability", "Equity", "Income", "Expense"],
+                "description": "GL account type"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Tax component start date (YYYY-MM-DD)"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

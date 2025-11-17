@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: cash-shortage
+  labels:
+    account-type: expense
+    usage: detail
+spec:
+  name: Cash Shortage
+  glCode: '98'
+  type: Expense
+  usage: Detail
+  manualEntriesAllowed: true
+  description: Cash shortages from teller operations

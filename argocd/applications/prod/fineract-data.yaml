@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-data-loader
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"  # Deploy AFTER Fineract app is healthy
+    description: "Fineract configuration data loader for PRODUCTION"
+    notifications.argoproj.io/subscribe.on-deployed.slack: fineract-production
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: fineract-production
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Production syncs from main branch
+    path: operations/fineract-data/jobs/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    # Manual sync for data loading - STRICT APPROVAL REQUIRED FOR PRODUCTION
+    # Do NOT auto-sync to prevent accidental data reloading
+    syncOptions:
+      - CreateNamespace=false  # Namespace already exists from platform services
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  info:
+    - name: Component
+      value: Fineract Configuration Data Loader
+    - name: Environment
+      value: PRODUCTION
+    - name: Purpose
+      value: "Load initial configuration: offices, products, code values"
+    - name: Sync
+      value: "MANUAL ONLY - STRICT approval required for production"
+    - name: When to Run
+      value: "AFTER Fineract backend is deployed and healthy"
+    - name: Data Loaded
+      value: "Code values, Production offices, Production loan products"
+    - name: Demo Data
+      value: "NO DEMO DATA in production (clients/accounts excluded)"
+    - name: Warning
+      value: "⚠️ Review data files before loading to production!"
+    - name: Safe to Re-run
+      value: "Jobs are idempotent (won't duplicate data)"

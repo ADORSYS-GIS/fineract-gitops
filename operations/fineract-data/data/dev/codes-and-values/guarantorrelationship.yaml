@@ -1,0 +1,20 @@
+apiVersion: fineract.apache.org/v1
+kind: CodeValue
+metadata:
+  name: guarantorrelationship
+  labels:
+    category: code-value
+spec:
+  codeName: GuarantorRelationship
+  systemDefined: false
+  values:
+  - name: Family Member
+    position: 1
+  - name: Employer
+    position: 2
+  - name: Business Partner
+    position: 3
+  - name: Group Member
+    position: 4
+  - name: Community Leader
+    position: 5

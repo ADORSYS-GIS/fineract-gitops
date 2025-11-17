@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-data-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: fineract-operations
+    app.kubernetes.io/component: data-operations
+    app.kubernetes.io/environment: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"  # Deploy after Keycloak config (wave 5) and Fineract (wave 0-9)
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main
+    path: operations/fineract-data/jobs/overlays/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in Job status and metadata
+  ignoreDifferences:
+    - group: batch
+      kind: Job
+      jsonPointers:
+        - /status
+        - /spec/template/metadata/labels
+        - /spec/template/metadata/annotations

@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fineract-uat
+  namespace: argocd
+  # Finalizer ensures project is not deleted until no longer referenced
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Fineract UAT Environment
+
+  # Allow manifests to deploy from specific Git repository
+  sourceRepos:
+    - 'https://github.com/ADORSYS-GIS/fineract-gitops.git'
+    - '*'  # Temporary - restrict in production
+
+  # Only permit applications to deploy to the UAT namespace and argocd namespace
+  destinations:
+    - namespace: fineract-uat
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+
+  # Deny all cluster-scoped resources from being created, except for namespaces
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+
+  # Allow all namespaced-scoped resources to be created
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Deny certain resources that should be managed by platform team
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+
+  # Enables namespace orphaned resource monitoring
+  orphanedResources:
+    warn: true
+
+  # Sync windows - restrict deployments to business hours
+  syncWindows:
+    - kind: allow
+      schedule: '0 9-17 * * 1-5'  # Mon-Fri, 9 AM - 5 PM
+      duration: 8h
+      applications:
+        - '*'
+      manualSync: true  # Allow manual sync anytime
+
+  roles:
+    # A role which provides read-only access to all applications in the project
+    - name: read-only
+      description: Read-only privileges to fineract-uat project
+      policies:
+        - p, proj:fineract-uat:read-only, applications, get, fineract-uat/*, allow
+      groups:
+        - developers
+        - viewers
+        - qa-team
+
+    # A role which provides sync privileges (can trigger deployments)
+    - name: deployer
+      description: Deployment privileges to fineract-uat project
+      policies:
+        - p, proj:fineract-uat:deployer, applications, get, fineract-uat/*, allow
+        - p, proj:fineract-uat:deployer, applications, sync, fineract-uat/*, allow
+      groups:
+        - dev-leads
+        - qa-leads
+
+    # A role which provides full access to all applications in the project
+    - name: admin
+      description: Admin privileges to fineract-uat project
+      policies:
+        - p, proj:fineract-uat:admin, applications, *, fineract-uat/*, allow
+      groups:
+        - platform-admins

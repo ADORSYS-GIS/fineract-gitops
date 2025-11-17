@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanCollateral
+metadata:
+  name: collateral-loan-006-5
+  labels:
+    collateral-type: farm-equipment
+spec:
+  loanAccountId: LOAN-006
+  collateralTypeId: Farm Equipment
+  value: 1000000.0
+  description: Tractor and farming implements
+  location: Farm in Dschang Road
+  condition: Good
+  valuationDate: '2024-02-01'
+  valuationBy: Equipment Assessor

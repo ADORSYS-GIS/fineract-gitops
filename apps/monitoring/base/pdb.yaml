@@ -1,0 +1,44 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: prometheus-pdb
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+  annotations:
+    description: "Prevents disruption of Prometheus - ensures continuous metrics collection"
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: grafana-pdb
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+  annotations:
+    description: "Prevents disruption of Grafana - ensures dashboard availability"
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: alertmanager-pdb
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+  annotations:
+    description: "Prevents disruption of AlertManager - ensures alert delivery"
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager

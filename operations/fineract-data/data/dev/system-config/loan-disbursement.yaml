@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: MakerChecker
+metadata:
+  name: loan-disbursement
+  labels:
+    entity: loan
+spec:
+  taskName: Loan Disbursement
+  entity: LOAN
+  action: DISBURSE
+  thresholdAmount: 5000000.0
+  thresholdCurrency: XAF
+  makerRole: Loan Officer
+  checkerRole: Branch Manager
+  enabled: true

@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-production
+
+resources:
+  - ../../base
+
+# PRODUCTION: Exclude demo data jobs by using a filter
+# We'll manually document which jobs to skip for production deployment
+# Alternatively, production can manually sync only the jobs it needs
+
+commonLabels:
+  environment: production
+  app.kubernetes.io/instance: fineract-production-data-loader
+
+commonAnnotations:
+  environment: production
+  sync-mode: automated
+  description: "Production environment - configuration and products ONLY (no demo data)"
+  warning: "IMPORTANT: Before deploying to production, manually remove demo data jobs (Wave 30-42) or use selective sync"
+
+# NOTE: Production should exclude Wave 30-42 jobs:
+# - job-clients.yaml
+# - job-loan-accounts.yaml
+# - job-savings-accounts.yaml
+# - job-loan-collateral.yaml
+# - job-loan-guarantors.yaml
+# - job-savings-deposits.yaml
+# - job-savings-withdrawals.yaml
+# - job-loan-repayments.yaml
+#
+# Recommendation: Use ArgoCD selective sync or create production-specific data ConfigMap
+# that excludes demo client/account/transaction data

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: promtail
+    app.kubernetes.io/component: log-collector
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: promtail
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: promtail
+        app.kubernetes.io/component: log-collector
+    spec:
+      serviceAccountName: promtail
+      # SECURITY NOTE: Promtail runs as root (UID 0) because it needs to:
+      # 1. Read log files from /var/log (owned by root with 0644 permissions)
+      # 2. Access container logs in /var/lib/docker/containers (requires root)
+      # 3. Read Kubernetes pod logs from hostPath volumes
+      # This is a common pattern for log collectors (Promtail, Fluentd, Filebeat)
+      # Mitigation: DaemonSet only runs on worker nodes, has minimal privileges via RBAC
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      containers:
+      - name: promtail
+        image: grafana/promtail:2.9.3
+        args:
+        - -config.file=/etc/promtail/promtail.yaml
+        ports:
+        - name: http-metrics
+          containerPort: 9080
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /etc/promtail
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+      volumes:
+      - name: config
+        configMap:
+          name: promtail-config
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      tolerations:
+      # Run on all nodes including master
+      - effect: NoSchedule
+        operator: Exists

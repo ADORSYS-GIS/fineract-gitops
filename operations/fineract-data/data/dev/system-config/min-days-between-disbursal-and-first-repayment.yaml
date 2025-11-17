@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: min-days-between-disbursal-and-first-repayment
+  labels:
+    config-scope: global
+spec:
+  name: min-days-between-disbursal-and-first-repayment
+  enabled: true
+  value: '1'
+  trapDoor: false
+  description: Minimum days between disbursement and first repayment

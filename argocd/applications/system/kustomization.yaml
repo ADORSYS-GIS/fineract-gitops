@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ArgoCD Applications for System Resources
+#
+# This kustomization deploys Applications that manage core system components:
+# - sealed-secrets-controller (secret encryption)
+#
+# Uses Kustomize replacements to centralize repository URL
+#
+# Usage:
+#   kubectl apply -k argocd/applications/system
+
+resources:
+  - argocd-config.yaml
+  - sealed-secrets-controller.yaml
+
+# Replacements to inject repository URL into all Application manifests
+replacements:
+  # Replace repoURL in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.repoURL
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.source.repoURL
+
+  # Replace targetRevision in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.targetRevision
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.source.targetRevision
+
+commonLabels:
+  app.kubernetes.io/managed-by: argocd
+  app.kubernetes.io/part-of: system-infrastructure
+
+# Namespace where these Applications will be created
+namespace: argocd

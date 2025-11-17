@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: financial-year-start
+  labels:
+    config-type: Accounting
+spec:
+  name: FINANCIAL_YEAR_START
+  enabled: true
+  value: 01-January
+  description: ''

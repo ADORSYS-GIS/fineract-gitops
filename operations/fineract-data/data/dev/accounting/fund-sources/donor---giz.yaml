@@ -1,0 +1,9 @@
+apiVersion: fineract.apache.org/v1
+kind: Fund
+metadata:
+  name: donor---giz
+  labels:
+    fund-type: general
+spec:
+  name: Donor - GIZ
+  externalId: FUND-005

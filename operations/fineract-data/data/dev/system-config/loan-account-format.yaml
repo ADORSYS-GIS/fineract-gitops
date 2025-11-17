@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: AccountNumberFormat
+metadata:
+  name: loan-account-format
+  labels:
+    format-type: loan
+spec:
+  accountType: LOAN
+  prefixType: PRODUCT SHORT NAME
+  accountNumberLength: 12

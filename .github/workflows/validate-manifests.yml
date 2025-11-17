@@ -1,0 +1,194 @@
+name: Validate Kubernetes Manifests
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**/*.yaml'
+      - 'environments/**/*.yaml'
+      - 'argocd/**/*.yaml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/**/*.yaml'
+      - 'environments/**/*.yaml'
+      - 'argocd/**/*.yaml'
+
+jobs:
+  validate:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install kubeconform
+      run: |
+        curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.4/kubeconform-linux-amd64.tar.gz
+        tar xf kubeconform.tar.gz
+        sudo mv kubeconform /usr/local/bin/
+        kubeconform -v
+
+    - name: Validate Kubernetes manifests
+      run: |
+        echo "Validating Kubernetes manifests..."
+        kubeconform \
+          -summary \
+          -output json \
+          -ignore-missing-schemas \
+          -kubernetes-version 1.28.0 \
+          -schema-location default \
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+          apps/ environments/ argocd/ || true
+
+    - name: Validate with strict mode (fail on errors)
+      run: |
+        echo "Running strict validation..."
+        # Find all YAML files excluding patches directories and template files
+        find apps/ argocd/ -name '*.yaml' -o -name '*.yml' | \
+          grep -v '\.template$' | \
+          xargs kubeconform \
+            -strict \
+            -ignore-missing-schemas \
+            -kubernetes-version 1.28.0 \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+        # Validate only namespace.yaml and kustomization.yaml files in environments
+        # Skip patch files as they are incomplete manifests validated via kustomize build
+        find environments/*/. -maxdepth 1 \( -name 'namespace.yaml' -o -name 'kustomization.yaml' \) | \
+          xargs kubeconform \
+            -strict \
+            -ignore-missing-schemas \
+            -kubernetes-version 1.28.0 \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+    - name: Install Kustomize
+      run: |
+        curl -sSLo kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz
+        tar xf kustomize.tar.gz
+        sudo mv kustomize /usr/local/bin/
+
+    - name: Kustomize Build Validation
+      run: |
+        echo "Validating Kustomize builds..."
+
+        echo "Building and validating dev environment..."
+        kustomize build environments/dev | kubeconform \
+          -strict \
+          -ignore-missing-schemas \
+          -kubernetes-version 1.28.0 \
+          -schema-location default \
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+        echo "Building and validating uat environment..."
+        kustomize build environments/uat | kubeconform \
+          -strict \
+          -ignore-missing-schemas \
+          -kubernetes-version 1.28.0 \
+          -schema-location default \
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+        echo "Building and validating production environment..."
+        kustomize build environments/production | kubeconform \
+          -strict \
+          -ignore-missing-schemas \
+          -kubernetes-version 1.28.0 \
+          -schema-location default \
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+    - name: YAML Lint
+      uses: ibiqlik/action-yamllint@v3
+      with:
+        file_or_dir: apps/ environments/ argocd/
+        config_data: |
+          extends: default
+          rules:
+            line-length:
+              max: 250
+              level: warning
+            indentation:
+              spaces: 2
+              indent-sequences: whatever
+            comments:
+              min-spaces-from-content: 1
+            comments-indentation: disable
+            document-start: disable
+            brackets:
+              max-spaces-inside: 1
+            braces:
+              max-spaces-inside: 1
+            truthy: disable
+            trailing-spaces: disable
+            new-line-at-end-of-file: disable
+            empty-lines:
+              max: 3
+
+    - name: Check for placeholder values
+      run: |
+        echo "Checking for placeholder values..."
+        if grep -r "github.com/\*" apps/ argocd/ environments/ 2>/dev/null; then
+          echo "❌ ERROR: Found placeholder GitHub URLs (github.com/*)"
+          echo "Run: ./scripts/replace-placeholders.sh"
+          exit 1
+        fi
+
+        # Check for REPLACE placeholders, excluding secret template files
+        if grep -r "REPLACE" apps/ argocd/ environments/ 2>/dev/null | \
+           grep -v "# REPLACE" | \
+           grep -v "secret.yaml" | \
+           grep -v "secret-template.yaml"; then
+          echo "❌ ERROR: Found REPLACE placeholders"
+          exit 1
+        fi
+
+        # Check for CHANGE_ME placeholders, excluding secret template files
+        if grep -r "CHANGE_ME" apps/ argocd/ environments/ 2>/dev/null | \
+           grep -v "# CHANGE_ME" | \
+           grep -v "# TODO" | \
+           grep -v "secret.yaml" | \
+           grep -v "secret-template.yaml" | \
+           grep -v "secret-admin.yaml"; then
+          echo "❌ ERROR: Found CHANGE_ME placeholders"
+          echo "Run: ./scripts/remove-plaintext-secrets.sh"
+          exit 1
+        fi
+
+        echo "✅ No placeholder values found (secret templates excluded)"
+
+    - name: Validate Pod Security Standards
+      run: |
+        echo "Checking for Pod Security Standards compliance..."
+
+        # Check for runAsNonRoot in production deployments
+        if ls apps/*/base/deployment*.yaml 2>/dev/null; then
+          for file in apps/*/base/deployment*.yaml; do
+            if ! grep -q "runAsNonRoot: true" "$file" 2>/dev/null; then
+              echo "⚠️  WARNING: $file missing runAsNonRoot: true"
+            fi
+          done
+        fi
+
+        # Check for allowPrivilegeEscalation
+        if ls apps/*/base/deployment*.yaml 2>/dev/null; then
+          for file in apps/*/base/deployment*.yaml; do
+            if ! grep -q "allowPrivilegeEscalation: false" "$file" 2>/dev/null; then
+              echo "⚠️  WARNING: $file missing allowPrivilegeEscalation: false"
+            fi
+          done
+        fi
+
+        echo "✅ Pod Security Standards check complete"
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "## Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Kubernetes manifest validation complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ YAML lint check complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Placeholder value check complete" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Pod Security Standards check complete" >> $GITHUB_STEP_SUMMARY

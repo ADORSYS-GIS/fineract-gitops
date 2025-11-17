@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: loan-approval-limit-director
+  labels:
+    config-type: Approval
+spec:
+  name: LOAN_APPROVAL_LIMIT_DIRECTOR
+  enabled: true
+  value: unlimited
+  description: ''

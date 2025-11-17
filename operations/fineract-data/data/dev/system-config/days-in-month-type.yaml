@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: days-in-month-type
+  labels:
+    config-scope: global
+spec:
+  name: days-in-month-type
+  enabled: true
+  value: '30'
+  trapDoor: false
+  description: 'Days in month for interest calculations: 30 or Actual'

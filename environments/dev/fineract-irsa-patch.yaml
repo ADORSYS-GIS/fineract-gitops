@@ -1,0 +1,13 @@
+# Patch to inject the IRSA IAM Role ARN for Fineract service account
+# This ARN is created by Terraform and should be retrieved from Terraform outputs
+# Run: cd terraform/aws && terraform output fineract_service_account_role_arn
+#
+# For dev environment, the role ARN should be:
+# arn:aws:iam::<AWS_ACCOUNT_ID>:role/fineract-dev-dev-fineract-irsa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fineract-aws
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::465315288758:role/fineract-dev-dev-fineract-irsa"

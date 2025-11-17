@@ -1,0 +1,21 @@
+# ArgoCD Application Configuration for Production Environment
+# This ConfigMap centralizes all environment-specific values for ArgoCD applications
+# These values are used by Kustomize replacements to inject into Application manifests
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-app-config
+  namespace: argocd
+data:
+  # Git repository configuration
+  repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+  targetRevision: "main"  # Production deploys from main branch (stable releases)
+
+  # Environment configuration
+  environment: "prod"
+  namespace: "fineract-prod"
+  argocdProject: "fineract-production"
+
+  # Kubernetes cluster
+  clusterServer: "https://kubernetes.default.svc"

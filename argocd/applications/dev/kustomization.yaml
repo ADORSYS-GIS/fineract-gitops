@@ -1,0 +1,73 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ArgoCD Application Definitions for Dev Environment
+# Uses Kustomize replacements to eliminate hardcoded values
+# All environment-specific values are defined in argocd-config.yaml ConfigMap
+
+resources:
+  - argocd-config.yaml
+  - database-fineract-init.yaml  # Renamed for clarity
+  - database-keycloak-setup.yaml  # Renamed for clarity
+  - fineract-data.yaml
+  - fineract-ingress.yaml
+  - fineract-redis.yaml
+  - fineract.yaml
+  - keycloak-config.yaml  # New - creates Fineract realm
+  - keycloak.yaml
+  - network-policies.yaml
+  - oauth2-proxy.yaml
+  - sealed-secrets-controller.yaml
+  - web-app.yaml
+
+# Replacements to inject environment-specific values into all Application manifests
+# This eliminates hardcoded repoURL, targetRevision, namespace, and project values
+replacements:
+  # Replace repoURL in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.repoURL
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.source.repoURL
+
+  # Replace targetRevision in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.targetRevision
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.source.targetRevision
+
+  # Replace destination namespace in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.namespace
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.destination.namespace
+
+  # Replace ArgoCD project in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.argocdProject
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.project
+
+commonLabels:
+  app.kubernetes.io/part-of: fineract-platform
+  app.kubernetes.io/managed-by: argocd
+  fineract.io/environment: dev

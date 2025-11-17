@@ -1,0 +1,21 @@
+apiVersion: fineract.apache.org/v1
+kind: Office
+metadata:
+  name: yaounde-branch
+  labels:
+    office-type: branch
+spec:
+  name: Yaounde Branch
+  externalId: BR-YDE-001
+  parentOffice: Head Office
+  openingDate: '2024-01-15'
+  address:
+    street: Avenue Kennedy, Quartier Bastos
+    city: Yaounde
+    postalCode: ''
+    country: ''
+  contact:
+    phone: +237 222 20 45 67
+    email: yaounde@mfi.cm
+    manager: ''
+  status: ACTIVE

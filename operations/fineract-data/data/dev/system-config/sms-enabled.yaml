@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: sms-enabled
+  labels:
+    config-type: Communication
+spec:
+  name: SMS_ENABLED
+  enabled: true
+  value: 'No'
+  description: ''

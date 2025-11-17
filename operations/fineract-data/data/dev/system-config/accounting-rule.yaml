@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: accounting-rule
+  labels:
+    config-scope: global
+spec:
+  name: accounting-rule
+  enabled: true
+  value: '2'
+  trapDoor: false
+  description: 'Accounting rule: 1=None, 2=Cash, 3=Accrual Periodic, 4=Accrual Upfront'

@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: FinancialActivityMapping
+metadata:
+  name: opening-balances-contra
+  labels:
+    activity-type: financial-activity
+spec:
+  financialActivityName: Opening Balances Contra
+  glAccountCode: '71'
+  glAccountName: Share Capital
+  description: Opening balance contra account - for initial data migration

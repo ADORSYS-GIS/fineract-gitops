@@ -1,0 +1,18 @@
+apiVersion: fineract.apache.org/v1
+kind: FinancialReport
+metadata:
+  name: loan-repayment-collections
+  labels:
+    report-category: financial
+spec:
+  reportName: Loan Repayment Collections
+  reportType: Balance Sheet
+  useReport: true
+  reportSql: "SELECT\n    DATE(t.transaction_date) as collection_date,\n    pt.value\
+    \ as payment_type,\n    COUNT(t.id) as transaction_count,\n    SUM(t.amount) as\
+    \ total_collected,\n    SUM(t.principal_portion_derived) as principal_collected,\n\
+    \    SUM(t.interest_portion_derived) as interest_collected\nFROM m_loan_transaction\
+    \ t\nLEFT JOIN m_payment_type pt ON t.payment_detail_id = pt.id\nWHERE t.transaction_type_enum\
+    \ = 2\n    AND t.is_reversed = 0\n    AND t.transaction_date >= DATE_SUB(CURDATE(),\
+    \ INTERVAL 30 DAY)\nGROUP BY DATE(t.transaction_date), pt.value\nORDER BY collection_date\
+    \ DESC"

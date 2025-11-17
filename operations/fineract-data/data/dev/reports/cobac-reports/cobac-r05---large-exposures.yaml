@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: COBACReport
+metadata:
+  name: cobac-r05---large-exposures
+  labels:
+    report-category: cobac
+spec:
+  reportName: COBAC R05 - Large Exposures
+  reportCode: ''
+  reportType: Regulatory
+  useReport: true
+  reportSql: ''

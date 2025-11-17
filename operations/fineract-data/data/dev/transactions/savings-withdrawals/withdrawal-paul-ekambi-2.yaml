@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsWithdrawal
+metadata:
+  name: withdrawal-paul-ekambi-2
+  labels:
+    transaction-type: withdrawal
+spec:
+  savingsAccountId: SAV-004
+  transactionDate: '2024-03-16'
+  transactionAmount: 30000.0
+  paymentTypeId: Cash
+  receiptNumber: WDL-003
+  note: Personal expense

@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: collateral-types-data
+  files:
+  - group-guarantee.yaml
+  - household-goods.yaml
+  - land-title.yaml
+  - savings-account-lien.yaml
+  - shop-business-equipment.yaml
+  - vehicle-registration.yaml

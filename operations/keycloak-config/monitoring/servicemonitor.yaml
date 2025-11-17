@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keycloak
+  namespace: fineract
+  labels:
+    app: keycloak
+    component: identity-provider
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - fineract
+    - fineract-dev
+    - fineract-uat
+    - fineract-production

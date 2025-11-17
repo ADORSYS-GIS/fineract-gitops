@@ -1,0 +1,420 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-webank-theme-css
+  labels:
+    app: keycloak
+    component: theme
+data:
+  webank.css: |
+    /**
+     * Webank Banking Theme
+     * Professional, secure, trustworthy design for banking applications
+     */
+
+    :root {
+      /* Webank Brand Colors - Professional Banking Palette */
+      --webank-primary: #003366;      /* Deep blue - trust, stability */
+      --webank-primary-dark: #002244;
+      --webank-primary-light: #0055aa;
+      --webank-accent: #0066cc;        /* Bright blue - action */
+      --webank-accent-hover: #0055aa;
+
+      /* Neutrals */
+      --webank-white: #ffffff;
+      --webank-gray-50: #f8f9fa;
+      --webank-gray-100: #e9ecef;
+      --webank-gray-200: #dee2e6;
+      --webank-gray-300: #ced4da;
+      --webank-gray-600: #6c757d;
+      --webank-gray-800: #343a40;
+      --webank-gray-900: #212529;
+
+      /* Semantic Colors */
+      --webank-success: #28a745;
+      --webank-danger: #dc3545;
+      --webank-warning: #ffc107;
+      --webank-info: #17a2b8;
+
+      /* Typography */
+      --webank-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --webank-font-size-base: 16px;
+      --webank-font-size-sm: 14px;
+      --webank-font-size-lg: 18px;
+      --webank-font-size-xl: 24px;
+
+      /* Spacing */
+      --webank-spacing-xs: 0.5rem;
+      --webank-spacing-sm: 1rem;
+      --webank-spacing-md: 1.5rem;
+      --webank-spacing-lg: 2rem;
+      --webank-spacing-xl: 3rem;
+
+      /* Border Radius */
+      --webank-radius-sm: 4px;
+      --webank-radius-md: 8px;
+      --webank-radius-lg: 12px;
+
+      /* Shadows */
+      --webank-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+      --webank-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+      --webank-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Global Resets */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--webank-font-family);
+      font-size: var(--webank-font-size-base);
+      line-height: 1.6;
+      color: var(--webank-gray-900);
+      background: linear-gradient(135deg, var(--webank-gray-50) 0%, var(--webank-gray-100) 100%);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    /* Login Container */
+    #kc-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: var(--webank-spacing-md);
+    }
+
+    #kc-container-wrapper {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Card Styling */
+    #kc-content,
+    #kc-form {
+      background: var(--webank-white);
+      border-radius: var(--webank-radius-lg);
+      box-shadow: var(--webank-shadow-lg);
+      padding: var(--webank-spacing-xl);
+    }
+
+    /* Header */
+    #kc-header {
+      text-align: center;
+      margin-bottom: var(--webank-spacing-lg);
+    }
+
+    #kc-header-wrapper {
+      font-size: var(--webank-font-size-xl);
+      font-weight: 600;
+      color: var(--webank-primary);
+      margin-bottom: var(--webank-spacing-sm);
+    }
+
+    /* Logo */
+    .kc-logo-text {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--webank-primary);
+      letter-spacing: -0.5px;
+    }
+
+    /* Form Groups */
+    .form-group {
+      margin-bottom: var(--webank-spacing-md);
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      color: var(--webank-gray-800);
+      margin-bottom: var(--webank-spacing-xs);
+      font-size: var(--webank-font-size-sm);
+    }
+
+    /* Input Fields */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--webank-gray-300);
+      border-radius: var(--webank-radius-md);
+      font-size: var(--webank-font-size-base);
+      transition: all 0.2s ease;
+      background: var(--webank-white);
+      color: var(--webank-gray-900);
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="email"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--webank-accent);
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    input[type="text"]:disabled,
+    input[type="password"]:disabled,
+    input[type="email"]:disabled {
+      background: var(--webank-gray-100);
+      cursor: not-allowed;
+    }
+
+    /* Buttons */
+    button,
+    .btn,
+    input[type="submit"] {
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--webank-radius-md);
+      font-size: var(--webank-font-size-base);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    /* Primary Button */
+    #kc-form-buttons .btn-primary,
+    button.btn-primary,
+    input[type="submit"] {
+      background: var(--webank-accent);
+      color: var(--webank-white);
+      width: 100%;
+      padding: 14px 24px;
+      font-weight: 600;
+    }
+
+    #kc-form-buttons .btn-primary:hover,
+    button.btn-primary:hover,
+    input[type="submit"]:hover {
+      background: var(--webank-accent-hover);
+      box-shadow: var(--webank-shadow-md);
+      transform: translateY(-1px);
+    }
+
+    #kc-form-buttons .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: var(--webank-shadow-sm);
+    }
+
+    /* Secondary Button */
+    .btn-secondary {
+      background: var(--webank-white);
+      color: var(--webank-accent);
+      border: 2px solid var(--webank-accent);
+    }
+
+    .btn-secondary:hover {
+      background: var(--webank-gray-50);
+    }
+
+    /* Links */
+    a {
+      color: var(--webank-accent);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--webank-accent-hover);
+      text-decoration: underline;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: var(--webank-spacing-md);
+      border-radius: var(--webank-radius-md);
+      margin-bottom: var(--webank-spacing-md);
+      border-left: 4px solid;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      border-color: var(--webank-success);
+      color: #155724;
+    }
+
+    .alert-error,
+    .alert-danger {
+      background: #f8d7da;
+      border-color: var(--webank-danger);
+      color: #721c24;
+    }
+
+    .alert-warning {
+      background: #fff3cd;
+      border-color: var(--webank-warning);
+      color: #856404;
+    }
+
+    .alert-info {
+      background: #d1ecf1;
+      border-color: var(--webank-info);
+      color: #0c5460;
+    }
+
+    /* Checkbox & Radio */
+    input[type="checkbox"],
+    input[type="radio"] {
+      margin-right: var(--webank-spacing-xs);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    /* Remember Me, Password Reset Links */
+    #kc-form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--webank-spacing-md);
+      font-size: var(--webank-font-size-sm);
+    }
+
+    /* Info Section */
+    #kc-info {
+      margin-top: var(--webank-spacing-lg);
+      padding-top: var(--webank-spacing-md);
+      border-top: 1px solid var(--webank-gray-200);
+      text-align: center;
+      font-size: var(--webank-font-size-sm);
+      color: var(--webank-gray-600);
+    }
+
+    /* WebAuthn Device Registration */
+    .webauthn-container {
+      text-align: center;
+      padding: var(--webank-spacing-lg);
+    }
+
+    .webauthn-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--webank-spacing-md);
+      margin: var(--webank-spacing-lg) 0;
+    }
+
+    .webauthn-option {
+      padding: var(--webank-spacing-lg);
+      border: 2px solid var(--webank-gray-300);
+      border-radius: var(--webank-radius-lg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--webank-white);
+    }
+
+    .webauthn-option:hover {
+      border-color: var(--webank-accent);
+      box-shadow: var(--webank-shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .webauthn-option img {
+      width: 64px;
+      height: 64px;
+      margin-bottom: var(--webank-spacing-sm);
+    }
+
+    .webauthn-option h3 {
+      margin: var(--webank-spacing-sm) 0;
+      color: var(--webank-primary);
+    }
+
+    .webauthn-option p {
+      color: var(--webank-gray-600);
+      font-size: var(--webank-font-size-sm);
+      margin: 0;
+    }
+
+    /* Security Badge */
+    .security-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      background: var(--webank-gray-50);
+      border: 1px solid var(--webank-gray-300);
+      border-radius: var(--webank-radius-sm);
+      font-size: var(--webank-font-size-sm);
+      color: var(--webank-gray-700);
+      margin-top: var(--webank-spacing-md);
+    }
+
+    .security-badge::before {
+      content: "🔒";
+      margin-right: 6px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      #kc-container {
+        padding: var(--webank-spacing-sm);
+      }
+
+      #kc-content,
+      #kc-form {
+        padding: var(--webank-spacing-lg);
+      }
+
+      .kc-logo-text {
+        font-size: 28px;
+      }
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid var(--webank-gray-200);
+      border-top: 3px solid var(--webank-accent);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Accessibility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    /* Focus Visible (for keyboard navigation) */
+    button:focus-visible,
+    input:focus-visible,
+    a:focus-visible {
+      outline: 2px solid var(--webank-accent);
+      outline-offset: 2px;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white;
+      }
+
+      #kc-content,
+      #kc-form {
+        box-shadow: none;
+      }
+    }

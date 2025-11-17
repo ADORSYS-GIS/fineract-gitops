@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsDeposit
+metadata:
+  name: deposit-justine-moukouri-5
+  labels:
+    transaction-type: deposit
+spec:
+  savingsAccountId: SAV-007
+  transactionDate: '2024-03-12'
+  transactionAmount: 35000.0
+  paymentTypeId: Cheque
+  receiptNumber: RCP-006
+  note: Farm income deposit

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fineract-uat
+  labels:
+    name: fineract-uat
+    environment: uat
+    project: fineract
+    managed-by: argocd
+  annotations:
+    description: "Fineract platform namespace for UAT environment"

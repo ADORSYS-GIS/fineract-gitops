@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: thomas-ndongo
+  labels:
+    staff-type: regular
+spec:
+  firstName: Thomas
+  lastName: Ndongo
+  officeId: Head Office
+  isLoanOfficer: true
+  externalId: STF-101
+  mobileNo: +237 677 11 11 11
+  emailAddress: t.ndongo@mfi.cm
+  isActive: true
+  username: admin.system
+  role: System Administrator

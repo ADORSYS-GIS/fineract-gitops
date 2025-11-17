@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fineract-data-entities
+  namespace: fineract-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+    argocd.argoproj.io/hook: PostSync
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: fineract-data-loader
+
+      initContainers:
+      - name: validate-yaml
+        image: ghcr.io/adorsys-gis/fineract-loader:v1.0.0
+        command: ["python3", "/app/validate_yaml_data.py", "/data"]
+        volumeMounts:
+        - name: data
+          mountPath: /data
+          readOnly: true
+
+      containers:
+      - name: loader
+        image: ghcr.io/adorsys-gis/fineract-loader:v1.0.0
+        command:
+        - python3
+        - /app/loaders/load_entities.py
+        args:
+        - --yaml-dir
+        - /data
+        - --fineract-url
+        - $(FINERACT_URL)
+        - --tenant
+        - $(TENANT)
+        env:
+        - name: FINERACT_URL
+          value: "https://api.dev.fineract.com"
+        - name: TENANT
+          value: "default"
+        - name: FINERACT_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: fineract-admin-credentials
+              key: client-id
+        - name: FINERACT_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: fineract-admin-credentials
+              key: client-secret
+        - name: FINERACT_TOKEN_URL
+          valueFrom:
+            secretKeyRef:
+              name: fineract-admin-credentials
+              key: token-url
+        volumeMounts:
+        - name: data
+          mountPath: /data
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+      volumes:
+      - name: data
+        configMap:
+          name: fineract-data-entities

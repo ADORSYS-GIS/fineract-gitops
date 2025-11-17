@@ -1,0 +1,70 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: prometheus
+spec:
+  replicas: 1
+  version: v2.48.0
+
+  # Service account
+  serviceAccountName: prometheus
+
+  # Service monitor selector - matches all ServiceMonitors
+  serviceMonitorSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: monitoring-stack
+
+  # Pod monitor selector
+  podMonitorSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: monitoring-stack
+
+  # Rule selector - matches all PrometheusRules
+  ruleSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: monitoring-stack
+
+  # Resources
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1000m
+      memory: 4Gi
+
+  # Storage
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+
+  # Retention
+  retention: 30d
+  retentionSize: 45GB
+
+  # AlertManager configuration
+  alerting:
+    alertmanagers:
+    - name: alertmanager
+      namespace: monitoring
+      port: web
+
+  # Security context
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+
+  # Scrape configuration
+  additionalScrapeConfigs:
+    name: additional-scrape-configs
+    key: prometheus-additional.yaml

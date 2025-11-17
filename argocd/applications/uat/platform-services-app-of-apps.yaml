@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-platform-services
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    description: "Platform services for Fineract UAT (excludes Fineract app and Web Apps)"
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # UAT syncs from main
+    path: argocd/applications/uat
+    directory:
+      recurse: false
+      # Exclude app-of-apps itself and Fineract
+      exclude: |
+        app-of-apps.yaml
+        fineract.yaml
+        platform-services-app-of-apps.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Platform Services (UAT)
+    - name: Environment
+      value: UAT
+    - name: Includes
+      value: "PostgreSQL HA, Redis, Keycloak, Gateways, Monitoring, Logging"
+    - name: Excludes
+      value: "Fineract backend, Web Apps (deployed from their repos)"
+    - name: Auto-Deploy
+      value: "false"
+    - name: Deployment Method
+      value: "Post-infrastructure, Pre-application"

@@ -1,0 +1,19 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsProduct
+metadata:
+  name: fixed-deposit-account
+  labels:
+    product-type: savings
+    category: general
+spec:
+  name: Fixed Deposit Account
+  shortName: FDEP
+  description: Fixed deposit with higher interest rate
+  currency: XAF
+  digitsAfterDecimal: 2
+  nominalAnnualInterestRate: 6.0
+  interestCompoundingPeriod: Monthly
+  interestPostingPeriod: Monthly
+  interestCalculationType: Daily Balance
+  minRequiredOpeningBalance: 0.0
+  withdrawalFeeForTransfers: false

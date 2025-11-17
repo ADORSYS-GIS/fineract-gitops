@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: GuarantorType
+metadata:
+  name: employer
+  labels:
+    guarantor-category: individual
+spec:
+  name: Employer
+  description: Employer guarantee for salaried clients
+  minGuarantorAmount: 0.0

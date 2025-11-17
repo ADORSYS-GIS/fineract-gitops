@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: PaymentTypeAccounting
+metadata:
+  name: cash
+  labels:
+    payment-category: accounting
+spec:
+  paymentType: Cash
+  glAccountCode: '42'
+  glAccountName: Cash on Hand
+  isFundSource: true
+  description: Physical cash transactions

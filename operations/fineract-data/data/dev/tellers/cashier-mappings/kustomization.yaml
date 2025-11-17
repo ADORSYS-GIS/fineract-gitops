@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: cashier-mappings-data
+  files:
+  - cashier-bafoussam-branch.yaml
+  - cashier-bamenda-branch.yaml
+  - cashier-douala-branch.yaml
+  - cashier-yaounde-branch.yaml

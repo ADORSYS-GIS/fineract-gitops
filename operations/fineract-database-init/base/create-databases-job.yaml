@@ -1,0 +1,115 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-fineract-databases
+  annotations:
+    description: "Creates Fineract PostgreSQL databases (NOT schema) before app deployment"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app.kubernetes.io/name: database-init
+    app.kubernetes.io/part-of: fineract-platform
+    app.kubernetes.io/component: database
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: postgres-client
+        image: postgres
+        # SENSITIVE DATA IN ENVIRONMENT VARIABLES:
+        # Database credentials (PGPASSWORD) exposed as environment variables
+        #
+        # SECURITY TRADE-OFF:
+        # - Environment variables are visible in pod spec and `kubectl describe pod`
+        # - Can be scraped from /proc/<pid>/environ by processes in same container
+        # - Logged in container crash dumps if not careful
+        #
+        # RATIONALE FOR CURRENT APPROACH:
+        # - PostgreSQL client (psql) standard: Uses PGPASSWORD env var by convention
+        # - Simplicity: No need for custom connection scripts
+        # - Job context: Short-lived job (runs once, then terminates)
+        # - RBAC protection: Only users with pod describe/exec permissions can view
+        #
+        # MORE SECURE ALTERNATIVES:
+        # 1. Mounted secret files (recommended for long-running pods):
+        #    volumeMounts:
+        #    - name: db-creds
+        #      mountPath: /secrets
+        #      readOnly: true
+        #    volumes:
+        #    - name: db-creds
+        #      secret:
+        #        secretName: fineract-db-credentials
+        #    Then: export PGPASSWORD=$(cat /secrets/password)
+        #
+        # 2. .pgpass file (PostgreSQL-native):
+        #    Create ~/.pgpass with format: hostname:port:database:username:password
+        #    Permissions: chmod 0600 ~/.pgpass
+        #    No PGPASSWORD needed
+        #
+        # 3. External secrets operator (production):
+        #    Fetch secrets from AWS Secrets Manager/Vault at runtime
+        #    Never store in Kubernetes secrets
+        #
+        # CURRENT APPROACH JUSTIFICATION:
+        # - Acceptable for: Dev/staging, short-lived jobs, bootstrapping
+        # - Consider file-based for: Production, long-running pods, high-security environments
+        # - Risk mitigation: RBAC, sealed secrets (encrypted at rest), network policies
+        env:
+        - name: PGHOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: PGPORT
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: port
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+        - name: PGDATABASE
+          value: "postgres"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Connecting to PostgreSQL..."
+          echo "Checking if databases already exist (idempotent operation)..."
+
+          # Create fineract_tenants database (idempotent)
+          if psql -lqt | cut -d \| -f 1 | grep -qw fineract_tenants; then
+            echo "Database 'fineract_tenants' already exists, skipping creation"
+          else
+            echo "Creating database 'fineract_tenants'..."
+            psql -c "CREATE DATABASE fineract_tenants OWNER ${PGUSER};"
+            echo "Database 'fineract_tenants' created successfully"
+          fi
+
+          # Create fineract_default database (idempotent)
+          if psql -lqt | cut -d \| -f 1 | grep -qw fineract_default; then
+            echo "Database 'fineract_default' already exists, skipping creation"
+          else
+            echo "Creating database 'fineract_default'..."
+            psql -c "CREATE DATABASE fineract_default OWNER ${PGUSER};"
+            echo "Database 'fineract_default' created successfully"
+          fi
+
+          echo ""
+          echo "Database initialization complete. Current Fineract databases:"
+          psql -c "\l" | grep fineract || echo "No Fineract databases found"
+
+          echo ""
+          echo "✅ Database init job completed successfully (idempotent)"

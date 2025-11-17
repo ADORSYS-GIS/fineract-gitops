@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-network-policies
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"  # Deploy early with infrastructure
+    description: "Network policies for service isolation and security in production"
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main
+    path: apps/network-policies
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    # Manual sync for production
+    # automated:
+    #   prune: false
+    #   selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Network Security
+    - name: Environment
+      value: Production
+    - name: Purpose
+      value: "Service-level network isolation and firewall rules"
+    - name: Policies
+      value: "PostgreSQL, Redis, Keycloak, Fineract isolation"
+    - name: Auto-Deploy
+      value: "false (manual approval required)"

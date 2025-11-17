@@ -1,0 +1,31 @@
+apiVersion: fineract.apache.org/v1
+kind: Role
+metadata:
+  name: branch-manager
+  labels:
+    role-type: custom
+spec:
+  name: Branch Manager
+  description: Full client management
+  disabled: false
+  permissions:
+  - grouping: Client
+    code: Client_ALL_FUNCTIONS
+  - grouping: Loan
+    code: Loan_ALL_FUNCTIONS
+  - grouping: Savings
+    code: Savings_ALL_FUNCTIONS
+  - grouping: Transaction
+    code: Transaction_ALL_FUNCTIONS
+  - grouping: Report
+    code: Report_READ
+  - grouping: Office
+    code: Office_READ
+  - grouping: Staff
+    code: Staff_READ
+  - grouping: Accounting
+    code: Accounting_CREATE_READ
+  - grouping: Teller
+    code: Teller_ALL_FUNCTIONS
+  - grouping: Maker-Checker
+    code: Maker-Checker_APPROVE

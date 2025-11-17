@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fineract-dev
+  labels:
+    name: fineract-dev
+    environment: dev
+    project: fineract
+    managed-by: argocd
+  annotations:
+    description: "Fineract platform namespace for dev environment"

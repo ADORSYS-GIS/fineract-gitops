@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: COBACReport
+metadata:
+  name: cobac-r02---loan-provisioning
+  labels:
+    report-category: cobac
+spec:
+  reportName: COBAC R02 - Loan Provisioning
+  reportCode: ''
+  reportType: Regulatory
+  useReport: true
+  reportSql: ''

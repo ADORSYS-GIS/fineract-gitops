@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: MakerChecker
+metadata:
+  name: create-manual-journal-entry
+  labels:
+    entity: journalentry
+spec:
+  taskName: Create Manual Journal Entry
+  entity: JOURNALENTRY
+  action: CREATE
+  thresholdAmount: 500000.0
+  thresholdCurrency: XAF
+  makerRole: Accountant
+  checkerRole: Branch Manager
+  enabled: true

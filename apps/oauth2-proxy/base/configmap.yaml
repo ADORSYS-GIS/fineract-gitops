@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oauth2-proxy-config
+  labels:
+    app: oauth2-proxy
+    app.kubernetes.io/name: oauth2-proxy
+    app.kubernetes.io/component: authentication
+    app.kubernetes.io/part-of: fineract-platform
+data:
+  # Redis connection URL (used by OAuth2 Proxy for session storage)
+  # Default: In-cluster Redis service
+  # Can be overridden via Kustomize patch for:
+  #   - External Redis (AWS ElastiCache, etc.)
+  #   - TLS-enabled Redis (rediss://)
+  #   - Different Redis configuration per environment
+  # Example override in overlay:
+  #   patches:
+  #   - patch: |-
+  #       apiVersion: v1
+  #       kind: ConfigMap
+  #       metadata:
+  #         name: oauth2-proxy-config
+  #       data:
+  #         redis-connection-url: "rediss://elasticache-endpoint:6379"
+  redis-connection-url: "redis://fineract-redis:6379"
+
+  # OAuth2 Proxy configuration file
+  oauth2_proxy.cfg: |
+    # ============================================================================
+    # HTTP Server Configuration
+    # ============================================================================
+    http_address = "0.0.0.0:4180"
+    https_address = ""
+    reverse_proxy = true
+
+    # ============================================================================
+    # OIDC Provider Configuration (Keycloak)
+    # ============================================================================
+    provider = "oidc"
+    provider_display_name = "Fineract Keycloak"
+
+    # Keycloak OIDC issuer URL (public-facing)
+    oidc_issuer_url = "${OIDC_ISSUER_URL}"
+
+    # OIDC Client credentials (from secrets)
+    # - OAUTH2_PROXY_CLIENT_ID
+    # - OAUTH2_PROXY_CLIENT_SECRET
+    # - OAUTH2_PROXY_COOKIE_SECRET
+
+    # OIDC configuration (using auto-discovery)
+    skip_oidc_discovery = false
+    insecure_oidc_skip_issuer_verification = false
+
+    oidc_email_claim = "email"
+    oidc_groups_claim = "roles"
+
+    # Additional claims to extract
+    extra_jwt_issuers = ""
+
+    # ============================================================================
+    # Redirect and Callback Configuration
+    # ============================================================================
+    # Redirect URL (where Keycloak sends users after authentication)
+    redirect_url = "${REDIRECT_URL}"
+
+    # Whitelist domains for redirects after authentication
+    whitelist_domains = "${WHITELIST_DOMAINS}"
+
+    # ============================================================================
+    # Cookie Configuration
+    # ============================================================================
+    cookie_name = "_oauth2_proxy"
+    cookie_secure = true
+    cookie_httponly = true
+    cookie_samesite = "lax"
+    cookie_domains = "${COOKIE_DOMAINS}"
+
+    # Cookie expiration (4 hours to match Keycloak SSO session)
+    cookie_expire = "4h"
+    cookie_refresh = "20m"  # Refresh 10 minutes before token expiry to ensure tokens are refreshed while valid
+
+    # ============================================================================
+    # Session Configuration
+    # ============================================================================
+    # Session store type (redis for HA)
+    session_store_type = "redis"
+
+    # Redis configuration (set via environment variables):
+    # - OAUTH2_PROXY_REDIS_CONNECTION_URL
+    # - OAUTH2_PROXY_REDIS_PASSWORD
+
+    # ============================================================================
+    # Email and Authorization
+    # ============================================================================
+    # Allow all authenticated users (fine-grained RBAC handled by Nginx)
+    email_domains = "*"
+
+    # Skip authentication for specific paths
+    # Static assets and health checks should not require authentication
+    skip_auth_routes = [
+      "^/ping$",
+      "^/ready$",
+      "^/.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$",  # Static assets (JS, CSS, fonts, images)
+      "^/assets/.*$",      # Assets directory
+      "^/manifest\\.json$", # PWA manifest
+      "^/favicon\\.ico$",  # Favicon
+    ]
+
+    # ============================================================================
+    # Upstream Configuration
+    # ============================================================================
+    # OAuth2 Proxy acts as authentication layer only in auth_request mode
+    upstreams = []
+
+    # ============================================================================
+    # Headers and Request Flow
+    # ============================================================================
+    # Pass authentication headers to backend
+    set_xauthrequest = true
+    set_authorization_header = true
+    pass_authorization_header = true
+    pass_access_token = true
+    pass_user_headers = true
+
+    # ============================================================================
+    # Logging Configuration
+    # ============================================================================
+    logging_filename = ""
+    logging_max_size = 100
+    logging_max_age = 7
+    logging_max_backups = 0
+    logging_local_time = true
+    logging_compress = false
+    standard_logging = true
+    auth_logging = true
+    request_logging = true
+
+    # ============================================================================
+    # Security Configuration
+    # ============================================================================
+    # SSL certificate verification (secure default)
+    # Note: Dev environment overrides this via Kustomize patch for self-signed certs
+    ssl_insecure_skip_verify = false
+    force_https = false # Handled by Nginx Ingress
+
+    # ============================================================================
+    # Scope Configuration
+    # ============================================================================
+    scope = "openid profile email roles offline_access"
+
+    # ============================================================================
+    # Metrics and Health
+    # ============================================================================
+    metrics_address = "0.0.0.0:9090"
+    ping_path = "/ping"
+    ready_path = "/ready"
+
+    # ============================================================================
+    # Banner and UI
+    # ============================================================================
+    custom_sign_in_logo = ""
+    footer = "Fineract Platform - Secured by OAuth2 Proxy"
+
+    # ============================================================================
+    # Advanced Configuration
+    # ============================================================================
+    skip_jwt_bearer_tokens = false
+    allowed_groups = []
+    real_client_ip_header = "X-Forwarded-For"
+    silence_ping_logging = true

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fineract-loader-scripts
+  namespace: fineract-dev
+data:
+  # Base loader script
+  base_loader.py: |
+    # Content will be generated from scripts/loaders/base_loader.py
+    # This is a placeholder - actual content should be copied from the source file
+
+  # Validation script
+  validate_yaml_data.py: |
+    # Content will be generated from scripts/validate_yaml_data.py
+    # This is a placeholder - actual content should be copied from the source file
+
+  # Individual loader scripts will be added here
+  # Each loader script should be copied from scripts/loaders/*.py

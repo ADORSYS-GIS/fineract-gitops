@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: InterBranchTransfer
+metadata:
+  name: transfer-douala-branch-to-yaounde-branch-3
+  labels:
+    transfer-type: inter-branch
+spec:
+  fromOfficeId: Douala Branch
+  toOfficeId: Yaounde Branch
+  transactionDate: '2024-03-18'
+  amount: 4000000.0
+  currency: XAF
+  transferType: Cash Transfer
+  referenceNumber: IBT-004
+  initiatedBy: Grace Douala
+  description: Excess liquidity transfer to Head Office region
+  status: Completed

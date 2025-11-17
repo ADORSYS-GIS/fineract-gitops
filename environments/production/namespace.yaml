@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fineract-production
+  labels:
+    name: fineract-production
+    environment: production
+    project: fineract
+    managed-by: argocd
+  annotations:
+    description: "Fineract platform namespace for production environment"

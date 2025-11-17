@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsDeposit
+metadata:
+  name: deposit-paul-ekambi-2
+  labels:
+    transaction-type: deposit
+spec:
+  savingsAccountId: SAV-004
+  transactionDate: '2024-03-02'
+  transactionAmount: 30000.0
+  paymentTypeId: Cash
+  receiptNumber: RCP-003
+  note: Weekly deposit

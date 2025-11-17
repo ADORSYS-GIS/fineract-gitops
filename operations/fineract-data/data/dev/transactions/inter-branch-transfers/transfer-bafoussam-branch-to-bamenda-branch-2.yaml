@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: InterBranchTransfer
+metadata:
+  name: transfer-bafoussam-branch-to-bamenda-branch-2
+  labels:
+    transfer-type: inter-branch
+spec:
+  fromOfficeId: Bafoussam Branch
+  toOfficeId: Bamenda Branch
+  transactionDate: '2024-03-15'
+  amount: 2000000.0
+  currency: XAF
+  transferType: Cash Transfer
+  referenceNumber: IBT-003
+  initiatedBy: Samuel Kenmogne
+  description: Opening cash allocation for Bamenda branch
+  status: Completed

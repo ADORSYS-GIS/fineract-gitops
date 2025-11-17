@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: Holiday
+metadata:
+  name: youth-day-2025
+  labels:
+    holiday-type: public
+    year: '2025'
+spec:
+  name: Youth Day
+  fromDate: '2025-02-11'
+  toDate: '2025-02-11'
+  repaymentsRescheduledTo: '2025-02-12'
+  offices:
+  - all
+  description: Youth Day Holiday

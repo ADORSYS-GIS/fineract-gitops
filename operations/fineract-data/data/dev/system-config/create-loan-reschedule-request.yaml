@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: MakerChecker
+metadata:
+  name: create-loan-reschedule-request
+  labels:
+    entity: rescheduleloan
+spec:
+  taskName: Create Loan Reschedule Request
+  entity: RESCHEDULELOAN
+  action: CREATE
+  thresholdAmount: 1000000.0
+  thresholdCurrency: XAF
+  makerRole: Loan Officer
+  checkerRole: Branch Manager
+  enabled: true

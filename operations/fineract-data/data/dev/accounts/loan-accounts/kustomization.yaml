@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: loan-accounts-data
+  files:
+  - cli-001-loan-0.yaml
+  - cli-002-loan-1.yaml
+  - cli-003-loan-2.yaml
+  - cli-004-loan-3.yaml
+  - cli-005-loan-4.yaml
+  - cli-006-loan-5.yaml

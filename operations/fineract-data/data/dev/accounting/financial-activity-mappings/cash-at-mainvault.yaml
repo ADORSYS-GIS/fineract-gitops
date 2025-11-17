@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: FinancialActivityMapping
+metadata:
+  name: cash-at-mainvault
+  labels:
+    activity-type: financial-activity
+spec:
+  financialActivityName: Cash at Mainvault
+  glAccountCode: '42'
+  glAccountName: Cash on Hand
+  description: Main vault cash - head office cash reserves

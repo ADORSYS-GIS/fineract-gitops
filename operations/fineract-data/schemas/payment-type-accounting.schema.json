@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Payment Type Accounting",
+  "description": "Schema for validating Fineract payment type GL account mappings",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["PaymentTypeAccounting"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["paymentType", "glAccountCode"],
+      "properties": {
+        "paymentType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the payment type to configure accounting for"
+        },
+        "glAccountCode": {
+          "type": "string",
+          "minLength": 1,
+          "description": "GL account code to associate with this payment type"
+        },
+        "glAccountName": {
+          "type": "string",
+          "description": "GL account name (for documentation)"
+        },
+        "isFundSource": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this payment type represents a fund source"
+        },
+        "description": {
+          "type": "string",
+          "description": "Payment type accounting description"
+        }
+      }
+    }
+  }
+}

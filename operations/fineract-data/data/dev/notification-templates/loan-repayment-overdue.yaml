@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: NotificationTemplate
+metadata:
+  name: loan-repayment-overdue
+  labels:
+    channel: sms
+spec:
+  name: Loan Repayment Overdue
+  channel: SMS
+  eventTrigger: Repayment Overdue
+  subject: ''
+  messageBody: 'URGENT: Your loan repayment of {repaymentAmount} XAF was due on {repaymentDate}.
+    Outstanding: {totalOutstanding} XAF. Please pay immediately to avoid penalties.'
+  isActive: true
+  description: Sent when repayment becomes overdue

@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: system-max-retry-attempts
+  labels:
+    config-type: notification-settings
+    provider: system
+spec:
+  configType: Notification Settings
+  provider: System
+  configKey: max_retry_attempts
+  configValue: '3'
+  isActive: true
+  description: Maximum retry attempts for failed notifications

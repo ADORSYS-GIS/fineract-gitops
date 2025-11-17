@@ -1,0 +1,17 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fineract-read-pdb
+  labels:
+    app: fineract
+    component: read
+    app.kubernetes.io/name: fineract
+    app.kubernetes.io/component: read
+  annotations:
+    description: "Ensures at least 1 Fineract read instance remains available during disruptions"
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: fineract
+      component: read

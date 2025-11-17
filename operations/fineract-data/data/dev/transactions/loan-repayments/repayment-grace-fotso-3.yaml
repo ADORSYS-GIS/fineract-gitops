@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanRepayment
+metadata:
+  name: repayment-grace-fotso-3
+  labels:
+    transaction-type: repayment
+spec:
+  loanAccountId: LOAN-004
+  transactionDate: '2024-03-25'
+  transactionAmount: 100000.0
+  paymentTypeId: Bank Transfer
+  receiptNumber: REP-004
+  note: Late payment with penalty

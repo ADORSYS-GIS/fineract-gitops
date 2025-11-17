@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# UAT environment overlay for cert-manager
+# Patches Let's Encrypt contact emails for UAT environment
+
+resources:
+  - ../../base
+
+# Patch Let's Encrypt issuer emails for UAT environment
+patches:
+  - patch: |-
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: letsencrypt-staging
+      spec:
+        acme:
+          # QA team email for staging certificate notifications
+          # Change to your organization's QA/UAT team email
+          email: platform-team@example.com
+    target:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+
+  - patch: |-
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: letsencrypt-prod
+      spec:
+        acme:
+          # Platform team email for production certificate notifications
+          # Change to your organization's platform team email
+          email: platform-team@example.com
+    target:
+      kind: ClusterIssuer
+      name: letsencrypt-prod
+
+commonLabels:
+  environment: uat

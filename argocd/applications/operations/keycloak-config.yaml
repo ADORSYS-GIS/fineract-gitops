@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: fineract-operations
+    app.kubernetes.io/component: identity-management
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Deploy after database-init (wave 0) but before Keycloak (wave 3)
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: develop
+    path: operations/keycloak-config/overlays/dev  # Environment-specific overlay
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true      # Remove resources when removed from Git
+      selfHeal: true   # Automatically sync when cluster state drifts
+      allowEmpty: false
+
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true  # Prune resources as last step
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in these fields (managed by Keycloak)
+  ignoreDifferences:
+    - group: batch
+      kind: Job
+      jsonPointers:
+        - /spec/template/metadata/labels
+        - /spec/template/metadata/annotations

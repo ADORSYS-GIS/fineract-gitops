@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: fineract-uat-quota
+  namespace: fineract-uat
+  labels:
+    environment: uat
+  annotations:
+    description: "Resource quota for UAT environment"
+spec:
+  hard:
+    # Compute resources (2x dev)
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+
+    # Storage
+    requests.storage: 200Gi
+    persistentvolumeclaims: "15"
+
+    # Object counts
+    pods: "75"
+    services: "25"
+    configmaps: "40"
+    secrets: "40"
+    replicationcontrollers: "15"
+    deployments.apps: "25"
+    statefulsets.apps: "15"

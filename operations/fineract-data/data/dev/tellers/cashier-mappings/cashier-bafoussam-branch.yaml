@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: TellerCashierMapping
+metadata:
+  name: cashier-bafoussam-branch
+  labels:
+    mapping-type: cashier
+    office: bafoussam-branch
+spec:
+  officeName: Bafoussam Branch
+  tellerName: Teller - Bafoussam
+  cashGLCode: '42'
+  vaultGLCode: '42'
+  shortageGLCode: '98'
+  overageGLCode: '86'
+  description: Bafoussam branch teller and vault configuration
+  startDate: '2025-11-11'
+  endDate: null

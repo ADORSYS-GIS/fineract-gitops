@@ -1,0 +1,132 @@
+# Fineract GitOps Project Rules
+
+## Project Type
+This is a GitOps infrastructure repository for Apache Fineract banking platform.
+
+## Code Style
+- Kubernetes YAML: Follow Kubernetes best practices
+- Python: PEP 8 style
+- YAML: 2-space indentation
+- Comments: Comprehensive inline documentation
+
+## Always Use YAML for Configuration
+- All Fineract configuration in YAML format (NOT Excel)
+- Reason: Git-friendly diffs, code review, version control
+- Pattern: See operations/fineract-data/data/ for examples
+
+## File Organization
+- Follow existing directory structure strictly
+- Configuration data: operations/fineract-data/data/{env}/
+- Jobs: operations/fineract-data/jobs/base/
+- Scripts: operations/fineract-data/scripts/loaders/
+- Docs: Keep comprehensive documentation
+
+## When Creating New Files
+1. Use existing files as templates
+2. Follow naming conventions (kebab-case)
+3. Add proper metadata and labels
+4. Include comprehensive comments
+5. Validate before committing
+
+## Extension Pattern
+When extending the repository:
+1. Copy existing example file
+2. Modify for new entity type
+3. Keep same structure and patterns
+4. Update documentation
+5. Test in dev environment first
+
+## Key Patterns to Follow
+
+### Kubernetes Jobs
+- Sequential numbering (01-30)
+- ArgoCD sync waves
+- Init containers for readiness checks
+- Proper resource limits
+- TTL for cleanup
+
+### Python Loaders
+- Extend BaseLoader class
+- Implement yaml_to_fineract_api()
+- Implement load_all()
+- Handle errors gracefully
+- Log comprehensively
+
+### YAML Config Files
+```yaml
+apiVersion: fineract.apache.org/v1
+kind: [EntityType]
+metadata:
+  name: kebab-case-name
+  labels:
+    category: value
+spec:
+  # Entity-specific configuration
+```
+
+## Environment-Specific Rules
+- **Dev:** Demo data allowed
+- **UAT:** Test data allowed
+- **Production:** Configuration ONLY (no demo/test data)
+
+## Validation Requirements
+- Run `python3 scripts/validate-data.py` before committing
+- All YAML must pass schema validation
+- Test in dev before production
+
+## Git Commit Messages
+Format: `type: description`
+
+Types:
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `ops:` - Operational config change
+- `keycloak:` - Keycloak configuration
+- `docs:` - Documentation
+- `chore:` - Maintenance
+
+Examples:
+- `ops: add SME loan product`
+- `keycloak: add new client for reporting app`
+- `docs: update implementation guide`
+
+## Important Paths
+- Fineract data: operations/fineract-data/
+- Keycloak config: operations/keycloak-config/
+- Apps: apps/
+- Scripts: scripts/
+- Docs: docs/
+
+## Do Not
+- ❌ Do not commit Excel files
+- ❌ Do not hardcode secrets
+- ❌ Do not create demo data in production
+- ❌ Do not skip validation
+- ❌ Do not change production directly (use Git)
+
+## Always
+- ✅ Use YAML for configuration
+- ✅ Validate before committing
+- ✅ Test in dev first
+- ✅ Document changes
+- ✅ Follow existing patterns
+- ✅ Create PRs for production changes
+
+## Reference Files
+When extending, use these as templates:
+- Job template: operations/fineract-data/jobs/base/10-load-loan-products.yaml
+- Loader template: operations/fineract-data/scripts/loaders/loan_products.py
+- Schema template: operations/fineract-data/schemas/loan-product.schema.json
+- YAML template: operations/fineract-data/data/dev/products/loan-products/personal-loan.yaml
+
+## Read First
+New to the project? Read these in order:
+1. README.md
+2. .claude.md (this directory context)
+3. IMPLEMENTATION_GUIDE.md
+4. PROJECT_STATUS.md
+
+## Timeline
+Foundation: ✅ Complete
+Remaining: 20% (extension of existing patterns)
+Estimated completion: 6-8 weeks

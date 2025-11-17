@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fineract-rbac-map
+data:
+  rbac-map.conf: |
+    # Map for RBAC endpoint categorization
+    # This can be used in nginx configuration-snippet for simpler RBAC
+
+    # Categorize endpoints by required privilege level
+    map $request_uri $endpoint_category {
+      default                                           "general";
+
+      # Admin-only endpoints (level 4 - highest privilege)
+      "~^/fineract-provider/api/v1/users"               "admin-only";
+      "~^/fineract-provider/api/v1/staff"               "admin-only";
+      "~^/fineract-provider/api/v1/permissions"         "admin-only";
+      "~^/fineract-provider/api/v1/roles"               "admin-only";
+      "~^/fineract-provider/api/v1/systemconfig"        "admin-only";
+      "~^/fineract-provider/api/v1/codes"               "admin-only";
+      "~^/fineract-provider/api/v1/hooks"               "admin-only";
+      "~^/fineract-provider/api/v1/jobs"                "admin-only";
+      "~^/fineract-provider/api/v1/configurations"      "admin-only";
+
+      # Accounting endpoints (level 3 - admin + accountant)
+      "~^/fineract-provider/api/v1/glaccounts"          "accounting";
+      "~^/fineract-provider/api/v1/journalentries"      "accounting";
+      "~^/fineract-provider/api/v1/accountingrules"     "accounting";
+
+      # Management endpoints (level 2 - admin + branch-manager)
+      "~^/fineract-provider/api/v1/offices"             "management";
+      "~^/fineract-provider/api/v1/clients"             "management";
+      "~^/fineract-provider/api/v1/groups"              "management";
+      "~^/fineract-provider/api/v1/centers"             "management";
+      "~^/fineract-provider/api/v1/loanproducts"        "management";
+      "~^/fineract-provider/api/v1/savingsproducts"     "management";
+
+      # Teller operations (level 2 - admin + branch-manager + teller)
+      "~^/fineract-provider/api/v1/teller"              "teller-ops";
+      "~^/fineract-provider/api/v1/cashiers"            "teller-ops";
+    }
+
+    # Check if user has required role for endpoint category
+    map "$endpoint_category:$http_x_auth_request_roles" $rbac_allowed {
+      default                                           1;  # Allow by default if authenticated
+
+      # Admin-only endpoints
+      "~^admin-only:.*admin.*"                          1;
+      "~^admin-only:.*"                                 0;
+
+      # Accounting endpoints (admin or accountant)
+      "~^accounting:.*(admin|accountant).*"             1;
+      "~^accounting:.*"                                 0;
+
+      # Management endpoints (admin or branch-manager)
+      "~^management:.*(admin|branch-manager).*"         1;
+      "~^management:.*"                                 0;
+
+      # Teller operations (admin, branch-manager, or teller)
+      "~^teller-ops:.*(admin|branch-manager|teller).*"  1;
+      "~^teller-ops:.*"                                 0;
+    }

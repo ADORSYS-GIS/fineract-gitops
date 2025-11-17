@@ -1,0 +1,18 @@
+apiVersion: fineract.apache.org/v1
+kind: CodeValue
+metadata:
+  name: educationlevel
+  labels:
+    category: code-value
+spec:
+  codeName: EducationLevel
+  systemDefined: false
+  values:
+  - name: Primary
+    position: 1
+  - name: Secondary
+    position: 2
+  - name: University
+    position: 3
+  - name: No Formal Education
+    position: 4

@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: justine-tchuente
+  labels:
+    staff-type: regular
+spec:
+  firstName: Justine
+  lastName: Tchuente
+  officeId: Bafoussam Branch
+  isLoanOfficer: true
+  externalId: STF-008
+  mobileNo: +237 677 89 01 23
+  emailAddress: j.tchuente@mfi.cm
+  isActive: true
+  username: loan.bafoussam
+  role: Loan Officer

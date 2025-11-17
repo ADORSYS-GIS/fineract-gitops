@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: test-staff
+  labels:
+    role: test
+spec:
+  firstName: Test
+  lastName: User
+  officeId: test-office
+  isLoanOfficer: true
+  externalId: STAFF-TEST-001
+  mobileNo: "+1234567890"
+  emailAddress: test.user@example.com
+  isActive: true
+  description: Minimal test staff member for loader validation

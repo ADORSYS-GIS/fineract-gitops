@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: NotificationTemplate
+metadata:
+  name: savings-account-activation
+  labels:
+    channel: sms
+spec:
+  name: Savings Account Activation
+  channel: SMS
+  eventTrigger: Savings Activated
+  subject: ''
+  messageBody: 'Hello {clientName}, your savings account {savingsAccountNumber} has
+    been activated. Current balance: {accountBalance} XAF.'
+  isActive: true
+  description: Sent when savings account is activated

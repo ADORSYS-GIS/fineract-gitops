@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: NotificationTemplate
+metadata:
+  name: loan-repayment-due
+  labels:
+    channel: sms
+spec:
+  name: Loan Repayment Due
+  channel: SMS
+  eventTrigger: Repayment Due in 3 Days
+  subject: ''
+  messageBody: 'Reminder: Your loan repayment of {repaymentAmount} XAF is due on {repaymentDate}.
+    Loan Account: {loanAccountNumber}. Thank you.'
+  isActive: true
+  description: Reminder sent 3 days before repayment due date

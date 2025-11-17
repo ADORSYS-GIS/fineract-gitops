@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Working Days",
+  "description": "Schema for validating Fineract working days configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["Workingdays"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["recurrence", "repaymentReschedulingType"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configuration name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Configuration description"
+        },
+        "recurrence": {
+          "type": "string",
+          "pattern": "^FREQ=(DAILY|WEEKLY);(BYDAY=[A-Z,]+)?$",
+          "description": "Recurrence pattern (e.g., 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR')"
+        },
+        "repaymentReschedulingType": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Repayment rescheduling type: 1=Move to Next Meeting Day, 2=Move to Next Repayment Date, 3=Move to Previous Meeting Day, 4=Move to Previous Repayment Date"
+        },
+        "extendTermForDailyRepayments": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to extend term for daily repayments"
+        }
+      }
+    }
+  }
+}

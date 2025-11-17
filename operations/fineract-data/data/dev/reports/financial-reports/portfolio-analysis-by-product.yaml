@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: FinancialReport
+metadata:
+  name: portfolio-analysis-by-product
+  labels:
+    report-category: financial
+spec:
+  reportName: Portfolio Analysis by Product
+  reportType: Balance Sheet
+  useReport: true
+  reportSql: "SELECT\n    p.name as product_name,\n    COUNT(l.id) as loan_count,\n\
+    \    SUM(l.principal_amount) as total_principal,\n    SUM(l.principal_outstanding_derived)\
+    \ as outstanding,\n    SUM(l.principal_repaid_derived) as repaid,\n    AVG(l.annual_nominal_interest_rate)\
+    \ as avg_interest_rate\nFROM m_loan l\nJOIN m_product_loan p ON l.product_id =\
+    \ p.id\nWHERE l.loan_status_id IN (200, 300)\nGROUP BY p.name\nORDER BY total_principal\
+    \ DESC"

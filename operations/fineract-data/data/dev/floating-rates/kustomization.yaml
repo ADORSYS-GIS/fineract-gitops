@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: floating-rates-data
+  files:
+  - beac-base-rate.yaml
+  - prime-lending-rate.yaml
+  - sme-lending-rate.yaml

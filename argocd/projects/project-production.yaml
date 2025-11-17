@@ -1,0 +1,91 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fineract-production
+  namespace: argocd
+  # Finalizer ensures project is not deleted until no longer referenced
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Fineract Production Environment
+
+  # Allow manifests to deploy ONLY from the approved Git repository
+  sourceRepos:
+    - 'https://github.com/ADORSYS-GIS/fineract-gitops.git'
+
+  # Only permit applications to deploy to the production namespace
+  destinations:
+    - namespace: fineract-production
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+
+  # Deny all cluster-scoped resources from being created
+  clusterResourceWhitelist: []
+
+  # Allow all namespaced-scoped resources to be created
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Deny certain resources that should be managed by platform team
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+
+  # Enables namespace orphaned resource monitoring
+  orphanedResources:
+    warn: true
+
+  # Sync windows - restrict production deployments to maintenance windows
+  syncWindows:
+    # Allow deployments during business hours on weekdays
+    - kind: allow
+      schedule: '0 10-16 * * 2-4'  # Tue-Thu, 10 AM - 4 PM (avoid Mon/Fri)
+      duration: 6h
+      applications:
+        - '*'
+      manualSync: true  # Require manual approval
+
+    # Block deployments during high-traffic hours
+    - kind: deny
+      schedule: '0 0-2,22-23 * * *'  # Late night/early morning maintenance window blocked
+      duration: 3h
+      applications:
+        - '*'
+
+  # Signature verification (requires GPG key setup)
+  # signatureKeys:
+  #   - keyID: ABCDEF1234567890
+
+  roles:
+    # A role which provides read-only access to all applications in the project
+    - name: read-only
+      description: Read-only privileges to fineract-production project
+      policies:
+        - p, proj:fineract-production:read-only, applications, get, fineract-production/*, allow
+      groups:
+        - developers
+        - viewers
+        - qa-team
+        - support-team
+
+    # A role which provides sync privileges (can trigger deployments with approval)
+    - name: deployer
+      description: Deployment privileges to fineract-production project
+      policies:
+        - p, proj:fineract-production:deployer, applications, get, fineract-production/*, allow
+        - p, proj:fineract-production:deployer, applications, sync, fineract-production/*, allow
+      groups:
+        - release-managers
+
+    # A role which provides full access to all applications in the project
+    - name: admin
+      description: Admin privileges to fineract-production project
+      policies:
+        - p, proj:fineract-production:admin, applications, *, fineract-production/*, allow
+      groups:
+        - platform-admins
+        - sre-team

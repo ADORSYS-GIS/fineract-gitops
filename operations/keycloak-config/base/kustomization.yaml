@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace managed by environment overlay - removed from base
+# namespace field will be set in overlays/*/kustomization.yaml
+
+# Resources
+resources:
+- jobs/apply-keycloak-config.yaml
+# Note: user-sync-service is now a separate app in apps/user-sync-service
+
+# ConfigMaps generated from files
+configMapGenerator:
+# Realm configuration - contains all realm settings AND default users
+- name: keycloak-realm-config
+  files:
+  - config/realm-fineract.yaml
+
+# Note: keycloak-config-vars ConfigMap is created in overlays
+# because it contains environment-specific values (domain, smtp settings)

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fineract-redis
+  labels:
+    app: fineract-redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: session-storage
+    app.kubernetes.io/part-of: fineract-platform
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet
+  selector:
+    app: fineract-redis
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  labels:
+    app: fineract-redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: session-storage
+  annotations:
+    description: "Redis service endpoint for OAuth2 Proxy"
+spec:
+  type: ClusterIP
+  selector:
+    app: fineract-redis
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-metrics
+  labels:
+    app: fineract-redis
+    app.kubernetes.io/name: redis
+    monitoring: prometheus
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9121"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: fineract-redis
+  ports:
+  - name: metrics
+    port: 9121
+    targetPort: 9121
+    protocol: TCP

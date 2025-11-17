@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: system-enable-sms-notifications
+  labels:
+    config-type: notification-settings
+    provider: system
+spec:
+  configType: Notification Settings
+  provider: System
+  configKey: enable_sms_notifications
+  configValue: 'Yes'
+  isActive: true
+  description: Enable SMS notifications globally

@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: GuarantorType
+metadata:
+  name: group-member
+  labels:
+    guarantor-category: individual
+spec:
+  name: Group Member
+  description: Fellow group member in solidarity lending
+  minGuarantorAmount: 0.0

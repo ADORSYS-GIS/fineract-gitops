@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: allow-transactions-on-holiday
+  labels:
+    config-scope: global
+spec:
+  name: allow-transactions-on-holiday
+  enabled: false
+  value: 'false'
+  trapDoor: false
+  description: Block transactions on public holidays

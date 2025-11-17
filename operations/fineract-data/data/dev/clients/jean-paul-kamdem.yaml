@@ -1,0 +1,21 @@
+apiVersion: fineract.apache.org/v1
+kind: Client
+metadata:
+  name: jean-paul-kamdem
+  labels:
+    client-type: Individual
+spec:
+  firstName: Jean Paul
+  middleName: ''
+  lastName: Kamdem
+  officeId: Bafoussam Branch
+  staffId: loan.bafoussam
+  externalId: CLI-004
+  mobileNo: +237 690 45 67 89
+  emailAddress: jp.kamdem@yahoo.fr
+  dateOfBirth: '1982-05-18'
+  genderId: Male
+  clientTypeId: Individual
+  clientClassificationId: Active
+  active: true
+  activationDate: '2024-02-05'

@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: PaymentType
+metadata:
+  name: payment-1
+  labels:
+    payment-category: general
+spec:
+  name: payment-1
+  description: MTN MoMo payment
+  isCashPayment: false
+  position: 2

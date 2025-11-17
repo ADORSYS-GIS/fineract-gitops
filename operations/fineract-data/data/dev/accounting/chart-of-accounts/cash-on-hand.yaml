@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: cash-on-hand
+  labels:
+    account-type: asset
+    usage: detail
+spec:
+  name: Cash on Hand
+  glCode: '42'
+  type: Asset
+  usage: Detail
+  manualEntriesAllowed: true
+  description: Physical cash in tellers and vaults

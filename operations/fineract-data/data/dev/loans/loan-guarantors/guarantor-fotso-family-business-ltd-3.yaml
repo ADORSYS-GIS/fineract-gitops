@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanGuarantor
+metadata:
+  name: guarantor-fotso-family-business-ltd-3
+  labels:
+    guarantor-type: corporate
+spec:
+  loanAccountId: LOAN-004
+  guarantorTypeId: Corporate
+  fullName: Fotso Family Business Ltd
+  identificationNumber: RC-DLA-2020-1234
+  phone: +237 233 44 55 66
+  address: Akwa, Douala
+  relationship: Family Business
+  amount: 1000000.0
+  guaranteeDate: '2024-02-20'

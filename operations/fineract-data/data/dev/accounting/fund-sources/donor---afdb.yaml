@@ -1,0 +1,9 @@
+apiVersion: fineract.apache.org/v1
+kind: Fund
+metadata:
+  name: donor---afdb
+  labels:
+    fund-type: general
+spec:
+  name: Donor - AfDB
+  externalId: FUND-004

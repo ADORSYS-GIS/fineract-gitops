@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-fineract
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"  # Deploy last, after all dependencies
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "fineract-deployments"
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Deploy from main branch
+    path: environments/uat
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-uat
+
+  syncPolicy:
+    # Manual sync required for UAT
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in certain fields
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+        - /spec/template/spec/containers/0/resources
+
+  info:
+    - name: Component
+      value: Apache Fineract Core Banking
+    - name: Environment
+      value: UAT
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Features
+      value: "PostgreSQL + Redis (Standard Profile)"
+    - name: Instances
+      value: "Read (2), Write (2), Batch (1)"

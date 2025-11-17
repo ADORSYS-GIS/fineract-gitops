@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: emmanuel-ewondo
+  labels:
+    staff-type: regular
+spec:
+  firstName: Emmanuel
+  lastName: Ewondo
+  officeId: Douala Branch
+  isLoanOfficer: true
+  externalId: STF-005
+  mobileNo: +237 677 56 78 90
+  emailAddress: e.ewondo@mfi.cm
+  isActive: true
+  username: loan.douala
+  role: Loan Officer

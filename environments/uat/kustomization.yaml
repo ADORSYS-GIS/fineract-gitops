@@ -1,0 +1,167 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fineract-uat-aws
+
+# UAT (User Acceptance Testing) Environment with AWS Managed Services
+#
+# Uses AWS managed services instead of self-hosted:
+# - RDS PostgreSQL instead of StatefulSet
+# - In-cluster Redis (fineract-redis) for sessions
+# - S3 for object storage
+#
+# Prerequisites: Terraform must provision AWS resources first
+# Configuration: Production-like for testing, manual sync required
+
+namespace: fineract-uat
+
+resources:
+  # Namespace (created first)
+  - namespace.yaml
+
+  # Database initialization (run before Fineract starts)
+  - ../../operations/database-init/base
+  - ../../operations/database-setup
+
+  # Fineract application
+  - ../../apps/fineract/base
+
+  # NOTE: Other components are deployed via ArgoCD applications:
+
+  # - fineract-redis (deployed via ArgoCD app)
+  # - keycloak (deployed via ArgoCD app)
+  # - oauth2-proxy (deployed via ArgoCD app)
+  # - monitoring, logging, network-policies (all via ArgoCD)
+
+  # DELETED COMPONENTS:
+  # - apache-gateway (replaced by OAuth2 Proxy + Nginx Ingress)
+  # - message-gateway (removed - no published image)
+  # - fineract-web-apps (removed - deprecated frontend apps)
+
+# AWS Managed Services Configuration
+# Fineract deployments will be patched below to connect to:
+# - RDS PostgreSQL (AWS managed)
+# - In-cluster Redis (fineract-redis StatefulSet)
+# - S3 Buckets (AWS managed)
+# Prerequisites: Terraform must provision AWS resources first
+
+images:
+  # ============================================================
+  # Image Version Configuration for UAT Environment
+  # ============================================================
+  # This is the single source of truth for all image versions
+  # in the UAT environment. Update versions here directly.
+  #
+  # UAT Environment Strategy:
+  # - Use stable release tags (never develop/latest)
+  # - Test versions here before promoting to production
+  # - Document version changes in release notes
+  # ============================================================
+
+  # Core Applications
+  # --------------------------------------------------------
+
+  # Apache Fineract - Core Banking Platform
+  # Using stable release for UAT testing before production
+  # Note: 1.13.0 doesn't exist yet, using 1.12.1
+  - name: apache/fineract
+    newName: apache/fineract
+    newTag: "1.12.1"
+
+  # Components Deployed via Separate ArgoCD Applications
+  # --------------------------------------------------------
+
+  # Keycloak - Identity and Access Management
+  # Deployed via: argocd/applications/uat/keycloak.yaml
+  - name: quay.io/keycloak/keycloak
+    newName: quay.io/keycloak/keycloak
+    newTag: "26.4.0"
+
+  # OAuth2 Proxy - Authentication Gateway
+  # Deployed via: argocd/applications/uat/oauth2-proxy.yaml
+  - name: quay.io/oauth2-proxy/oauth2-proxy
+    newName: quay.io/oauth2-proxy/oauth2-proxy
+    newTag: "v7.13.0"
+
+  # Redis - Session Storage
+  # Deployed via: argocd/applications/uat/fineract-redis.yaml
+  - name: redis
+    newName: redis
+    newTag: "7.2-alpine"
+
+  # Redis Exporter - Prometheus Metrics
+  # Deployed via: argocd/applications/uat/fineract-redis.yaml
+  - name: oliver006/redis_exporter
+    newName: oliver006/redis_exporter
+    newTag: "v1.55.0-alpine"
+
+  # Utility Images
+  # --------------------------------------------------------
+
+  # alpine - Lightweight Linux with envsubst via gettext
+  - name: alpine
+    newName: alpine
+    newTag: "3.18"
+
+  # curlimages/curl - HTTP Client for health checks
+  - name: curlimages/curl
+    newName: curlimages/curl
+    newTag: "8.4.0"
+
+  # postgres - PostgreSQL Client for database operations
+  - name: postgres
+    newName: postgres
+    newTag: "15-alpine"
+
+  # python - Python runtime for data loading and drift detection
+  - name: python
+    newName: python
+    newTag: "3.11-slim"
+
+  # kubectl - Kubernetes CLI
+  - name: bitnami/kubectl
+    newName: bitnami/kubectl
+    newTag: "1.28.4"
+
+  # busybox - Minimal Unix Tools
+  - name: busybox
+    newName: busybox
+    newTag: "1.36.1"
+
+  # keycloak-config-cli - Keycloak Configuration Tool
+  - name: adorsys/keycloak-config-cli
+    newName: adorsys/keycloak-config-cli
+    newTag: "5.9.0"
+
+  # Custom Images
+  # --------------------------------------------------------
+
+  # fineract-keycloak-sync - User Sync Service
+  - name: fineract-keycloak-sync
+    newName: fineract-keycloak-sync
+    newTag: "v1.0.0"
+
+patches:
+  # UAT web-app scaling
+  # Environment-specific OAuth2 configuration
+  - path: fineract-oauth2-config-patch.yaml
+    target:
+      kind: ConfigMap
+      name: fineract-oauth2-config
+
+
+commonLabels:
+  provider: aws-managed
+  infrastructure: aws
+  environment: uat
+  managed-by: argocd
+
+commonAnnotations:
+  provider-type: "aws-managed"
+  deployment-profile: "aws - managed services"
+  environment: uat
+  auto-sync: "disabled"
+  approval-required: "true"
+  contact: "qa-team@example.com"
+  terraform-required: "true"

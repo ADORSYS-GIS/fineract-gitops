@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-keycloak
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Deploy after databases
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "fineract-deployments"
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Deploy from main branch
+    path: apps/keycloak/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-uat
+
+  syncPolicy:
+    # Manual sync required for UAT
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Keycloak SSO/IAM
+    - name: Environment
+      value: UAT
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Features
+      value: "OIDC, User Management"

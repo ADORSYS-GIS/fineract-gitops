@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: PaymentType
+metadata:
+  name: payment-4
+  labels:
+    payment-category: general
+spec:
+  name: payment-4
+  description: Cheque payment
+  isCashPayment: false
+  position: 5

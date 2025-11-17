@@ -1,0 +1,313 @@
+{
+  "dashboard": {
+    "title": "Keycloak Security & Authentication Dashboard",
+    "tags": ["keycloak", "security", "authentication", "webank"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Login Success Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(keycloak_logins{realm=\"fineract\",result=\"success\"}[5m])",
+            "legendFormat": "Successful Logins",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(keycloak_logins{realm=\"fineract\",result=\"error\"}[5m])",
+            "legendFormat": "Failed Logins",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Logins/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Active Sessions",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "keycloak_sessions_active{realm=\"fineract\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 100, "color": "yellow"},
+                {"value": 500, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Failed Login Attempts (Last Hour)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "increase(keycloak_failed_login_attempts{realm=\"fineract\"}[1h])",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "WebAuthn Adoption Rate",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "(count(keycloak_user_credentials{realm=\"fineract\",type=\"webauthn\"}) / count(keycloak_users{realm=\"fineract\"})) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 50, "color": "yellow"},
+                {"value": 80, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Account Lockouts",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 4},
+        "targets": [
+          {
+            "expr": "increase(keycloak_user_event_LOGIN_ERROR{realm=\"fineract\",error=\"user_temporarily_disabled\"}[1h])",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Failed Logins by Username (Top 10)",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "topk(10, sum by (username) (increase(keycloak_failed_login_attempts{realm=\"fineract\"}[1h])))",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "renameByName": {
+                "username": "Username",
+                "Value": "Failed Attempts"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Authentication Events Timeline",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(keycloak_user_event_LOGIN{realm=\"fineract\"}[5m])",
+            "legendFormat": "Login",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(keycloak_user_event_LOGOUT{realm=\"fineract\"}[5m])",
+            "legendFormat": "Logout",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(keycloak_user_event_UPDATE_PASSWORD{realm=\"fineract\"}[5m])",
+            "legendFormat": "Password Change",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(keycloak_user_event_UPDATE_CREDENTIAL{realm=\"fineract\"}[5m])",
+            "legendFormat": "Credential Update",
+            "refId": "D"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Events/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Response Time (95th Percentile)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(keycloak_request_duration_seconds_bucket{job=\"keycloak\"}[5m]))",
+            "legendFormat": "p95 Response Time",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(keycloak_request_duration_seconds_bucket{job=\"keycloak\"}[5m]))",
+            "legendFormat": "p99 Response Time",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Client Logins by Application",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum by (client_id) (increase(keycloak_client_logins{realm=\"fineract\"}[1h]))",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Password Reset Requests",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(keycloak_user_event_SEND_RESET_PASSWORD{realm=\"fineract\"}[5m])",
+            "legendFormat": "Reset Requests",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "User Registrations (WebAuthn Devices)",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(keycloak_user_event_UPDATE_CREDENTIAL{realm=\"fineract\",credential_type=\"webauthn\"}[5m])",
+            "legendFormat": "Device Registrations",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Registrations/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Database Connection Pool",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 24},
+        "targets": [
+          {
+            "expr": "keycloak_database_connection_pool_active",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          },
+          {
+            "expr": "keycloak_database_connection_pool_max",
+            "legendFormat": "Max Connections",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Connections"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "realm",
+          "type": "query",
+          "query": "label_values(keycloak_logins, realm)",
+          "current": {
+            "text": "fineract",
+            "value": "fineract"
+          }
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h"]
+    }
+  }
+}

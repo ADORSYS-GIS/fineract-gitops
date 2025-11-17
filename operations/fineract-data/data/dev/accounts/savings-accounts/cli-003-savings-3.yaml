@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsAccount
+metadata:
+  name: cli-003-savings-3
+  labels:
+    account-type: savings
+spec:
+  clientId: CLI-003
+  productId: VSAV
+  fieldOfficerId: loan.yaounde
+  externalId: SAV-004
+  submittedOnDate: '2024-02-01'
+  approvedOnDate: '2024-02-01'
+  activatedOnDate: '2024-02-01'
+  nominalAnnualInterestRate: 5.0
+  minRequiredOpeningBalance: 15000.0

@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/managed-by: gitops
+data:
+  # Default policy: role:readonly
+  policy.default: role:readonly
+
+  # CSV format for RBAC policies
+  policy.csv: |
+    # ------------------
+    # Built-in Roles
+    # ------------------
+
+    # Platform Admins - Full access to everything
+    g, platform-admins, role:admin
+
+    # SRE Team - Full access to production
+    g, sre-team, role:admin
+    p, role:sre, applications, *, */*, allow
+    p, role:sre, clusters, *, *, allow
+    p, role:sre, repositories, *, *, allow
+    p, role:sre, projects, *, *, allow
+    g, sre-team, role:sre
+
+    # ------------------
+    # Development Environment
+    # ------------------
+
+    # Dev Leads - Full access to dev environment
+    p, role:dev-lead, applications, *, fineract-dev/*, allow
+    p, role:dev-lead, applications, create, fineract-dev/*, allow
+    p, role:dev-lead, applications, delete, fineract-dev/*, allow
+    p, role:dev-lead, applications, sync, fineract-dev/*, allow
+    p, role:dev-lead, projects, get, fineract-dev, allow
+    g, dev-leads, role:dev-lead
+
+    # Developers - Read-only + sync for dev
+    p, role:developer, applications, get, fineract-dev/*, allow
+    p, role:developer, applications, sync, fineract-dev/*, allow
+    p, role:developer, logs, get, fineract-dev/*, allow
+    p, role:developer, exec, create, fineract-dev/*, deny
+    g, developers, role:developer
+
+    # ------------------
+    # UAT Environment
+    # ------------------
+
+    # QA Leads - Full access to UAT
+    p, role:qa-lead, applications, *, fineract-uat/*, allow
+    p, role:qa-lead, applications, sync, fineract-uat/*, allow
+    p, role:qa-lead, projects, get, fineract-uat, allow
+    g, qa-leads, role:qa-lead
+
+    # QA Team - Read + sync for UAT
+    p, role:qa, applications, get, fineract-uat/*, allow
+    p, role:qa, applications, sync, fineract-uat/*, allow
+    p, role:qa, logs, get, fineract-uat/*, allow
+    g, qa-team, role:qa
+
+    # ------------------
+    # Production Environment
+    # ------------------
+
+    # Release Managers - Deploy to production (with approval)
+    p, role:release-manager, applications, get, fineract-production/*, allow
+    p, role:release-manager, applications, sync, fineract-production/*, allow
+    p, role:release-manager, projects, get, fineract-production, allow
+    g, release-managers, role:release-manager
+
+    # Support Team - Read-only access to production
+    p, role:support, applications, get, fineract-production/*, allow
+    p, role:support, logs, get, fineract-production/*, allow
+    g, support-team, role:support
+
+    # ------------------
+    # Viewers (all environments)
+    # ------------------
+
+    # Viewers - Read-only across all environments
+    p, role:viewer, applications, get, */*, allow
+    p, role:viewer, projects, get, *, allow
+    g, viewers, role:viewer
+
+    # ------------------
+    # Project-specific Roles
+    # ------------------
+
+    # Fineract Dev Project - Admin
+    p, proj:fineract-dev:admin, applications, *, fineract-dev/*, allow
+
+    # Fineract Dev Project - Read-only
+    p, proj:fineract-dev:read-only, applications, get, fineract-dev/*, allow
+
+    # Fineract UAT Project - Deployer
+    p, proj:fineract-uat:deployer, applications, get, fineract-uat/*, allow
+    p, proj:fineract-uat:deployer, applications, sync, fineract-uat/*, allow
+
+    # Fineract UAT Project - Read-only
+    p, proj:fineract-uat:read-only, applications, get, fineract-uat/*, allow
+
+    # Fineract Production Project - Deployer
+    p, proj:fineract-production:deployer, applications, get, fineract-production/*, allow
+    p, proj:fineract-production:deployer, applications, sync, fineract-production/*, allow
+
+    # Fineract Production Project - Read-only
+    p, proj:fineract-production:read-only, applications, get, fineract-production/*, allow
+
+    # Fineract Production Project - Admin
+    p, proj:fineract-production:admin, applications, *, fineract-production/*, allow
+
+  # OIDC group claims (configure for SSO)
+  # scopes: '[groups, email]'
+
+  # Anonymous user access (disabled for production)
+  # policy.anonymous: role:readonly

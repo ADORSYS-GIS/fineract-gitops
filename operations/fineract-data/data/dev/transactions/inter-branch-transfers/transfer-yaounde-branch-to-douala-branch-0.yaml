@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: InterBranchTransfer
+metadata:
+  name: transfer-yaounde-branch-to-douala-branch-0
+  labels:
+    transfer-type: inter-branch
+spec:
+  fromOfficeId: Yaounde Branch
+  toOfficeId: Douala Branch
+  transactionDate: '2024-03-10'
+  amount: 5000000.0
+  currency: XAF
+  transferType: Cash Transfer
+  referenceNumber: IBT-001
+  initiatedBy: Jean Mbarga
+  description: Branch liquidity management - Cash transfer to Douala
+  status: Completed

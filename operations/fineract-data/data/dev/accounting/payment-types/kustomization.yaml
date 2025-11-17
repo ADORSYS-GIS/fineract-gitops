@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: payment-types-data
+  files:
+  - payment-0.yaml
+  - payment-1.yaml
+  - payment-2.yaml
+  - payment-3.yaml
+  - payment-4.yaml

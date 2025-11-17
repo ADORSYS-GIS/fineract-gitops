@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsWithdrawal
+metadata:
+  name: withdrawal-pierre-tchuente-4
+  labels:
+    transaction-type: withdrawal
+spec:
+  savingsAccountId: SAV-011
+  transactionDate: '2024-03-17'
+  transactionAmount: 15000.0
+  paymentTypeId: Cash
+  receiptNumber: WDL-005
+  note: School fees

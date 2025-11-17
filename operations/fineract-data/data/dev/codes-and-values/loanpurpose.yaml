@@ -1,0 +1,22 @@
+apiVersion: fineract.apache.org/v1
+kind: CodeValue
+metadata:
+  name: loanpurpose
+  labels:
+    category: code-value
+spec:
+  codeName: LoanPurpose
+  systemDefined: false
+  values:
+  - name: Working Capital
+    position: 1
+  - name: Equipment Purchase
+    position: 2
+  - name: Inventory
+    position: 3
+  - name: Agricultural Input
+    position: 4
+  - name: Education
+    position: 5
+  - name: Emergency
+    position: 6

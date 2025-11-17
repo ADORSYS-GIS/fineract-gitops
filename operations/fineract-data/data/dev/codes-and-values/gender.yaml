@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: CodeValue
+metadata:
+  name: gender
+  labels:
+    category: code-value
+spec:
+  codeName: Gender
+  systemDefined: false
+  values:
+  - name: Male
+    position: 1
+  - name: Female
+    position: 2
+  - name: Other
+    position: 3

@@ -1,0 +1,62 @@
+# Environment Information for dev
+# Generated: 2025-11-13 23:07:34 UTC
+
+environment: dev
+namespace: fineract-dev
+
+# EKS Cluster
+eks:
+  cluster_name: fineract-dev
+  oidc_issuer: https://oidc.eks.us-east-2.amazonaws.com/id/F0DCA4019187BDC2724099B65A28F097
+
+# RDS Database
+rds:
+  host: fineract-dev-dev-fineract.chwm8cw2aza0.us-east-2.rds.amazonaws.com
+  port: 5432
+  database: fineract
+  username: fineract
+  # password: <sealed-secret: fineract-db-credentials>
+
+# S3 Storage
+s3:
+  bucket: 
+  documents_bucket: fineract-dev-dev-fineract-documents
+  backups_bucket: fineract-dev-dev-fineract-backups
+  region: us-east-2
+
+# IRSA (IAM Roles for Service Accounts)
+irsa:
+  app_role_arn: arn:aws:iam::465315288758:role/fineract-dev-app-service-account
+  ebs_csi_role_arn: arn:aws:iam::465315288758:role/fineract-dev-ebs-csi-driver
+
+# OAuth2
+oauth2:
+  client_id: fineract-oauth2-proxy
+  # client_secret: <sealed-secret: oauth2-proxy-secrets>
+  # cookie_secret: <sealed-secret: oauth2-proxy-secrets>
+
+# Redis
+redis:
+  endpoint: in-cluster
+  port: 6379
+
+# SES (Optional)
+ses:
+  enabled: 
+  host: 
+  port: 587
+  sender: 
+
+# Sealed Secrets Created
+sealed_secrets:
+  - fineract-db-credentials
+  - keycloak-db-credentials
+  - oauth2-proxy-secrets
+  - s3-connection
+  - smtp-credentials (if SES enabled)
+  - fineract-redis-credentials (if ElastiCache)
+
+# Service Accounts
+service_accounts:
+  - name: fineract-aws
+    role_arn: arn:aws:iam::465315288758:role/fineract-dev-app-service-account

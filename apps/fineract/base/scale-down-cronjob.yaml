@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fineract-scale-down
+spec:
+  schedule: "0 19 * * 1-5" # 7 PM on weekdays
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: fineract-scaler
+          restartPolicy: OnFailure
+          containers:
+          - name: kubectl
+            image: bitnami/kubectl:1.28.4
+            command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl scale rollout fineract-read -n fineract-dev --replicas=0
+              kubectl scale rollout fineract-read -n fineract-uat --replicas=0
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fineract-scaler
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fineract-scaler-role
+rules:
+- apiGroups: ["argoproj.io"]
+  resources: ["rollouts"]
+  verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fineract-scaler-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fineract-scaler-role
+subjects:
+- kind: ServiceAccount
+  name: fineract-scaler

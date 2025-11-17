@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: TellerCashierMapping
+metadata:
+  name: cashier-bamenda-branch
+  labels:
+    mapping-type: cashier
+    office: bamenda-branch
+spec:
+  officeName: Bamenda Branch
+  tellerName: Teller - Bamenda
+  cashGLCode: '42'
+  vaultGLCode: '42'
+  shortageGLCode: '98'
+  overageGLCode: '86'
+  description: Bamenda branch teller and vault configuration
+  startDate: '2025-11-11'
+  endDate: null

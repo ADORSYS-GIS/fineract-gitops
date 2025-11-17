@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: loans-to-clients---penalties-receivable
+  labels:
+    account-type: asset
+    usage: detail
+spec:
+  name: Loans to Clients - Penalties Receivable
+  glCode: '54'
+  type: Asset
+  usage: Detail
+  manualEntriesAllowed: false
+  description: Accrued penalties receivable

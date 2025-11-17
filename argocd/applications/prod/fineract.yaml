@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-fineract
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"  # Deploy last, after all dependencies
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "fineract-production"
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: "fineract-production"
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: "fineract-production"
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Deploy from main branch (tagged releases preferred)
+    path: environments/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    # Manual sync required for production - respects sync windows
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3  # Fewer retries for production
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  # Ignore differences in certain fields
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+        - /spec/template/spec/containers/0/resources
+
+  info:
+    - name: Component
+      value: Apache Fineract Core Banking
+    - name: Environment
+      value: Production
+    - name: Criticality
+      value: CRITICAL
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Sync Window
+      value: "Tue-Thu, 10 AM - 4 PM only"
+    - name: Features
+      value: "PostgreSQL + Redis (Standard Profile)"
+    - name: Instances
+      value: "Read (2), Write (2), Batch (1)"

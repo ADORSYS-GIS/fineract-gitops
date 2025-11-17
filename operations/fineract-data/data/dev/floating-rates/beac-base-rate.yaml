@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: FloatingRate
+metadata:
+  name: beac-base-rate
+  labels:
+    rate-type: base
+spec:
+  name: BEAC Base Rate
+  description: Central African Bank (BEAC) reference rate
+  isBaseLendingRate: true
+  isActive: true
+  ratePeriods:
+  - fromDate: '2024-01-01'
+    interestRate: 3.5

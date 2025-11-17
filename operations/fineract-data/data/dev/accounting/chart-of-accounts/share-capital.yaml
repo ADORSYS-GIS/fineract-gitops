@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: share-capital
+  labels:
+    account-type: equity
+    usage: detail
+spec:
+  name: Share Capital
+  glCode: '71'
+  type: Equity
+  usage: Detail
+  manualEntriesAllowed: true
+  description: Paid-up share capital

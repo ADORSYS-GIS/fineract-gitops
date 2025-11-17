@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsWithdrawal
+metadata:
+  name: withdrawal-grace-fotso-3
+  labels:
+    transaction-type: withdrawal
+spec:
+  savingsAccountId: SAV-005
+  transactionDate: '2024-03-20'
+  transactionAmount: 25000.0
+  paymentTypeId: Bank Transfer
+  receiptNumber: WDL-004
+  note: Supplier payment

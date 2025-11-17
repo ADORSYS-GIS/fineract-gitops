@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: Charge
+metadata:
+  name: late-payment-penalty
+  labels:
+    charge-applies-to: loan
+    charge-type: Loan
+spec:
+  name: Late Payment Penalty
+  currency: XAF
+  amount: 5.0
+  chargeAppliesTo: LOAN
+  chargeTimeType: DISBURSEMENT
+  chargeCalculationType: Percentage of Amount
+  active: true
+  penalty: false

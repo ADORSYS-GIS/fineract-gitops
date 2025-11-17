@@ -1,0 +1,311 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-write
+  labels:
+    app: fineract-write
+    component: write-instance
+spec:
+  replicas: 1  # Single replica with anti-affinity ready for scaling
+  selector:
+    matchLabels:
+      app: fineract-write
+  template:
+    metadata:
+      labels:
+        app: fineract-write
+    spec:
+      affinity:
+        # Prefer agent/worker nodes for Fineract write workloads
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+        # Pod anti-affinity for when scaling to multiple replicas
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: fineract-write
+              topologyKey: kubernetes.io/hostname
+      serviceAccountName: fineract-aws
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Wait for database schema migration to complete
+      initContainers:
+      - name: wait-for-schema-migration
+        image: postgres:15-alpine
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999  # postgres user in official postgres image
+          runAsGroup: 999
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "========================================="
+          echo "Waiting for Fineract Schema Migration"
+          echo "========================================="
+
+          MAX_RETRIES=60
+          RETRY_COUNT=0
+
+          until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+            # Check if DATABASECHANGELOG table exists and has entries
+            if PGPASSWORD="${DB_PASSWORD}" psql \
+              -h "${DB_HOST}" \
+              -U "${DB_USER}" \
+              -d "fineract_default" \
+              -t -c "SELECT COUNT(*) FROM DATABASECHANGELOG;" > /dev/null 2>&1; then
+
+              CHANGELOG_COUNT=$(PGPASSWORD="${DB_PASSWORD}" psql \
+                -h "${DB_HOST}" \
+                -U "${DB_USER}" \
+                -d "fineract_default" \
+                -t -c "SELECT COUNT(*) FROM DATABASECHANGELOG;" | tr -d ' ')
+
+              echo "✓ Schema migration table exists with ${CHANGELOG_COUNT} changesets"
+
+              # Verify lock is not held
+              LOCK_STATUS=$(PGPASSWORD="${DB_PASSWORD}" psql \
+                -h "${DB_HOST}" \
+                -U "${DB_USER}" \
+                -d "fineract_default" \
+                -t -c "SELECT LOCKED FROM DATABASECHANGELOGLOCK WHERE ID = 1;" | tr -d ' ')
+
+              if [ "$LOCK_STATUS" = "f" ] || [ "$LOCK_STATUS" = "FALSE" ]; then
+                echo "✓ No active Liquibase locks"
+                echo "Schema migration completed successfully!"
+                echo "========================================="
+                exit 0
+              else
+                echo "⚠  Liquibase lock is still held, waiting..."
+              fi
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Schema migration not complete yet (attempt $RETRY_COUNT/$MAX_RETRIES), waiting 10s..."
+            sleep 10
+          done
+
+          echo "❌ Schema migration did not complete within timeout"
+          exit 1
+        env:
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+      containers:
+      - name: fineract
+        image: apache/fineract:develop
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        env:
+        # PostgreSQL Database Configuration
+        - name: FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME
+          value: "org.postgresql.Driver"
+        - name: FINERACT_HIKARI_JDBC_URL
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: jdbc-url
+        - name: FINERACT_HIKARI_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: FINERACT_HIKARI_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+
+        # Tenant Database Configuration - AWS RDS PostgreSQL
+        - name: FINERACT_DEFAULT_TENANTDB_HOSTNAME
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: FINERACT_DEFAULT_TENANTDB_PORT
+          value: "5432"
+        - name: FINERACT_DEFAULT_TENANTDB_IDENTIFIER
+          value: "default"
+        - name: FINERACT_DEFAULT_TENANTDB_NAME
+          value: "fineract_default"
+        - name: FINERACT_DEFAULT_TENANTDB_UID
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: FINERACT_DEFAULT_TENANTDB_PWD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+
+        # Write mode
+        - name: FINERACT_MODE_READ_ENABLED
+          value: "true"
+        - name: FINERACT_MODE_WRITE_ENABLED
+          value: "true"
+        - name: FINERACT_MODE_BATCH_ENABLED
+          value: "false"
+
+        # S3 Configuration - AWS S3 with IRSA
+        - name: FINERACT_CONTENT_S3_ENABLED
+          value: "true"
+        - name: FINERACT_CONTENT_S3_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: s3-connection
+              key: documents-bucket
+        - name: FINERACT_CONTENT_S3_REGION
+          valueFrom:
+            secretKeyRef:
+              name: s3-connection
+              key: region
+        # AWS credentials are provided via IRSA (IAM Roles for Service Accounts)
+        # No need for static access keys - AWS SDK automatically uses IRSA credentials
+
+        # Redis Cache Configuration
+        - name: SPRING_CACHE_TYPE
+          value: "redis"
+        - name: SPRING_REDIS_HOST
+          value: "fineract-redis"
+        - name: SPRING_REDIS_PORT
+          value: "6379"
+        - name: SPRING_CACHE_REDIS_TIME_TO_LIVE
+          value: "3600000"  # 1 hour in milliseconds
+        - name: SPRING_CACHE_REDIS_KEY_PREFIX
+          value: "fineract:cache:"
+
+        # Disable Liquibase migrations in application pods
+        # Migrations are handled by the dedicated fineract-schema-migration job
+        # This prevents duplicate migration attempts and follows Fineract best practices (FINERACT-1882)
+        - name: FINERACT_LIQUIBASE_ENABLED
+          value: "false"
+
+        # JVM memory configuration
+        - name: JAVA_OPTS
+          value: "-Xmx2048m -Xms512m -Djavax.net.ssl.trustAll=true -Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
+
+        # Enable DEBUG logging for Spring Security OAuth2
+        - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY
+          value: "DEBUG"
+        - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2
+          value: "DEBUG"
+
+        # OAuth2 Configuration
+        - name: FINERACT_SECURITY_BASICAUTH_ENABLED
+          value: "false"
+        - name: FINERACT_SECURITY_OAUTH_ENABLED
+          value: "true"
+        # Fineract OAuth Resource URL - REQUIRED for OAuth2 to work
+        - name: FINERACT_SERVER_OAUTH_RESOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: fineract-oauth2-config
+              key: oidc-issuer-url
+        # JWT Issuer URI - MUST match the 'iss' claim in JWT tokens from Keycloak
+        # Keycloak issues tokens with HTTPS public-facing issuer
+        - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+          valueFrom:
+            configMapKeyRef:
+              name: fineract-oauth2-config
+              key: oidc-issuer-url
+        # JWK Set URI - Use internal service to fetch public keys (avoids DNS/TLS issues)
+        - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
+          valueFrom:
+            configMapKeyRef:
+              name: fineract-oauth2-config
+              key: jwk-set-uri-internal
+
+        resources:
+          requests:
+            memory: "1536Mi"
+            cpu: "400m"
+          limits:
+            memory: "3Gi"
+            cpu: "1500m"
+
+        startupProbe:
+          httpGet:
+            path: /fineract-provider/actuator/health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 80  # 80 attempts × 30s = 40 min window (for schema migration job to complete first)
+
+        livenessProbe:
+          httpGet:
+            path: /fineract-provider/actuator/health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /fineract-provider/actuator/health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

@@ -1,0 +1,100 @@
+# Centralized Contact Email Configuration
+#
+# This file serves as the single source of truth for operational contact emails
+# used across the Fineract GitOps repository.
+#
+# ⚠️  IMPORTANT: When changing contact emails (e.g., team changes, domain migration):
+#     1. Update the emails in this file
+#     2. Update the environment-specific configurations below
+#     3. Test SSL certificate renewals (Let's Encrypt notifications)
+#     4. Commit all changes together
+#
+# Email Types:
+# - SSL_CERT_EMAIL: Receives Let's Encrypt certificate expiration warnings
+# - CONTACT_EMAIL: General contact for the environment
+# - ONCALL_EMAIL: On-call/SRE team contact for production
+
+---
+# Global/Default Emails
+# These are used when environment-specific emails are not defined
+GLOBAL:
+  SSL_CERT_EMAIL: "platform-team@example.com"
+  PLATFORM_EMAIL: "platform-team@example.com"
+
+---
+# Development Environment
+DEV:
+  CONTACT_EMAIL: "dev-team@example.com"
+  SSL_CERT_EMAIL: "platform-team@example.com"  # Can use generic for dev/staging certs
+
+---
+# UAT Environment
+UAT:
+  CONTACT_EMAIL: "qa-team@example.com"
+  SSL_CERT_EMAIL: "platform-team@example.com"
+
+---
+# Production Environment
+PRODUCTION:
+  CONTACT_EMAIL: "platform-team@example.com"
+  ONCALL_EMAIL: "sre-team@example.com"
+  SSL_CERT_EMAIL: "platform-team@example.com"  # IMPORTANT: Must receive cert expiration warnings
+
+---
+# SMTP Configuration (AWS SES)
+# Regional endpoints for email delivery
+AWS_SES_REGIONS:
+  DEV: "us-east-2"        # Ohio region - primary
+  UAT: "us-east-2"        # Ohio region - consistency with dev
+  PRODUCTION: "us-east-2" # Ohio region - must match Terraform aws_region
+
+# SMTP Endpoint Format: email-smtp.{region}.amazonaws.com
+# Port: 587 (STARTTLS) - standard for SES
+#
+# Regional Alignment:
+# - All environments currently use us-east-2 (Ohio)
+# - Must align with Terraform AWS provider region configuration
+# - If deploying multi-region, update per environment in:
+#   operations/keycloak-config/overlays/{env}/kustomization.yaml
+#
+# Latency Considerations:
+# - Use SES region closest to EKS cluster for best performance
+# - Cross-region SES calls add 50-100ms latency
+#
+# Regional SES Endpoints (Reference):
+# - us-east-1: email-smtp.us-east-1.amazonaws.com
+# - us-east-2: email-smtp.us-east-2.amazonaws.com (CURRENT)
+# - us-west-2: email-smtp.us-west-2.amazonaws.com
+# - eu-west-1: email-smtp.eu-west-1.amazonaws.com
+
+---
+# Usage Notes:
+#
+# 1. SSL Certificate Emails (Let's Encrypt):
+#    - Receives notifications 30 days and 7 days before expiration
+#    - Must be monitored and acted upon
+#    - Located in: apps/cert-manager/base/letsencrypt-*.yaml
+#
+# 2. Environment Contact Emails:
+#    - Used in environment kustomization.yaml metadata
+#    - Visible in kubectl describe for environment resources
+#    - Located in: environments/{dev,uat,production}/kustomization.yaml
+#
+# 3. SMTP Configuration (Keycloak):
+#    - AWS SES regional endpoints configured per environment
+#    - Must match Terraform AWS region for SES resources
+#    - Located in: operations/keycloak-config/overlays/{env}/kustomization.yaml
+#    - SMTP credentials stored in sealed secrets
+#
+# 4. Migration Example:
+#    When changing from example.com to mycompany.com:
+#    ```bash
+#    # Update this file
+#    sed -i 's/@example.com/@mycompany.com/g' config/contact-emails.yaml
+#
+#    # Update cert-manager
+#    sed -i 's/@example.com/@mycompany.com/g' apps/cert-manager/base/letsencrypt-*.yaml
+#
+#    # Update environments
+#    sed -i 's/@example.com/@mycompany.com/g' environments/*/kustomization.yaml
+#    ```

@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-ca
+  namespace: cert-manager
+  labels:
+    app: cert-manager
+    component: internal-ca
+spec:
+  isCA: true
+  commonName: "Fineract Internal CA"
+  subject:
+    organizations:
+      - "Fineract GitOps"
+    organizationalUnits:
+      - "Platform Infrastructure"
+  secretName: internal-ca-key-pair
+  duration: 87600h # 10 years
+  renewBefore: 8760h # 1 year before expiry
+  privateKey:
+    algorithm: RSA
+    size: 4096
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

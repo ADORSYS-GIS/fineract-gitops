@@ -1,0 +1,53 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsProductAccounting
+metadata:
+  name: vsav
+  labels:
+    product-type: savings
+spec:
+  productName: VSAV
+  accountMappings:
+  - mappingType: Savings Reference
+    glAccountCode: '42'
+    glAccountName: Cash on Hand
+    description: Asset account - where customer deposits are held
+  - mappingType: Savings Control
+    glAccountCode: '61'
+    glAccountName: Voluntary Savings Accounts
+    description: Liability account - obligation to customers
+  - mappingType: Interest on Savings
+    glAccountCode: '91'
+    glAccountName: Interest Expense on Savings
+    description: Interest expense
+  - mappingType: Income from Fees
+    glAccountCode: '84'
+    glAccountName: Fee Income - Savings Accounts
+    description: Fee income
+  - mappingType: Income from Penalties
+    glAccountCode: '84'
+    glAccountName: Fee Income - Savings Accounts
+    description: Penalty income
+  - mappingType: Overdraft Portfolio Control
+    glAccountCode: '51'
+    glAccountName: Loans to Clients - Principal
+    description: Overdraft control
+  - mappingType: Income from Interest
+    glAccountCode: '81'
+    glAccountName: Interest Income on Loans
+    description: Overdraft interest income
+  - mappingType: Losses Written Off
+    glAccountCode: '93'
+    glAccountName: Loan Write-off Expense
+    description: Overdraft write-off
+  - mappingType: Escheat Liability
+    glAccountCode: '61'
+    glAccountName: Voluntary Savings Accounts
+    description: Escheat liability
+  - mappingType: Withholding Tax
+    glAccountCode: '141'
+    glAccountName: Tax Payable - WHT
+    description: Withholding tax payable
+  - mappingType: Transfer in Suspense
+    glAccountCode: '131'
+    glAccountName: Due to Other Branches (Payable)
+    description: Transfer suspense account

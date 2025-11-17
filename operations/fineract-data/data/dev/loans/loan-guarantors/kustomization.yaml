@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- name: loan-guarantors-data
+  files:
+  - guarantor-christine-biaka-1.yaml
+  - guarantor-fotso-family-business-ltd-3.yaml
+  - guarantor-jean-kemayou-4.yaml
+  - guarantor-marie-fotso-5.yaml
+  - guarantor-samuel-nkolo-2.yaml
+  - guarantor-thomas-mbele-0.yaml

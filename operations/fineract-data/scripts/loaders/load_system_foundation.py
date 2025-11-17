@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""
+System Foundation Consolidated Loader
+Loads all system foundation entities (Waves 1-9) in sequence
+"""
+import sys
+import argparse
+import logging
+from pathlib import Path
+import importlib.util
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Entity loaders to run in order (matching wave sequence)
+ENTITY_LOADERS = [
+    ('code_values', 'CodeValuesLoader'),
+    ('offices', 'OfficesLoader'),
+    ('staff', 'StaffLoader'),
+    ('roles', 'RolesLoader'),
+    ('currency_config', 'CurrencyConfigLoader'),
+    ('working_days', 'WorkingDaysLoader'),
+    ('account_number_formats', 'AccountNumberFormatsLoader'),
+    ('maker_checker', 'MakerCheckerLoader'),
+    ('scheduler_jobs', 'SchedulerJobsLoader'),
+]
+
+
+def load_entity_loader(module_name: str, class_name: str):
+    """Dynamically import and return loader class"""
+    try:
+        # Get the directory where this script is located
+        script_dir = Path(__file__).parent
+        module_path = script_dir / f"{module_name}.py"
+
+        if not module_path.exists():
+            logger.warning(f"Loader module not found: {module_path}")
+            return None
+
+        # Load the module
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Get the loader class
+        loader_class = getattr(module, class_name, None)
+        if not loader_class:
+            logger.warning(f"Class {class_name} not found in module {module_name}")
+            return None
+
+        return loader_class
+    except Exception as e:
+        logger.error(f"Error loading {module_name}.{class_name}: {e}")
+        return None
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Load System Foundation entities into Fineract (Waves 1-9)'
+    )
+    parser.add_argument('--yaml-dir', required=True, help='Base data directory')
+    parser.add_argument('--fineract-url', required=True, help='Fineract API base URL')
+    parser.add_argument('--tenant', default='default', help='Tenant identifier')
+
+    args = parser.parse_args()
+
+    base_data_dir = Path(args.yaml_dir)
+
+    # Map entity names to their data directories
+    entity_data_dirs = {
+        'code_values': base_data_dir / 'codes-and-values',
+        'offices': base_data_dir / 'offices',
+        'staff': base_data_dir / 'staff',
+        'roles': base_data_dir / 'roles',
+        'currency_config': base_data_dir / 'system-config' / 'currency-config',
+        'working_days': base_data_dir / 'system-config' / 'working-days',
+        'account_number_formats': base_data_dir / 'system-config' / 'account-number-formats',
+        'maker_checker': base_data_dir / 'system-config' / 'maker-checker',
+        'scheduler_jobs': base_data_dir / 'system-config' / 'scheduler-jobs',
+    }
+
+    logger.info("=" * 80)
+    logger.info("SYSTEM FOUNDATION LOADER")
+    logger.info("=" * 80)
+    logger.info(f"Base data directory: {base_data_dir}")
+    logger.info(f"Fineract URL: {args.fineract_url}")
+    logger.info(f"Tenant: {args.tenant}")
+    logger.info(f"Loading {len(ENTITY_LOADERS)} entity types...")
+    logger.info("=" * 80)
+
+    total_loaded = 0
+    total_failed = 0
+    total_updated = 0
+    total_skipped = 0
+    failed_entities = []
+
+    for module_name, class_name in ENTITY_LOADERS:
+        entity_name = module_name.replace('_', ' ').title()
+        logger.info(f"\n{'=' * 80}")
+        logger.info(f"LOADING: {entity_name}")
+        logger.info(f"{'=' * 80}")
+
+        # Get data directory for this entity
+        data_dir = entity_data_dirs.get(module_name)
+        if not data_dir or not data_dir.exists():
+            logger.warning(f"Data directory not found: {data_dir}")
+            logger.info(f"Skipping {entity_name}...")
+            continue
+
+        # Load the entity loader class
+        loader_class = load_entity_loader(module_name, class_name)
+        if not loader_class:
+            logger.error(f"Failed to load {class_name}")
+            failed_entities.append(entity_name)
+            total_failed += 1
+            continue
+
+        try:
+            # Instantiate and run the loader
+            loader = loader_class(str(data_dir), args.fineract_url, args.tenant)
+            summary = loader.load_all()
+
+            # Accumulate totals
+            total_loaded += summary.get('total_loaded', 0)
+            total_failed += summary.get('total_failed', 0)
+            total_updated += summary.get('total_updated', 0)
+            total_skipped += summary.get('total_skipped', 0)
+
+            if summary.get('total_failed', 0) > 0:
+                failed_entities.append(entity_name)
+                logger.error(f"✗ {entity_name}: {summary['total_failed']} failures")
+            else:
+                logger.info(f"✓ {entity_name}: Completed successfully")
+
+        except Exception as e:
+            logger.error(f"✗ Error loading {entity_name}: {e}", exc_info=True)
+            failed_entities.append(entity_name)
+            total_failed += 1
+
+    # Print final summary
+    logger.info("\n" + "=" * 80)
+    logger.info("SYSTEM FOUNDATION - FINAL SUMMARY")
+    logger.info("=" * 80)
+    logger.info(f"Total Created: {total_loaded}")
+    logger.info(f"Total Updated: {total_updated}")
+    logger.info(f"Total Skipped: {total_skipped}")
+    logger.info(f"Total Failed: {total_failed}")
+
+    if failed_entities:
+        logger.info(f"\nFailed Entity Types:")
+        for entity in failed_entities:
+            logger.info(f"  ✗ {entity}")
+
+    logger.info("=" * 80)
+
+    # Exit with error code if any failures
+    if total_failed > 0 or failed_entities:
+        logger.error(f"System Foundation loading completed with {total_failed} failures")
+        sys.exit(1)
+    else:
+        logger.info("System Foundation loading completed successfully")
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()

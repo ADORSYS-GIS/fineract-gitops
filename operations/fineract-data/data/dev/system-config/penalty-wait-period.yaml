@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: penalty-wait-period
+  labels:
+    config-scope: global
+spec:
+  name: penalty-wait-period
+  enabled: true
+  value: '0'
+  trapDoor: false
+  description: Days to wait before applying penalty charges

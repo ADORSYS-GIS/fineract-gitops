@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: Holiday
+metadata:
+  name: labour-day-2025
+  labels:
+    holiday-type: public
+    year: '2025'
+spec:
+  name: Labour Day
+  fromDate: '2025-05-01'
+  toDate: '2025-05-01'
+  repaymentsRescheduledTo: '2025-05-02'
+  offices:
+  - all
+  description: International Labour Day

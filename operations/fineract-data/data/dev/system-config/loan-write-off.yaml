@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: MakerChecker
+metadata:
+  name: loan-write-off
+  labels:
+    entity: loan
+spec:
+  taskName: Loan Write-off
+  entity: LOAN
+  action: WRITEOFF
+  thresholdAmount: 0.0
+  thresholdCurrency: XAF
+  makerRole: Loan Officer
+  checkerRole: Branch Manager
+  enabled: true

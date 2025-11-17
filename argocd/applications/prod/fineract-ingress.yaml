@@ -1,0 +1,58 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-ingress
+  namespace: argocd
+  labels:
+    environment: production
+    component: ingress-resources
+    criticality: high
+  annotations:
+    # Sync wave 6 - Deploy after OAuth2 Proxy (wave 5) and Redis (wave 3)
+    argocd.argoproj.io/sync-wave: "6"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Production syncs from main branch (tagged releases preferred)
+    path: apps/ingress/overlays/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=false
+    retry:
+      limit: 3  # Fewer retries for production
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  info:
+    - name: Description
+      value: "Fineract Ingress resources with OAuth2 Proxy auth, read/write routing, and RBAC"
+    - name: Phase
+      value: "Phase 2 - Nginx Ingress Configuration"
+    - name: Sync Wave
+      value: "6 (after OAuth2 Proxy and Redis)"
+    - name: Criticality
+      value: CRITICAL
+    - name: Dependencies
+      value: "Ingress-Nginx (wave 1), Redis (wave 3), OAuth2 Proxy (wave 5)"
+    - name: Includes
+      value: "ingress.yaml (public, oauth2, protected endpoints)"
+    - name: Environment
+      value: "production (apps.fineract.com, auth.fineract.com)"
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Sync Window
+      value: "Tue-Thu, 10 AM - 4 PM only"

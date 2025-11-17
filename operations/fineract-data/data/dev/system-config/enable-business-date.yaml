@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: enable-business-date
+  labels:
+    config-scope: global
+spec:
+  name: enable_business_date
+  enabled: true
+  value: 'false'
+  trapDoor: false
+  description: Enable business date (COB) feature

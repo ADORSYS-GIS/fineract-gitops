@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Loan Provisioning",
+  "description": "Schema for validating Fineract loan provisioning configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["Loanprovisioning"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["name", "categoryName", "percentage"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Provisioning criteria name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Provisioning criteria description"
+        },
+        "categoryName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Provisioning category name"
+        },
+        "percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Provisioning percentage"
+        },
+        "minimumAge": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum age in days"
+        },
+        "maximumAge": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum age in days"
+        }
+      }
+    }
+  }
+}
