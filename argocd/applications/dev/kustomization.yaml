@@ -19,6 +19,8 @@ resources:
   - oauth2-proxy.yaml
   - sealed-secrets-controller.yaml
   - web-app.yaml
+  - reporting-app.yaml  # Reporting frontend application
+  - accounting-app.yaml  # Accounting frontend application
 
 # Replacements to inject environment-specific values into all Application manifests
 # This eliminates hardcoded repoURL, targetRevision, namespace, and project values
