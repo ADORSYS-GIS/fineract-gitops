@@ -38,7 +38,7 @@ patches:
               - --health-enabled=true
               - --proxy-headers=xforwarded
               - --hostname-backchannel-dynamic=true
-              - --hostname=https://ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com/auth
+              - --hostname=https://ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
     target:
       kind: Deployment
       name: keycloak
