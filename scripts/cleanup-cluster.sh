@@ -27,30 +27,101 @@ fi
 # Check cluster connectivity (non-fatal if cluster doesn't exist)
 echo -e "${BLUE}→ Checking cluster connectivity...${NC}"
 CLUSTER_ACCESSIBLE=false
+KUBECONFIG_UPDATED=false
+
+# First try to connect
 if kubectl cluster-info &>/dev/null; then
     echo -e "${GREEN}✓${NC} Connected to cluster"
     CLUSTER_ACCESSIBLE=true
 else
-    echo -e "${YELLOW}⚠ Cannot connect to cluster${NC}"
-    echo -e "${YELLOW}  Cluster may be destroyed or unreachable${NC}"
-    echo ""
-    echo "This could mean:"
-    echo "  • Cluster was already destroyed"
-    echo "  • Cluster is being destroyed"
-    echo "  • Stale kubeconfig or DNS issue"
-    echo ""
-    echo "Recommended action:"
-    echo "  → Run: ${BLUE}make destroy ENV=dev${NC} (to clean up AWS resources)"
-    echo "  → Then: ${BLUE}make deploy-infrastructure-dev${NC} (to redeploy)"
-    echo ""
+    # Connection failed - check if it's a DNS resolution issue (stale kubeconfig)
+    CLUSTER_ENDPOINT=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null | sed 's|https://||' | cut -d: -f1 || echo "")
 
-    read -p "Exit cleanup script? [Y/n] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        echo -e "${YELLOW}Cleanup cancelled. Run 'make destroy ENV=dev' to clean up infrastructure.${NC}"
-        exit 0
+    if [ -n "$CLUSTER_ENDPOINT" ]; then
+        echo -e "${YELLOW}⚠ Cannot connect to cluster${NC}"
+        echo -e "${YELLOW}  Checking if kubeconfig is stale...${NC}"
+
+        # Test DNS resolution
+        if ! host "$CLUSTER_ENDPOINT" &>/dev/null && ! nslookup "$CLUSTER_ENDPOINT" &>/dev/null 2>&1; then
+            echo -e "${YELLOW}  DNS resolution failed for: $CLUSTER_ENDPOINT${NC}"
+            echo -e "${YELLOW}  This indicates a stale kubeconfig (cluster may have been recreated)${NC}"
+            echo ""
+            echo "Options:"
+            echo "  1) Update kubeconfig and retry cleanup"
+            echo "  2) Skip cleanup (cluster already gone)"
+            echo "  3) Exit script"
+            echo ""
+
+            read -p "Choose option [1/2/3]: " -n 1 -r
+            echo
+
+            if [[ $REPLY =~ ^[1]$ ]]; then
+                echo -e "${BLUE}→ Attempting to update kubeconfig...${NC}"
+
+                # Try to update kubeconfig
+                if cd "$SCRIPT_DIR/../terraform/aws" && make update-kubeconfig ENV="$ENV" 2>&1 | grep -q "updated\|configured"; then
+                    echo -e "${GREEN}✓${NC} Kubeconfig updated successfully"
+                    KUBECONFIG_UPDATED=true
+
+                    # Retry connection
+                    echo -e "${BLUE}→ Retrying cluster connection...${NC}"
+                    if kubectl cluster-info &>/dev/null; then
+                        echo -e "${GREEN}✓${NC} Connected to cluster"
+                        CLUSTER_ACCESSIBLE=true
+                    else
+                        echo -e "${YELLOW}⚠ Still cannot connect after kubeconfig update${NC}"
+                        echo -e "${YELLOW}  Cluster may not exist. Skipping Kubernetes cleanup.${NC}"
+                    fi
+
+                    cd "$SCRIPT_DIR" || exit 1
+                else
+                    echo -e "${RED}✗${NC} Failed to update kubeconfig"
+                    echo -e "${YELLOW}  Cluster may not exist. Skipping Kubernetes cleanup.${NC}"
+                fi
+            elif [[ $REPLY =~ ^[2]$ ]]; then
+                echo -e "${YELLOW}Skipping Kubernetes cleanup (cluster already gone)${NC}"
+                echo -e "${BLUE}→ You may want to run: make destroy ENV=dev (to clean up AWS resources)${NC}"
+                exit 0
+            else
+                echo -e "${YELLOW}Cleanup cancelled${NC}"
+                exit 0
+            fi
+        else
+            # DNS resolves but connection still fails
+            echo -e "${YELLOW}  Cluster endpoint resolves but connection failed${NC}"
+            echo ""
+            echo "This could mean:"
+            echo "  • Cluster is being destroyed"
+            echo "  • Network connectivity issue"
+            echo "  • Cluster is not accessible from this network"
+            echo ""
+            echo "Recommended action:"
+            echo "  → Run: ${BLUE}make destroy ENV=dev${NC} (to clean up AWS resources)"
+            echo ""
+
+            read -p "Exit cleanup script? [Y/n] " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+                echo -e "${YELLOW}Cleanup cancelled${NC}"
+                exit 0
+            else
+                echo -e "${YELLOW}Continuing anyway (Kubernetes cleanup will be skipped)...${NC}"
+            fi
+        fi
     else
-        echo -e "${YELLOW}Continuing anyway (Kubernetes cleanup will be skipped)...${NC}"
+        # Couldn't get cluster endpoint from kubeconfig
+        echo -e "${YELLOW}⚠ Cannot connect to cluster${NC}"
+        echo -e "${YELLOW}  Could not read cluster endpoint from kubeconfig${NC}"
+        echo ""
+
+        read -p "Exit cleanup script? [Y/n] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            echo -e "${YELLOW}Cleanup cancelled${NC}"
+            exit 0
+        else
+            echo -e "${YELLOW}Continuing anyway (Kubernetes cleanup will be skipped)...${NC}"
+        fi
     fi
 fi
 
@@ -161,25 +232,26 @@ force_delete_namespace() {
     clean_namespace_resources $ns
 
     # Step 2: Delete the namespace if it still exists
-    if kubectl get namespace $ns &>/dev/null; then
-        kubectl delete namespace $ns --force --grace-period=0 2>/dev/null || true
+    # Use timeout to prevent hanging if cluster is unreachable
+    if timeout 10 kubectl get namespace $ns &>/dev/null; then
+        timeout 30 kubectl delete namespace $ns --force --grace-period=0 2>/dev/null || true
     fi
 
     # Step 3: Remove finalizers from namespace itself
-    kubectl patch namespace $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+    timeout 10 kubectl patch namespace $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
 
     # Step 4: Use JSON patch to forcibly remove finalizers (more aggressive)
-    kubectl patch namespace $ns --type json -p='[{"op": "remove", "path": "/metadata/finalizers"}]' 2>/dev/null || true
+    timeout 10 kubectl patch namespace $ns --type json -p='[{"op": "remove", "path": "/metadata/finalizers"}]' 2>/dev/null || true
 
     # Step 5: Try to replace the namespace spec (nuclear option)
-    kubectl get namespace $ns -o json 2>/dev/null | \
+    timeout 10 kubectl get namespace $ns -o json 2>/dev/null | \
         jq '.spec.finalizers=[]' | \
-        kubectl replace --raw "/api/v1/namespaces/$ns/finalize" -f - 2>/dev/null || true
+        timeout 10 kubectl replace --raw "/api/v1/namespaces/$ns/finalize" -f - 2>/dev/null || true
 
     # Wait for deletion with longer timeout
     echo -e "${BLUE}    Waiting for namespace deletion...${NC}"
     local count=0
-    while kubectl get namespace $ns &>/dev/null && [ $count -lt 60 ]; do
+    while timeout 5 kubectl get namespace $ns &>/dev/null && [ $count -lt 60 ]; do
         if [ $((count % 10)) -eq 0 ]; then
             # Every 10 seconds, try patching again
             kubectl patch namespace $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
