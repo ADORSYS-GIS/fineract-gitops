@@ -73,7 +73,7 @@ help:
 	@echo "$(YELLOW)Validation and prerequisites:$(NC)"
 	@echo "  make validate-prereqs            - Validate all prerequisites (runs both checks below)"
 	@echo "  make validate-terraform-prereqs  - Validate Terraform/Infrastructure prerequisites only"
-	@echo "  make validate-k8s-prereqs        - Validate Kubernetes/GitOps prerequisites (includes GITHUB_TOKEN)"
+	@echo "  make validate-k8s-prereqs        - Validate Kubernetes/GitOps prerequisites (includes SSH deploy key)"
 	@echo ""
 	@echo "$(YELLOW)Terraform workflow:$(NC)"
 	@echo "  make setup-terraform-backend     - Initialize Terraform S3 backend"
@@ -391,13 +391,14 @@ validate-k8s-prereqs:
 	@echo "$(GREEN)✓ SSH installed$(NC)"
 	@# Check jq (optional)
 	@command -v jq >/dev/null 2>&1 && echo "$(GREEN)✓ jq installed$(NC)" || echo "$(YELLOW)⚠ jq not found (optional). Install: brew install jq$(NC)"
-	@# Check GITHUB_TOKEN environment variable
-	@if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "$(RED)✗ GITHUB_TOKEN environment variable not set$(NC)"; \
-		echo "$(YELLOW)  Set with: export GITHUB_TOKEN='your_github_token'$(NC)"; \
+	@# Check SSH deploy key for ArgoCD
+	@if [ ! -f "$$HOME/.ssh/argocd-deploy-key" ]; then \
+		echo "$(RED)✗ SSH deploy key not found at ~/.ssh/argocd-deploy-key$(NC)"; \
+		echo "$(YELLOW)  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\"$(NC)"; \
+		echo "$(YELLOW)  Then add public key to GitHub repository deploy keys$(NC)"; \
 		exit 1; \
 	else \
-		echo "$(GREEN)✓ GITHUB_TOKEN environment variable is set$(NC)"; \
+		echo "$(GREEN)✓ SSH deploy key found at ~/.ssh/argocd-deploy-key$(NC)"; \
 	fi
 	@# Check KUBECONFIG environment variable
 	@if [ -z "$$KUBECONFIG" ]; then \
