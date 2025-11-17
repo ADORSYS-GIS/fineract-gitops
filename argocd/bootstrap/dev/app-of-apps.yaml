@@ -10,7 +10,7 @@ spec:
 
   source:
     repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: mifosweb  # Auto-sync from mifosweb branch
+    targetRevision: deploy-key  # Auto-sync from mifosweb branch
     path: argocd/applications/dev
     directory:
       recurse: false

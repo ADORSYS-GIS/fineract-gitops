@@ -12,7 +12,7 @@ spec:
 
   source:
     repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: mifosweb
+    targetRevision: deploy-key
     path: apps/reporting-app/base
 
   destination:

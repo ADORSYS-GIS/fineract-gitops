@@ -13,7 +13,7 @@ spec:
 
   source:
     repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: mifosweb  # Will be replaced by kustomization.yaml
+    targetRevision: deploy-key  # Will be replaced by kustomization.yaml
     path: operations/keycloak-config/overlays/dev  # Environment-specific overlay
 
   destination:
