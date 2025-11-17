@@ -8,8 +8,8 @@
 #
 # Prerequisites:
 # 1. Infrastructure must be deployed (make deploy-infrastructure-dev)
-# 2. Kubeconfig must be configured
-# 3. GITHUB_TOKEN must be set
+# 2. Kubeconfig will be auto-configured (or set KUBECONFIG manually)
+# 3. SSH deploy key must exist at ~/.ssh/argocd-deploy-key
 #
 # This script performs:
 # 1. Deploys GitOps tools (ArgoCD, Sealed Secrets, ingress-nginx, cert-manager)
@@ -82,6 +82,18 @@ if [ ! -f "Makefile" ]; then
     error_exit "Not in repository root. Expected to find Makefile."
 fi
 
+# Auto-export KUBECONFIG if not already set
+if [ -z "$KUBECONFIG" ]; then
+    KUBECONFIG_PATH="$HOME/.kube/config-fineract-$ENV"
+    if [ -f "$KUBECONFIG_PATH" ]; then
+        export KUBECONFIG="$KUBECONFIG_PATH"
+        log_info "Auto-exported KUBECONFIG=$KUBECONFIG"
+    else
+        log_warn "KUBECONFIG not set and default path not found: $KUBECONFIG_PATH"
+        log_warn "Will attempt to use default kubectl config"
+    fi
+fi
+
 # ============================================================================
 # Pre-Flight Checks
 # ============================================================================
@@ -112,13 +124,15 @@ preflight_check() {
         log "✓ Connected to cluster: $CLUSTER_NAME"
     fi
 
-    # Check 3: GITHUB_TOKEN
-    if [ -z "$GITHUB_TOKEN" ]; then
-        log_error "GITHUB_TOKEN environment variable not set"
-        echo "  Fix: export GITHUB_TOKEN='your_token'"
-        ((errors++))
+    # Check 3: SSH Deploy Key (replacing GITHUB_TOKEN)
+    if [ -f "$HOME/.ssh/argocd-deploy-key" ]; then
+        log "✓ SSH deploy key found at ~/.ssh/argocd-deploy-key"
     else
-        log "✓ GITHUB_TOKEN is set"
+        log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
+        echo "  This is needed for ArgoCD to access the Git repository"
+        echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
+        echo "  Then add public key to GitHub repository deploy keys"
+        ((errors++))
     fi
 
     # Check 4: Terraform outputs (needed for sealed secrets)
@@ -186,17 +200,16 @@ preflight_check() {
 # Run pre-flight checks
 preflight_check
 
-# Verify prerequisites (kept for backwards compatibility)
-if [ -z "$KUBECONFIG" ]; then
-    error_exit "KUBECONFIG environment variable not set. Run: export KUBECONFIG=~/.kube/config-fineract-$ENV"
-fi
-
+# Additional validation (KUBECONFIG should already be set from above)
 if ! kubectl cluster-info &> /dev/null; then
     error_exit "Cannot connect to Kubernetes cluster. Ensure infrastructure is deployed and kubeconfig is configured."
 fi
 
-if [ -z "$GITHUB_TOKEN" ]; then
-    error_exit "GITHUB_TOKEN environment variable not set. Run: export GITHUB_TOKEN='your_token'"
+# Verify SSH deploy key exists
+if [ ! -f "$HOME/.ssh/argocd-deploy-key" ]; then
+    log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
+    log_warn "ArgoCD may not be able to access the Git repository"
+    log_warn "Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
 fi
 
 echo
