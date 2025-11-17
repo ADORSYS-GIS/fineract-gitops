@@ -214,6 +214,19 @@ output "keycloak_db_username" {
   value       = module.rds.keycloak_db_username
 }
 
+# OAuth2 Secrets (for OAuth2-Proxy and Keycloak client configuration)
+output "oauth2_client_secret" {
+  description = "OAuth2 client secret for OAuth2-Proxy and Keycloak clients"
+  value       = random_password.oauth2_client_secret.result
+  sensitive   = true
+}
+
+output "oauth2_cookie_secret" {
+  description = "OAuth2 cookie secret for OAuth2-Proxy session encryption"
+  value       = random_password.oauth2_cookie_secret.result
+  sensitive   = true
+}
+
 # NOTE: Sensitive outputs removed for security
 # The following outputs have been intentionally removed to prevent exposure in Terraform state:
 # - rds_master_password

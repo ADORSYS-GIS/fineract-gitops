@@ -134,12 +134,27 @@ IRSA_ROLE_ARN=$(terraform output -raw irsa_role_arn 2>/dev/null || echo "")
 KEYCLOAK_DB_USER=$(terraform output -raw keycloak_db_username 2>/dev/null || echo "keycloak")
 
 # Get OAuth2 Proxy secrets (must fetch before leaving terraform directory)
-OAUTH2_CLIENT_SECRET=$(terraform output -raw oauth2_client_secret 2>/dev/null || openssl rand -base64 48 | tr -d "=+/" | cut -c1-64)
-OAUTH2_COOKIE_SECRET=$(terraform output -raw oauth2_cookie_secret 2>/dev/null || openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+OAUTH2_CLIENT_SECRET=$(terraform output -raw oauth2_client_secret 2>/dev/null || echo "")
+OAUTH2_COOKIE_SECRET=$(terraform output -raw oauth2_cookie_secret 2>/dev/null || echo "")
 
 # Validate required values
 if [ -z "$RDS_PASSWORD" ] || [ -z "$RDS_HOST" ]; then
     echo -e "${RED}Error: Could not fetch RDS credentials from Terraform${NC}"
+    exit 1
+fi
+
+if [ -z "$OAUTH2_CLIENT_SECRET" ] || [ -z "$OAUTH2_COOKIE_SECRET" ]; then
+    echo -e "${RED}Error: Could not fetch OAuth2 secrets from Terraform${NC}"
+    echo -e "${YELLOW}OAuth2 secrets are now managed by Terraform.${NC}"
+    echo -e "${YELLOW}Please run 'terraform apply' first to generate the random passwords.${NC}"
+    echo ""
+    echo "Expected Terraform resources:"
+    echo "  - random_password.oauth2_client_secret"
+    echo "  - random_password.oauth2_cookie_secret"
+    echo ""
+    echo "Expected Terraform outputs:"
+    echo "  - oauth2_client_secret"
+    echo "  - oauth2_cookie_secret"
     exit 1
 fi
 
