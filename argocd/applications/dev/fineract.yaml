@@ -11,8 +11,8 @@ spec:
   project: fineract-dev
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
-    targetRevision: eks  # Auto-sync from eks branch
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: mifosweb  # Auto-sync from eks branch
     path: environments/dev
 
   destination:
