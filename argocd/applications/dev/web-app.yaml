@@ -12,7 +12,7 @@ spec:
 
   source:
     repoURL: "https://github.com/guymoyo/fineract-gitops.git"
-    targetRevision: eks
+    targetRevision: deploy-key
     path: apps/web-app/base
 
   destination:
