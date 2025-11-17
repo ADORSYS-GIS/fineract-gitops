@@ -24,14 +24,35 @@ if [ -z "$KUBECONFIG" ]; then
     exit 1
 fi
 
-# Check cluster connectivity
+# Check cluster connectivity (non-fatal if cluster doesn't exist)
 echo -e "${BLUE}→ Checking cluster connectivity...${NC}"
-if ! kubectl cluster-info &>/dev/null; then
-    echo -e "${RED}✗ Cannot connect to cluster${NC}"
-    echo "Please verify your KUBECONFIG and cluster access"
-    exit 1
+CLUSTER_ACCESSIBLE=false
+if kubectl cluster-info &>/dev/null; then
+    echo -e "${GREEN}✓${NC} Connected to cluster"
+    CLUSTER_ACCESSIBLE=true
+else
+    echo -e "${YELLOW}⚠ Cannot connect to cluster${NC}"
+    echo -e "${YELLOW}  Cluster may be destroyed or unreachable${NC}"
+    echo ""
+    echo "This could mean:"
+    echo "  • Cluster was already destroyed"
+    echo "  • Cluster is being destroyed"
+    echo "  • Stale kubeconfig or DNS issue"
+    echo ""
+    echo "Recommended action:"
+    echo "  → Run: ${BLUE}make destroy ENV=dev${NC} (to clean up AWS resources)"
+    echo "  → Then: ${BLUE}make deploy-infrastructure-dev${NC} (to redeploy)"
+    echo ""
+
+    read -p "Exit cleanup script? [Y/n] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        echo -e "${YELLOW}Cleanup cancelled. Run 'make destroy ENV=dev' to clean up infrastructure.${NC}"
+        exit 0
+    else
+        echo -e "${YELLOW}Continuing anyway (Kubernetes cleanup will be skipped)...${NC}"
+    fi
 fi
-echo -e "${GREEN}✓${NC} Connected to cluster"
 
 # Check for jq (optional but helpful for nuclear option)
 if ! command -v jq &>/dev/null; then
@@ -304,37 +325,38 @@ cleanup_sealed_secrets() {
 }
 
 # Main cleanup process
-echo -e "${YELLOW}This will remove all ArgoCD applications and force-delete stuck namespaces:${NC}"
-echo "  - argocd"
-echo "  - fineract-dev"
-echo "  - ingress-nginx"
-echo "  - cert-manager"
-echo "  - monitoring"
-echo ""
-echo -e "${YELLOW}It will also remove from kube-system:${NC}"
-echo "  - Sealed Secrets Controller"
-echo "  - Sealed Secrets encryption keys"
-echo ""
+if [ "$CLUSTER_ACCESSIBLE" = true ]; then
+    echo -e "${YELLOW}This will remove all ArgoCD applications and force-delete stuck namespaces:${NC}"
+    echo "  - argocd"
+    echo "  - fineract-dev"
+    echo "  - ingress-nginx"
+    echo "  - cert-manager"
+    echo "  - monitoring"
+    echo ""
+    echo -e "${YELLOW}It will also remove from kube-system:${NC}"
+    echo "  - Sealed Secrets Controller"
+    echo "  - Sealed Secrets encryption keys"
+    echo ""
 
-read -p "Continue? [y/N] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}Cleanup cancelled${NC}"
-    exit 0
-fi
+    read -p "Continue? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Cleanup cancelled${NC}"
+        exit 0
+    fi
 
-echo ""
+    echo ""
 
-# Step 1: Delete ArgoCD Applications first (removes finalizers)
-delete_argocd_applications
-echo ""
+    # Step 1: Delete ArgoCD Applications first (removes finalizers)
+    delete_argocd_applications
+    echo ""
 
-# Step 1.5: Cleanup Sealed Secrets from kube-system
-cleanup_sealed_secrets
-echo ""
+    # Step 1.5: Cleanup Sealed Secrets from kube-system
+    cleanup_sealed_secrets
+    echo ""
 
-# Step 2: Check and cleanup each namespace
-NAMESPACES=("argocd" "fineract-dev" "ingress-nginx" "cert-manager" "monitoring")
+    # Step 2: Check and cleanup each namespace
+    NAMESPACES=("argocd" "fineract-dev" "ingress-nginx" "cert-manager" "monitoring")
 
 for ns in "${NAMESPACES[@]}"; do
     status=$(check_namespace_stuck $ns)
@@ -452,4 +474,25 @@ else
         echo -e "${YELLOW}Some namespaces remain stuck. Follow options above.${NC}"
         exit 1
     fi
+fi
+else
+    # Cluster not accessible - provide guidance
+    echo ""
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW} Cluster Not Accessible - Skipping K8s Cleanup${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+    echo ""
+    echo "Since the cluster is not accessible, Kubernetes resources cannot be cleaned."
+    echo ""
+    echo -e "${BLUE}Next steps:${NC}"
+    echo "  1. Clean up AWS infrastructure:"
+    echo "     ${BLUE}make destroy ENV=dev${NC}"
+    echo ""
+    echo "  2. Deploy fresh infrastructure:"
+    echo "     ${BLUE}make deploy-infrastructure-dev${NC}"
+    echo "     ${BLUE}aws eks update-kubeconfig --region us-east-2 --name fineract-dev-eks${NC}"
+    echo "     ${BLUE}make deploy-k8s-with-loadbalancer-dns-dev${NC}"
+    echo "     ${BLUE}make deploy-gitops ENV=dev${NC}"
+    echo ""
+    exit 0
 fi
