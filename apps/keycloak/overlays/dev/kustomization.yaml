@@ -19,7 +19,7 @@ configMapGenerator:
   - name: ingress-config
     behavior: merge
     literals:
-      - auth-hostname=ae890ff623468431ba5577681f60c2e1-cbdecee347314036.elb.us-east-2.amazonaws.com
+      - auth-hostname=a6705c1f60ff140a987293bd35d74a9f-a1a234b28e29c03e.elb.us-east-2.amazonaws.com
 
 patches:
   - patch: |-
