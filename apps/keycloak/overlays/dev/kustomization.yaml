@@ -36,9 +36,9 @@ patches:
               - start
               - --http-enabled=true
               - --health-enabled=true
+              - --metrics-enabled=true
               - --proxy-headers=xforwarded
               - --hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
-              - --hostname-path=/auth
               - --hostname-strict=false
     target:
       kind: Deployment
