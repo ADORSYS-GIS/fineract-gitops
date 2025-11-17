@@ -4,6 +4,11 @@
 set -e
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
 
+# Get repo root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ENV="${ENV:-dev}"
+
 echo "Setting up ArgoCD and sealed secrets..."
 echo ""
 
@@ -119,4 +124,74 @@ if [ ${#MISSING_SECRETS[@]} -gt 0 ]; then
     echo -e "${YELLOW}Deployment may fail. Check sealed secrets in secrets/dev/${NC}"
 fi
 
+echo ""
+
+# ============================================================================
+# Validate Sealed Secrets Compatibility
+# ============================================================================
+
+echo -e "${BLUE}→ Validating sealed secrets compatibility...${NC}"
+VALIDATION_EXIT_CODE=0
+"${REPO_ROOT}/scripts/validate-sealed-secrets-compatibility.sh" "$ENV" || VALIDATION_EXIT_CODE=$?
+
+case $VALIDATION_EXIT_CODE in
+    0)
+        echo -e "${GREEN}✓${NC} Sealed secrets are compatible with cluster"
+        ;;
+    1)
+        echo -e "${RED}✗${NC} Sealed secrets key mismatch detected!"
+        echo ""
+        echo -e "${YELLOW}Sealed secrets in Git were encrypted with a different cluster's key${NC}"
+        echo ""
+        echo "This happens when:"
+        echo "  • Deploying to a fresh cluster (new encryption keys)"
+        echo "  • Controller was reinstalled (keys regenerated)"
+        echo ""
+        echo "Options:"
+        echo "  1) Auto-regenerate all sealed secrets (recommended for dev)"
+        echo "  2) Restore backed-up keys from AWS (for prod/disaster recovery)"
+        echo "  3) Continue anyway (applications will fail to start)"
+        echo ""
+        read -p "Choice [1-3]: " -n 1 -r SEALED_CHOICE
+        echo ""
+
+        case $SEALED_CHOICE in
+            1)
+                echo -e "${BLUE}→ Auto-regenerating sealed secrets...${NC}"
+                if "${REPO_ROOT}/scripts/regenerate-all-sealed-secrets.sh" "$ENV"; then
+                    echo -e "${GREEN}✓${NC} Sealed secrets regenerated successfully"
+                else
+                    echo -e "${RED}✗${NC} Failed to regenerate sealed secrets"
+                    exit 1
+                fi
+                ;;
+            2)
+                echo -e "${BLUE}→ Restoring sealed secrets keys from AWS...${NC}"
+                if "${REPO_ROOT}/scripts/restore-sealed-secrets-keys.sh" "$ENV"; then
+                    echo -e "${GREEN}✓${NC} Keys restored, reapplying sealed secrets..."
+                    kubectl apply -f "${REPO_ROOT}/secrets/${ENV}/" || echo -e "${YELLOW}⚠ Some secrets may have failed${NC}"
+                    echo "  Wait a moment for secrets to unseal, then check:"
+                    echo "  kubectl get sealedsecrets -n fineract-${ENV}"
+                    echo "  kubectl get secrets -n fineract-${ENV}"
+                else
+                    echo -e "${RED}✗${NC} Failed to restore keys"
+                    exit 1
+                fi
+                ;;
+            3)
+                echo -e "${YELLOW}⚠ Continuing with incompatible sealed secrets${NC}"
+                echo -e "${YELLOW}Applications will likely fail to start${NC}"
+                ;;
+        esac
+        ;;
+    2)
+        echo -e "${RED}✗${NC} Sealed Secrets Controller not ready"
+        exit 1
+        ;;
+    3)
+        echo -e "${YELLOW}⚠${NC} No sealed secrets to validate (fresh deployment)"
+        ;;
+esac
+
+echo ""
 echo -e "${GREEN}ArgoCD setup complete!${NC}"

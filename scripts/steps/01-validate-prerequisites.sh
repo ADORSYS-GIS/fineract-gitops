@@ -64,14 +64,15 @@ else
     echo -e "${YELLOW}⚠${NC} Cannot connect to cluster (will be created during deployment)"
 fi
 
-# Check GitHub token
-if [ -z "$GITHUB_TOKEN" ]; then
-    echo -e "${RED}✗${NC} GITHUB_TOKEN environment variable not set"
-    echo "   Set it with: export GITHUB_TOKEN='ghp_your_token_here'"
+# Check SSH deploy key for ArgoCD
+SSH_DEPLOY_KEY="${HOME}/.ssh/argocd-deploy-key"
+if [ ! -f "$SSH_DEPLOY_KEY" ]; then
+    echo -e "${RED}✗${NC} SSH deploy key not found at $SSH_DEPLOY_KEY"
+    echo "   Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f $SSH_DEPLOY_KEY -N \"\""
+    echo "   Then add ${SSH_DEPLOY_KEY}.pub to GitHub repository deploy keys"
     FAILED=1
 else
-    TOKEN_LEN=${#GITHUB_TOKEN}
-    echo -e "${GREEN}✓${NC} GITHUB_TOKEN set (${TOKEN_LEN} characters)"
+    echo -e "${GREEN}✓${NC} SSH deploy key found at $SSH_DEPLOY_KEY"
 fi
 
 # Check Terraform outputs (non-blocking for fresh deployments)

@@ -207,6 +207,116 @@ kubectl get jobs -n fineract-dev | grep fineract-data-loader
 kubectl logs -n fineract-dev job/fineract-data-loader-wave-05 -f
 ```
 
+## Sealed Secrets Management
+
+### Understanding Sealed Secrets and Key Management
+
+Sealed secrets are **encrypted for a specific cluster's public key**. This has important implications for your deployment workflow:
+
+#### For Development (dev):
+- **Sealed secrets are NOT committed to Git**
+- Each cluster deployment regenerates secrets with fresh keys
+- More secure (cluster isolation)
+- Prevents key mismatch issues when redeploying
+
+#### For Production (uat/production):
+- **Sealed secrets ARE committed to Git** (after key backup)
+- Controller keys backed up to AWS Secrets Manager
+- Enables disaster recovery and multi-cluster deployments
+- Git becomes source of truth
+
+### Automatic Key Mismatch Detection
+
+The deployment script automatically detects if sealed secrets in Git are incompatible with the cluster:
+
+```
+→ Validating sealed secrets compatibility...
+✓ Sealed secrets are compatible with cluster
+```
+
+**Or, if there's a mismatch:**
+
+```
+✗ Sealed secrets key mismatch detected!
+
+Sealed secrets in Git were encrypted with a different cluster's key
+
+This happens when:
+  • Deploying to a fresh cluster (new encryption keys)
+  • Controller was reinstalled (keys regenerated)
+
+Options:
+  1) Auto-regenerate all sealed secrets (recommended for dev)
+  2) Restore backed-up keys from AWS (for prod/disaster recovery)
+  3) Continue anyway (applications will fail to start)
+
+Choice [1-3]:
+```
+
+**Recommendation:**
+- **For dev**: Choose option 1 (auto-regenerate)
+- **For prod**: Choose option 2 (restore keys) if you have backups
+
+### Manual Sealed Secrets Operations
+
+**Regenerate sealed secrets:**
+```bash
+./scripts/regenerate-all-sealed-secrets.sh dev
+```
+
+This will:
+1. Generate new sealed secrets with current cluster's key
+2. Apply them to the cluster
+3. For dev: NOT commit to Git (cluster-specific)
+4. For prod: Prompt to commit (if keys are backed up)
+
+**Backup controller keys (production):**
+```bash
+./scripts/backup-sealed-secrets-keys.sh production us-east-2
+```
+
+Keys are stored in AWS Secrets Manager at: `/fineract/production/sealed-secrets/master-key`
+
+**Restore controller keys (disaster recovery):**
+```bash
+./scripts/restore-sealed-secrets-keys.sh production us-east-2
+```
+
+This restores the encryption keys, allowing sealed secrets from Git to decrypt properly.
+
+**Validate compatibility:**
+```bash
+./scripts/validate-sealed-secrets-compatibility.sh dev
+```
+
+Exit codes:
+- `0`: Compatible (secrets can decrypt)
+- `1`: Incompatible (key mismatch - regeneration needed)
+- `2`: Controller not ready
+- `3`: No sealed secrets found
+
+### Why Dev Secrets Aren't Committed
+
+**Problem with committing dev secrets:**
+1. Dev cluster A generates sealed secrets with key A
+2. Secrets committed to Git
+3. Dev cluster A destroyed
+4. Dev cluster B created (generates NEW key B)
+5. ArgoCD pulls secrets from Git (encrypted with key A)
+6. Cluster B can't decrypt (has key B, not key A)
+7. **All applications fail to start**
+
+**Solution:**
+- Dev secrets are regenerated per-cluster
+- No commit to Git (avoids false sense of GitOps)
+- Each dev deployment is self-contained
+
+**For production:**
+- Backup keys to AWS
+- Restore keys on new clusters
+- Sealed secrets in Git work everywhere
+- True GitOps workflow
+
 ## Troubleshooting
 
 ### SSH Authentication Failures
