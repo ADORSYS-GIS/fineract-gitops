@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: InterBranchTransfer
+metadata:
+  name: transfer-douala-branch-to-bafoussam-branch-1
+  labels:
+    transfer-type: inter-branch
+spec:
+  fromOfficeId: Douala Branch
+  toOfficeId: Bafoussam Branch
+  transactionDate: '2024-03-12'
+  amount: 3000000.0
+  currency: XAF
+  transferType: Cash Transfer
+  referenceNumber: IBT-002
+  initiatedBy: Grace Douala
+  description: Weekly cash replenishment to Bafoussam branch
+  status: Completed

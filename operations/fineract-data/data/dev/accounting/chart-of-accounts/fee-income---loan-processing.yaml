@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: fee-income---loan-processing
+  labels:
+    account-type: income
+    usage: detail
+spec:
+  name: Fee Income - Loan Processing
+  glCode: '82'
+  type: Income
+  usage: Detail
+  manualEntriesAllowed: false
+  description: Loan processing fees

@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanRepayment
+metadata:
+  name: repayment-paul-ekambi-2
+  labels:
+    transaction-type: repayment
+spec:
+  loanAccountId: LOAN-003
+  transactionDate: '2024-03-18'
+  transactionAmount: 38000.0
+  paymentTypeId: Cash
+  receiptNumber: REP-003
+  note: Monthly repayment

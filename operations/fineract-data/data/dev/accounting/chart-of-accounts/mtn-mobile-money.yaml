@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: mtn-mobile-money
+  labels:
+    account-type: asset
+    usage: detail
+spec:
+  name: MTN Mobile Money
+  glCode: '43'
+  type: Asset
+  usage: Detail
+  manualEntriesAllowed: true
+  description: MTN MoMo balance

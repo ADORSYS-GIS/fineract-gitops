@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: TaxGroup
+metadata:
+  name: savings-interest-tax
+  labels:
+    tax-type: withholding
+spec:
+  name: Savings Interest Tax
+  taxComponents:
+  - name: Withholding Tax on Interest
+    taxType: Savings Interest
+    percentage: 15.0
+    startDate: '2024-01-01'
+    creditAccountType: Liability
+    creditGLCode: '141'
+    creditGLName: Tax Payable - WHT
+    description: 15% WHT on savings interest (Cameroon tax law)

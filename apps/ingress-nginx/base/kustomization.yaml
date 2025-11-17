@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: ingress-nginx
+
+# Install nginx-ingress controller
+# Use official installation:
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+
+# Or via ArgoCD with this kustomization
+
+resources:
+  - https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+
+# Patch the ingress-nginx-controller ConfigMap with our custom config
+patchesStrategicMerge:
+  - configmap.yaml
+
+commonAnnotations:
+  component: "ingress-controller"
+  purpose: "External traffic routing with TLS termination and OAuth2 authentication"

@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: Charge
+metadata:
+  name: weekly-service-charge
+  labels:
+    charge-applies-to: loan
+    charge-type: Savings
+spec:
+  name: Weekly Service Charge
+  currency: XAF
+  amount: 100.0
+  chargeAppliesTo: LOAN
+  chargeTimeType: DISBURSEMENT
+  chargeCalculationType: Flat
+  active: true
+  penalty: false

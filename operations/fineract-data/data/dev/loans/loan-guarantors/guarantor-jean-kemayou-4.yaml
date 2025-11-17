@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanGuarantor
+metadata:
+  name: guarantor-jean-kemayou-4
+  labels:
+    guarantor-type: individual
+spec:
+  loanAccountId: LOAN-005
+  guarantorTypeId: Individual
+  fullName: Jean Kemayou
+  identificationNumber: ID-45678901
+  phone: +237 677 33 44 55
+  address: Centre Ville, Bafoussam
+  relationship: Cousin
+  amount: 300000.0
+  guaranteeDate: '2024-02-18'

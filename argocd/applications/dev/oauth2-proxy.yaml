@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-oauth2-proxy
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Authentication proxy - deploys after Keycloak realm is configured (Wave 0)
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: eks  # Auto-sync from eks branch
+    path: apps/oauth2-proxy/overlays/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: OAuth2 Proxy
+    - name: Environment
+      value: Development
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "true"
+    - name: Features
+      value: "OIDC Authentication, Session Management, Keycloak Integration"
+    - name: Dependencies
+      value: "Keycloak, Redis Session Store"
+    - name: Purpose
+      value: "Replaces Apache Gateway for OIDC authentication in Nginx migration"

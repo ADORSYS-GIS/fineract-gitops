@@ -1,0 +1,17 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fineract-batch-pdb
+  labels:
+    app: fineract
+    component: batch
+    app.kubernetes.io/name: fineract
+    app.kubernetes.io/component: batch
+  annotations:
+    description: "Allows up to 1 Fineract batch instance to be unavailable during disruptions"
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: fineract
+      component: batch

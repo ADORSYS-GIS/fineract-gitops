@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-production
+
+# Base configuration
+resources:
+- ../../base
+
+# Environment-specific ConfigMap for variables
+configMapGenerator:
+- name: keycloak-config-vars
+  literals:
+  - domain=fineract.com
+  - auth-hostname=auth.fineract.com
+  - apps-hostname=apps.fineract.com
+  - smtp-host=email-smtp.us-east-2.amazonaws.com
+  - smtp-port=587
+
+# Labels for production environment
+labels:
+- pairs:
+    environment: production
+
+# Patches for production
+patchesStrategicMerge:
+- |-
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: apply-keycloak-config
+  spec:
+    template:
+      spec:
+        containers:
+        - name: keycloak-config-cli
+          # Production: Don't create default users
+          volumeMounts:
+          - name: keycloak-config
+            mountPath: /config
+            readOnly: true
+        volumes:
+        - name: keycloak-config
+          projected:
+            sources:
+            - configMap:
+                name: keycloak-realm-config
+            # Note: keycloak-users-config is NOT mounted in production

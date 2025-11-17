@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: eks  # Auto-sync from eks branch
+    path: argocd/applications/dev
+    directory:
+      recurse: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Fineract Development Environment - App of Apps
+    - name: Environment
+      value: Development
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "true"
+    - name: Branch
+      value: develop
+    - name: Applications
+      value: "PostgreSQL HA, Redis, Keycloak, OAuth2 Proxy, Fineract, Monitoring, Logging"
+    - name: Deployment Order
+      value: "Sync waves 1-11 (databases → services → apps)"

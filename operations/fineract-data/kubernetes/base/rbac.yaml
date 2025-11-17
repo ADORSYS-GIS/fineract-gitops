@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fineract-data-loader
+  namespace: fineract-dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fineract-data-loader
+  namespace: fineract-dev
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fineract-data-loader
+  namespace: fineract-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fineract-data-loader
+subjects:
+- kind: ServiceAccount
+  name: fineract-data-loader
+  namespace: fineract-dev

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  # ingress.yaml removed - web-app now integrated into fineract-oauth2-ingress at apps/ingress/
+
+commonLabels:
+  app.kubernetes.io/name: web-app
+  app.kubernetes.io/component: frontend
+  app.kubernetes.io/managed-by: kustomize

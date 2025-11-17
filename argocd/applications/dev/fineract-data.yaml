@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-data-loader
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+    description: "Fineract configuration data loader for DEV"
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: HEAD
+    path: operations/fineract-data
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Fineract Configuration Data Loader
+    - name: Environment
+      value: Development
+    - name: Purpose
+      value: "Load initial configuration and demo data"
+    - name: Sync
+      value: "Automated"
+    - name: Data Loaded
+      value: "All data in operations/fineract-data/data/dev"
+    - name: Safe to Re-run
+      value: "Jobs are idempotent (won't duplicate data)"

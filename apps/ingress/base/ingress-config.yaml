@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-config
+data:
+  apps-hostname: "apps.fineract.example.com"
+  auth-hostname: "auth.fineract.example.com"
+  cluster-issuer: "internal-ca-issuer"

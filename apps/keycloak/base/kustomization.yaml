@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - pvc.yaml
+  - themes-pvc.yaml
+  - theme-configmap.yaml
+  - theme-css-configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  # Ingress moved to apps/ingress/base/ingress.yaml (consolidated with Fineract ingresses)
+  - pdb.yaml
+
+# Create a local configmap for hostname configuration
+configMapGenerator:
+  - name: ingress-config
+    literals:
+      - auth-hostname=auth.fineract.example.com
+
+vars:
+  - name: AUTH_HOSTNAME
+    objref:
+      kind: ConfigMap
+      name: ingress-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.auth-hostname
+
+# Note: commonLabels are applied to all resources including Service selectors
+# This causes issues when the pod labels don't match
+# We apply labels manually in each resource instead
+# commonLabels:
+#   app.kubernetes.io/name: keycloak
+#   app.kubernetes.io/part-of: fineract-platform
+#   app.kubernetes.io/component: identity-provider
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: keycloak
+      app.kubernetes.io/part-of: fineract-platform
+      app.kubernetes.io/component: identity-provider
+    includeSelectors: false  # Don't apply to selectors
+
+# Image management - allows overriding image tags per environment
+images:
+  - name: quay.io/keycloak/keycloak
+    newTag: "26.4.0"

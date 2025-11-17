@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Fund Source",
+  "description": "Schema for validating Fineract fund source configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["Fundsource"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fund source name"
+        },
+        "externalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "External identifier for integration with other systems"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: Charge
+metadata:
+  name: withdrawal-fee
+  labels:
+    charge-applies-to: loan
+    charge-type: Savings
+spec:
+  name: Withdrawal Fee
+  currency: XAF
+  amount: 200.0
+  chargeAppliesTo: LOAN
+  chargeTimeType: DISBURSEMENT
+  chargeCalculationType: Flat
+  active: true
+  penalty: false

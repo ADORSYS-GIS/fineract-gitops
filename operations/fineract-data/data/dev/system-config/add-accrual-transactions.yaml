@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: SchedulerJob
+metadata:
+  name: add-accrual-transactions
+  labels:
+    job-type: scheduled
+spec:
+  jobName: Add Accrual Transactions
+  displayName: Add Accrual Transactions
+  cronExpression: 0 0 2 * * ?
+  active: true
+  description: Add accrual accounting entries daily at 2 AM

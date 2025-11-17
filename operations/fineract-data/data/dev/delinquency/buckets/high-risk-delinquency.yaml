@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: DelinquencyBucket
+metadata:
+  name: high-risk-delinquency
+  labels:
+    bucket-type: age-based
+spec:
+  name: High Risk Delinquency
+  classification: High Risk
+  minimumAgeDays: 61
+  maximumAgeDays: 90
+  colorCode: '#DC143C'
+  description: Loans 61-90 days past due

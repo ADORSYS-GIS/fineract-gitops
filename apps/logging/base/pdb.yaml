@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: loki-pdb
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: loki
+  annotations:
+    description: "Prevents disruption of Loki - ensures continuous log aggregation"
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loki

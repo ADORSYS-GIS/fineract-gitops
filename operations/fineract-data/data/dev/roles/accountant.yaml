@@ -1,0 +1,27 @@
+apiVersion: fineract.apache.org/v1
+kind: Role
+metadata:
+  name: accountant
+  labels:
+    role-type: custom
+spec:
+  name: Accountant
+  description: Create and manage GL accounts and journal entries
+  disabled: false
+  permissions:
+  - grouping: Accounting
+    code: Accounting_ALL_FUNCTIONS
+  - grouping: Client
+    code: Client_READ
+  - grouping: Loan
+    code: Loan_READ
+  - grouping: Savings
+    code: Savings_READ
+  - grouping: Transaction
+    code: Transaction_READ
+  - grouping: Report
+    code: Report_READ
+  - grouping: Office
+    code: Office_READ
+  - grouping: Maker-Checker
+    code: Maker-Checker_APPROVE

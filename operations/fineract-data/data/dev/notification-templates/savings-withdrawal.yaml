@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: NotificationTemplate
+metadata:
+  name: savings-withdrawal
+  labels:
+    channel: sms
+spec:
+  name: Savings Withdrawal
+  channel: SMS
+  eventTrigger: Withdrawal Made
+  subject: ''
+  messageBody: 'Withdrawal: {withdrawalAmount} XAF from account {savingsAccountNumber}.
+    New balance: {accountBalance} XAF. Date: {transactionDate}.'
+  isActive: true
+  description: Sent when withdrawal is made

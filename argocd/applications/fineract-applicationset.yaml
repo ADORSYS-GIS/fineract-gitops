@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: fineract
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - environment: dev
+        targetRevision: eks
+        project: fineract-dev
+        repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+      - environment: uat
+        targetRevision: main
+        project: fineract-uat
+        repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+      - environment: prod
+        targetRevision: main
+        project: fineract-production
+        repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+  template:
+    metadata:
+      name: 'fineract-{{environment}}-fineract'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "10"
+    spec:
+      project: '{{project}}'
+
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{targetRevision}}'
+        path: 'environments/{{environment}}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'fineract-{{environment}}'
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+            - /spec/template/spec/containers/0/resources
+
+      info:
+        - name: Component
+          value: Apache Fineract Core Banking
+        - name: Environment
+          value: '{{environment}}'
+        - name: Profile
+          value: standard
+        - name: Auto-Deploy
+          value: "{{#eq environment 'dev'}}true{{/eq}}{{^eq environment 'dev'}}false{{/eq}}"
+        - name: Features
+          value: "PostgreSQL + Redis (Standard Profile)"
+        - name: Instances
+          value: "Read (2), Write (2), Batch (1)"

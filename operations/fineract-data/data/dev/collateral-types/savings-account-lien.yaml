@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: CollateralType
+metadata:
+  name: savings-account-lien
+  labels:
+    collateral-category: physical
+spec:
+  name: Savings Account Lien
+  description: Lien on savings account
+  requiresValuation: false

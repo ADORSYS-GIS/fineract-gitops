@@ -1,0 +1,21 @@
+apiVersion: fineract.apache.org/v1
+kind: Client
+metadata:
+  name: bernadette-fotso
+  labels:
+    client-type: Individual
+spec:
+  firstName: Bernadette
+  middleName: ''
+  lastName: Fotso
+  officeId: Bafoussam Branch
+  staffId: loan.bafoussam
+  externalId: CLI-009
+  mobileNo: +237 690 90 12 34
+  emailAddress: b.fotso@gmail.com
+  dateOfBirth: '1987-06-20'
+  genderId: Female
+  clientTypeId: Individual
+  clientClassificationId: Active
+  active: true
+  activationDate: '2024-03-05'

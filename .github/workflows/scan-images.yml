@@ -1,0 +1,121 @@
+name: Scan Container Images
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**/*.yaml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/**/*.yaml'
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  extract-images:
+    name: Extract Images from Manifests
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.extract.outputs.images }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract container images
+      id: extract
+      run: |
+        echo "Extracting container images from manifests..."
+
+        # Extract images from YAML files
+        images=$(grep -h "image:" apps/*/base/*.yaml argocd/applications/*/*.yaml 2>/dev/null | \
+          sed 's/.*image: *//' | \
+          sed 's/[\"'\'']//g' | \
+          sort -u | \
+          grep -v "REPLACE" | \
+          jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+        echo "Found images:"
+        echo "$images" | jq -r '.[]'
+
+        echo "images=$images" >> $GITHUB_OUTPUT
+
+  scan:
+    name: Scan Image with Trivy
+    runs-on: ubuntu-latest
+    needs: extract-images
+    if: needs.extract-images.outputs.images != '[]'
+
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.extract-images.outputs.images) }}
+      fail-fast: false
+      max-parallel: 3
+
+    steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ matrix.image }}
+        format: 'sarif'
+        output: 'trivy-results-${{ hashFiles(matrix.image) }}.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      continue-on-error: true  # Don't fail if code scanning is not enabled
+      with:
+        sarif_file: 'trivy-results-${{ hashFiles(matrix.image) }}.sarif'
+
+    - name: Run Trivy with table output
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ matrix.image }}
+        format: 'table'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+
+    - name: Check for critical vulnerabilities
+      uses: aquasecurity/trivy-action@master
+      continue-on-error: true  # Don't fail workflow, just report
+      with:
+        image-ref: ${{ matrix.image }}
+        format: 'table'
+        severity: 'CRITICAL'
+        exit-code: '1'
+
+  summary:
+    name: Scan Summary
+    runs-on: ubuntu-latest
+    needs: [extract-images, scan]
+    if: always()
+
+    steps:
+    - name: Create summary
+      run: |
+        echo "## Container Image Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Calculate image count using jq
+        IMAGES='${{ needs.extract-images.outputs.images }}'
+        IMAGE_COUNT=$(echo "$IMAGES" | jq '. | length')
+
+        echo "**Total Images Scanned**: $IMAGE_COUNT" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Scanned Images" >> $GITHUB_STEP_SUMMARY
+
+        # List images
+        echo "$IMAGES" | jq -r '.[]' | while read image; do
+          echo "- \`$image\`" >> $GITHUB_STEP_SUMMARY
+        done
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Check the Security tab for detailed vulnerability reports." >> $GITHUB_STEP_SUMMARY

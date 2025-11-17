@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Staff",
+  "description": "Schema for validating Fineract staff/employee configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"type": "string", "enum": ["fineract.apache.org/v1"]},
+    "kind": {"type": "string", "enum": ["Staff"]},
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "labels": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["firstName", "lastName", "officeId"],
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Staff first name"
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Staff last name"
+        },
+        "officeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Office name/reference where staff is assigned"
+        },
+        "externalId": {
+          "type": "string",
+          "description": "External identifier (e.g., employee ID)"
+        },
+        "isLoanOfficer": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this staff member is a loan officer"
+        },
+        "isActive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this staff member is active"
+        },
+        "mobileNo": {
+          "type": "string",
+          "pattern": "^\\+?[0-9]{10,15}$",
+          "description": "Mobile phone number"
+        },
+        "emailAddress": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address"
+        },
+        "joiningDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Date staff joined (YYYY-MM-DD)"
+        },
+        "username": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Username for Keycloak authentication (optional)"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role name for Keycloak (optional)"
+        }
+      }
+    }
+  }
+}

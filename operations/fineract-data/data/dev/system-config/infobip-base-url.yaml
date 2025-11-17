@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: infobip-base-url
+  labels:
+    config-type: sms-gateway
+    provider: infobip
+spec:
+  configType: SMS Gateway
+  provider: Infobip
+  configKey: base_url
+  configValue: https://api.infobip.com
+  isActive: false
+  description: Infobip API base URL

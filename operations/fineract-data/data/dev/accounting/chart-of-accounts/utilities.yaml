@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: utilities
+  labels:
+    account-type: expense
+    usage: detail
+spec:
+  name: Utilities
+  glCode: '96'
+  type: Expense
+  usage: Detail
+  manualEntriesAllowed: true
+  description: Utilities expenses

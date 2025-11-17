@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: fineract-production-limits
+  namespace: fineract-production
+  labels:
+    environment: production
+    criticality: high
+  annotations:
+    description: "Default resource limits for production pods"
+spec:
+  limits:
+  # Container limits
+  - type: Container
+    default:
+      cpu: "2"
+      memory: 4Gi
+    defaultRequest:
+      cpu: 500m
+      memory: 1Gi
+    max:
+      cpu: "16"
+      memory: 32Gi
+    min:
+      cpu: 100m
+      memory: 256Mi
+
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "32"
+      memory: 64Gi
+
+  # PVC limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: 200Gi
+    min:
+      storage: 5Gi

@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - service-account.yaml
+  - deployment-read.yaml
+  - deployment-write.yaml
+  - deployment-batch.yaml
+  - service.yaml
+  - configmap.yaml
+  - fineract-oauth2-config.yaml
+  - hpa-read.yaml
+  - hpa-batch.yaml
+  - rbac-configmap.yaml
+
+commonLabels:
+  app.kubernetes.io/name: fineract
+  app.kubernetes.io/part-of: fineract-platform

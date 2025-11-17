@@ -1,0 +1,31 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanProduct
+metadata:
+  name: microcredit-solidarity-loan
+  labels:
+    product-type: loan
+    category: general
+spec:
+  name: Microcredit Solidarity Loan
+  shortName: MSOL
+  description: Small loans for petty traders and artisans (solidarity group)
+  currency: XAF
+  digitsAfterDecimal: 2
+  principal:
+    min: 50000.0
+    default: 200000.0
+    max: 500000.0
+  interestRate:
+    min: 18.0
+    default: 24.0
+    max: 30.0
+    type: Declining Balance
+    perPeriod: true
+  numberOfRepayments:
+    min: 6
+    default: 12
+    max: 36
+  repaymentEvery: 1
+  repaymentFrequency: Monthly
+  amortizationType: Equal installments
+  interestCalculationPeriod: Same as repayment period

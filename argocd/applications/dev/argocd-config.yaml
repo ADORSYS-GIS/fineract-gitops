@@ -1,0 +1,21 @@
+# ArgoCD Application Configuration for Dev Environment
+# This ConfigMap centralizes all environment-specific values for ArgoCD applications
+# These values are used by Kustomize replacements to inject into Application manifests
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-app-config
+  namespace: argocd
+data:
+  # Git repository configuration
+  repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+  targetRevision: "eks"  # Branch to track for this environment
+
+  # Environment configuration
+  environment: "dev"
+  namespace: "fineract-dev"
+  argocdProject: "fineract-dev"
+
+  # Kubernetes cluster
+  clusterServer: "https://kubernetes.default.svc"

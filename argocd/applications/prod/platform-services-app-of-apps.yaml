@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-platform-services
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    description: "Platform services for Fineract Production (excludes Fineract app and Web Apps)"
+    notifications.argoproj.io/subscribe.on-deployed.slack: fineract-production
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: fineract-production
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Production syncs from main
+    path: argocd/applications/prod
+    directory:
+      recurse: false
+      # Exclude app-of-apps itself and Fineract
+      exclude: |
+        app-of-apps.yaml
+        fineract.yaml
+        platform-services-app-of-apps.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    # MANUAL sync for production - requires approval
+    # automated:
+    #   prune: false
+    #   selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 5m
+
+  info:
+    - name: Component
+      value: Platform Services (Production)
+    - name: Environment
+      value: Production
+    - name: Includes
+      value: "PostgreSQL HA, Redis, Keycloak, Gateways, Monitoring, Logging"
+    - name: Excludes
+      value: "Fineract backend, Web Apps (deployed from their repos)"
+    - name: Auto-Deploy
+      value: "false (manual approval required)"
+    - name: Deployment Method
+      value: "Post-infrastructure, Pre-application"

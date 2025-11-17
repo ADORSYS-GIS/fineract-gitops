@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-fineract-redis
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Deploy after Keycloak, before OAuth2 Proxy
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # UAT syncs from main branch
+    path: apps/fineract-redis/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-uat
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Redis Session Store
+    - name: Environment
+      value: UAT
+    - name: Profile
+      value: ephemeral
+    - name: Auto-Deploy
+      value: "false - manual sync required"
+    - name: Features
+      value: "In-Memory Storage, LRU Eviction, Session TTL"
+    - name: Purpose
+      value: "OAuth2 Proxy session storage for authentication"

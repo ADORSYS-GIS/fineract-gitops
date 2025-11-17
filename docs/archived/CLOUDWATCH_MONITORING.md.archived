@@ -1,0 +1,575 @@
+# CloudWatch Monitoring for EKS
+
+**Last Updated**: 2025-11-13
+**Target Audience**: DevOps Engineers, SREs, System Administrators
+
+This document provides a comprehensive guide to monitoring your Fineract EKS cluster and applications using Amazon CloudWatch Container Insights.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Container Insights Setup](#container-insights-setup)
+- [Accessing CloudWatch Dashboards](#accessing-cloudwatch-dashboards)
+- [Key Metrics to Monitor](#key-metrics-to-monitor)
+- [Log Groups and Queries](#log-groups-and-queries)
+- [Alarms and Notifications](#alarms-and-notifications)
+- [Cost Optimization](#cost-optimization)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+CloudWatch Container Insights provides automatic dashboards, metrics, and logs for your EKS cluster, replacing the need for self-hosted Prometheus and Grafana.
+
+### Benefits
+
+- **Zero Infrastructure**: No need to deploy/manage Prometheus, Grafana, or Loki
+- **AWS Integration**: Native integration with AWS services (ELB, RDS, S3)
+- **Cost Effective**: Pay only for what you use (~$10-20/month for dev cluster)
+- **Automatic Dashboards**: Pre-built dashboards for EKS, nodes, pods, and containers
+- **Unified Logging**: Application and system logs in one place
+
+### What's Monitored
+
+✅ **Cluster-level**: CPU, memory, network, disk
+✅ **Node-level**: Resource utilization per node
+✅ **Pod-level**: Resource usage, restarts, status
+✅ **Container-level**: CPU, memory per container
+✅ **Application logs**: stdout/stderr from all containers
+✅ **Performance**: Latency, request rates (via application metrics)
+
+---
+
+## Container Insights Setup
+
+Container Insights is **automatically enabled** by the Terraform EKS module via the CloudWatch Observability add-on.
+
+### Verify Installation
+
+```bash
+# Check CloudWatch Observability add-on
+kubectl get addons -n kube-system
+
+# Expected output includes:
+# amazon-cloudwatch-observability
+```
+
+### Manual Installation (If Not Enabled)
+
+If Container Insights was not enabled during cluster creation:
+
+```bash
+# Enable the CloudWatch Observability add-on
+aws eks create-addon \
+  --cluster-name fineract-dev \
+  --addon-name amazon-cloudwatch-observability \
+  --region us-east-2
+```
+
+### Verify Fluent Bit Pods
+
+CloudWatch Observability deploys Fluent Bit for log collection:
+
+```bash
+# Check Fluent Bit pods
+kubectl get pods -n amazon-cloudwatch
+
+# Expected: 1 pod per node
+```
+
+---
+
+## Accessing CloudWatch Dashboards
+
+### 1. Container Insights Dashboard
+
+**URL**: [CloudWatch Console → Container Insights](https://console.aws.amazon.com/cloudwatch/home?region=us-east-2#container-insights:)
+
+**Path**: CloudWatch → Insights → Container Insights
+
+**What You'll See**:
+- Cluster map (visual representation)
+- Resource utilization graphs
+- Pod/node performance
+- Alarms
+
+### 2. Cluster-Level View
+
+Navigate to: **Container Insights → EKS Clusters → fineract-dev**
+
+**Key Sections**:
+
+#### Performance Dashboard
+- CPU Utilization (%)
+- Memory Utilization (%)
+- Network Tx/Rx (bytes/sec)
+- Disk I/O
+- Pod Count
+- Node Count
+
+#### Resources Tab
+- Pods (running, pending, failed)
+- Nodes (ready, not ready)
+- Services
+- Deployments
+
+### 3. Node-Level View
+
+Navigate to: **Container Insights → EKS Clusters → fineract-dev → Nodes**
+
+**Per-Node Metrics**:
+- CPU Reserved vs. Used
+- Memory Reserved vs. Used
+- Disk Pressure
+- Pod Count per Node
+- Node Conditions
+
+### 4. Pod-Level View
+
+Navigate to: **Container Insights → EKS Clusters → fineract-dev → Pods**
+
+**Per-Pod Metrics**:
+- CPU Usage (millicores)
+- Memory Usage (MB)
+- Network I/O
+- Restart Count
+- Container Status
+
+**Filter by**:
+- Namespace (fineract-dev, fineract-uat, etc.)
+- Deployment
+- Service
+
+### 5. Container-Level View
+
+Navigate to: **Container Insights → EKS Clusters → fineract-dev → Containers**
+
+**Per-Container Metrics**:
+- CPU Usage
+- Memory Usage
+- Logs (direct link)
+
+---
+
+## Key Metrics to Monitor
+
+### Cluster Health Metrics
+
+| Metric | Description | Healthy Range | Alert Threshold |
+|--------|-------------|---------------|-----------------|
+| **cluster_failed_node_count** | Number of failed nodes | 0 | > 0 |
+| **cluster_node_count** | Total nodes | 2-4 | < 2 or > 4 |
+| **pod_cpu_utilization** | Average pod CPU % | 20-70% | > 80% |
+| **pod_memory_utilization** | Average pod memory % | 30-70% | > 85% |
+| **pod_number_of_container_restarts** | Container restarts | 0 | > 5 in 5 min |
+
+### Application Metrics (Fineract)
+
+| Metric | Source | Description | Alert Threshold |
+|--------|--------|-------------|-----------------|
+| **fineract_write_cpu** | Pod metrics | CPU usage of write service | > 80% |
+| **fineract_write_memory** | Pod metrics | Memory usage | > 1.5GB |
+| **fineract_write_restarts** | Pod metrics | Container restarts | > 3 in 10 min |
+| **http_requests_total** | Application | Total requests | N/A (trend) |
+| **http_request_duration_seconds** | Application | Request latency | p95 > 2s |
+
+### Database Metrics (RDS)
+
+Access via: **CloudWatch → Metrics → RDS**
+
+| Metric | Description | Healthy Range | Alert Threshold |
+|--------|-------------|---------------|-----------------|
+| **CPUUtilization** | RDS CPU % | 20-60% | > 80% |
+| **FreeableMemory** | Available memory | > 1GB | < 500MB |
+| **DatabaseConnections** | Active connections | 10-50 | > 80 |
+| **ReadLatency** | Query latency | < 5ms | > 50ms |
+| **WriteLatency** | Write latency | < 10ms | > 100ms |
+
+### Load Balancer Metrics (NLB)
+
+Access via: **CloudWatch → Metrics → NetworkELB**
+
+| Metric | Description | Alert Threshold |
+|--------|-------------|-----------------|
+| **HealthyHostCount** | Healthy targets | < 1 |
+| **UnHealthyHostCount** | Unhealthy targets | > 0 |
+| **ProcessedBytes** | Data transferred | N/A (trend) |
+| **ActiveFlowCount** | Active connections | N/A (trend) |
+
+---
+
+## Log Groups and Queries
+
+### Log Groups
+
+CloudWatch automatically creates log groups for your cluster:
+
+| Log Group | Description | Retention |
+|-----------|-------------|-----------|
+| `/aws/eks/fineract-dev/cluster` | EKS control plane logs | 7 days (configurable) |
+| `/aws/containerinsights/fineract-dev/application` | Application logs (stdout/stderr) | 7 days |
+| `/aws/containerinsights/fineract-dev/dataplane` | Node-level metrics | 1 day |
+| `/aws/containerinsights/fineract-dev/host` | Host-level metrics | 1 day |
+| `/aws/containerinsights/fineract-dev/performance` | Performance logs | 1 hour |
+
+### Useful Log Insights Queries
+
+#### 1. Find Errors in Fineract Logs
+
+```sql
+fields @timestamp, @message
+| filter @logStream like /fineract-write/
+| filter @message like /ERROR|Exception/
+| sort @timestamp desc
+| limit 100
+```
+
+#### 2. Top 10 Slowest Requests
+
+```sql
+fields @timestamp, @message
+| filter @message like /duration/
+| parse @message /duration=(?<duration>[0-9]+)/
+| sort duration desc
+| limit 10
+```
+
+#### 3. Pod Restart Events
+
+```sql
+fields @timestamp, @message
+| filter @message like /restart/
+| stats count() by pod_name
+| sort count desc
+```
+
+#### 4. Failed Authentication Attempts
+
+```sql
+fields @timestamp, @message
+| filter @logStream like /fineract/
+| filter @message like /authentication failed|401|Unauthorized/
+| stats count() by bin(5m)
+```
+
+#### 5. Database Connection Errors
+
+```sql
+fields @timestamp, @message
+| filter @message like /SQLException|database connection/
+| sort @timestamp desc
+| limit 50
+```
+
+#### 6. Memory Out of Bounds (OOMKilled)
+
+```sql
+fields @timestamp, @message
+| filter @message like /OOMKilled|out of memory/
+| stats count() by pod_name, namespace
+```
+
+### Accessing Logs via CLI
+
+```bash
+# List log groups
+aws logs describe-log-groups --region us-east-2
+
+# Tail application logs
+aws logs tail /aws/containerinsights/fineract-dev/application \
+  --follow \
+  --region us-east-2
+
+# Query logs
+aws logs start-query \
+  --log-group-name /aws/containerinsights/fineract-dev/application \
+  --start-time $(date -u -d '1 hour ago' +%s) \
+  --end-time $(date -u +%s) \
+  --query-string 'fields @timestamp, @message | filter @message like /ERROR/' \
+  --region us-east-2
+```
+
+---
+
+## Alarms and Notifications
+
+### Creating SNS Topic for Alerts
+
+```bash
+# Create SNS topic
+aws sns create-topic --name fineract-alerts --region us-east-2
+
+# Subscribe email
+aws sns subscribe \
+  --topic-arn arn:aws:sns:us-east-2:ACCOUNT_ID:fineract-alerts \
+  --protocol email \
+  --notification-endpoint devops@example.com
+```
+
+### CloudWatch Alarms
+
+#### 1. High Pod CPU Utilization
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name fineract-high-cpu \
+  --alarm-description "Alert when pod CPU > 80%" \
+  --metric-name pod_cpu_utilization \
+  --namespace ContainerInsights \
+  --statistic Average \
+  --period 300 \
+  --evaluation-periods 2 \
+  --threshold 80 \
+  --comparison-operator GreaterThanThreshold \
+  --dimensions Name=ClusterName,Value=fineract-dev Name=Namespace,Value=fineract-dev \
+  --alarm-actions arn:aws:sns:us-east-2:ACCOUNT_ID:fineract-alerts \
+  --region us-east-2
+```
+
+#### 2. Pod Restart Loop
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name fineract-restart-loop \
+  --alarm-description "Alert when pod restarts > 5 times" \
+  --metric-name pod_number_of_container_restarts \
+  --namespace ContainerInsights \
+  --statistic Sum \
+  --period 300 \
+  --evaluation-periods 1 \
+  --threshold 5 \
+  --comparison-operator GreaterThanThreshold \
+  --dimensions Name=ClusterName,Value=fineract-dev Name=Namespace,Value=fineract-dev \
+  --alarm-actions arn:aws:sns:us-east-2:ACCOUNT_ID:fineract-alerts \
+  --region us-east-2
+```
+
+#### 3. RDS High CPU
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name fineract-rds-high-cpu \
+  --alarm-description "Alert when RDS CPU > 80%" \
+  --metric-name CPUUtilization \
+  --namespace AWS/RDS \
+  --statistic Average \
+  --period 300 \
+  --evaluation-periods 2 \
+  --threshold 80 \
+  --comparison-operator GreaterThanThreshold \
+  --dimensions Name=DBInstanceIdentifier,Value=fineract-dev-db \
+  --alarm-actions arn:aws:sns:us-east-2:ACCOUNT_ID:fineract-alerts \
+  --region us-east-2
+```
+
+#### 4. LoadBalancer Unhealthy Targets
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name fineract-lb-unhealthy \
+  --alarm-description "Alert when LB has unhealthy targets" \
+  --metric-name UnHealthyHostCount \
+  --namespace AWS/NetworkELB \
+  --statistic Average \
+  --period 60 \
+  --evaluation-periods 2 \
+  --threshold 1 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --dimensions Name=LoadBalancer,Value=<LB_ID> \
+  --alarm-actions arn:aws:sns:us-east-2:ACCOUNT_ID:fineract-alerts \
+  --region us-east-2
+```
+
+### Recommended Alarms Summary
+
+| Alarm | Threshold | Why |
+|-------|-----------|-----|
+| High Pod CPU | > 80% for 10 min | Prevent performance degradation |
+| High Pod Memory | > 85% for 10 min | Prevent OOMKilled |
+| Pod Restart Loop | > 5 restarts in 5 min | Detect crashing pods |
+| High RDS CPU | > 80% for 10 min | Database overload |
+| RDS Low Memory | < 500MB | Risk of database crash |
+| LB Unhealthy Targets | > 0 for 2 min | Service unavailable |
+| Error Rate Spike | > 100 errors in 5 min | Application issues |
+
+---
+
+## Cost Optimization
+
+### Understanding CloudWatch Costs
+
+**Container Insights Pricing** (us-east-2):
+- **Ingestion**: $0.50 per GB
+- **Storage**: $0.03 per GB/month
+- **Vended logs**: $0.02 per GB
+
+**Estimated Monthly Costs** (dev cluster with 2 nodes, 10 pods):
+- Log ingestion: ~3 GB/day × 30 days × $0.50 = $45
+- Log storage: ~90 GB × $0.03 = $2.70
+- Metrics: ~1000 custom metrics × $0.30 = (included in Container Insights)
+- **Total**: ~$50/month
+
+### Reducing Costs
+
+#### 1. Adjust Log Retention
+
+```bash
+# Set retention to 7 days (default is indefinite)
+aws logs put-retention-policy \
+  --log-group-name /aws/containerinsights/fineract-dev/application \
+  --retention-in-days 7 \
+  --region us-east-2
+```
+
+#### 2. Filter Noisy Logs
+
+Edit Fluent Bit configuration to exclude verbose logs:
+
+```yaml
+# ConfigMap: fluent-bit-config in amazon-cloudwatch namespace
+[FILTER]
+    Name grep
+    Match *
+    Exclude log debug|trace
+```
+
+#### 3. Use Metric Filters Wisely
+
+Only create metric filters for critical events (errors, not info logs).
+
+#### 4. Archive Old Logs to S3
+
+```bash
+# Export logs to S3 for long-term storage (cheaper)
+aws logs create-export-task \
+  --log-group-name /aws/containerinsights/fineract-dev/application \
+  --from $(date -d '30 days ago' +%s)000 \
+  --to $(date +%s)000 \
+  --destination fineract-logs-archive \
+  --region us-east-2
+```
+
+#### 5. Sampling
+
+For high-volume metrics, use sampling instead of collecting every data point.
+
+---
+
+## Troubleshooting
+
+### Logs Not Appearing in CloudWatch
+
+**Symptom**: No logs in `/aws/containerinsights/fineract-dev/application`
+
+**Causes & Solutions**:
+
+1. **Fluent Bit not running**
+   ```bash
+   kubectl get pods -n amazon-cloudwatch
+   # If no pods, reinstall add-on
+   ```
+
+2. **IAM permissions missing**
+   ```bash
+   # Check node IAM role has CloudWatchAgentServerPolicy
+   aws iam list-attached-role-policies --role-name <node-role>
+   ```
+
+3. **Fluent Bit configuration error**
+   ```bash
+   kubectl logs -n amazon-cloudwatch -l app=fluent-bit
+   # Look for errors
+   ```
+
+### Metrics Not Showing
+
+**Symptom**: Container Insights shows "No data"
+
+**Solutions**:
+
+1. Wait 5-10 minutes for initial data population
+2. Verify CloudWatch Observability add-on is active:
+   ```bash
+   aws eks describe-addon \
+     --cluster-name fineract-dev \
+     --addon-name amazon-cloudwatch-observability \
+     --region us-east-2
+   ```
+3. Check for errors in CloudWatch Agent:
+   ```bash
+   kubectl logs -n amazon-cloudwatch -l app=cloudwatch-agent
+   ```
+
+### High CloudWatch Costs
+
+**Symptom**: Unexpected high CloudWatch bill
+
+**Solutions**:
+
+1. Check log ingestion volume:
+   ```bash
+   aws cloudwatch get-metric-statistics \
+     --namespace AWS/Logs \
+     --metric-name IncomingBytes \
+     --start-time $(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%S) \
+     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+     --period 86400 \
+     --statistics Sum \
+     --region us-east-2
+   ```
+
+2. Identify noisy log groups:
+   ```bash
+   aws logs describe-log-groups \
+     --query 'logGroups[*].[logGroupName,storedBytes]' \
+     --output table \
+     --region us-east-2
+   ```
+
+3. Reduce retention for dev logs to 1-3 days
+
+---
+
+## Additional Resources
+
+- [Container Insights Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/ContainerInsights.html)
+- [CloudWatch Logs Insights Query Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html)
+- [CloudWatch Pricing Calculator](https://aws.amazon.com/cloudwatch/pricing/)
+- [EKS CloudWatch Logging](https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html)
+
+---
+
+## Quick Reference Commands
+
+```bash
+# View Container Insights dashboard
+open "https://console.aws.amazon.com/cloudwatch/home?region=us-east-2#container-insights:infrastructure/map/EKS:Cluster/fineract-dev"
+
+# Tail application logs
+aws logs tail /aws/containerinsights/fineract-dev/application --follow
+
+# Query error logs (last hour)
+aws logs start-query \
+  --log-group-name /aws/containerinsights/fineract-dev/application \
+  --start-time $(date -u -d '1 hour ago' +%s) \
+  --end-time $(date -u +%s) \
+  --query-string 'fields @timestamp, @message | filter @message like /ERROR/'
+
+# Check Fluent Bit status
+kubectl get pods -n amazon-cloudwatch
+
+# Check CloudWatch add-on
+aws eks describe-addon \
+  --cluster-name fineract-dev \
+  --addon-name amazon-cloudwatch-observability
+
+# List all alarms
+aws cloudwatch describe-alarms --state-value ALARM
+```
+
+---
+
+For more troubleshooting help, see `docs/TROUBLESHOOTING_EKS.md`.

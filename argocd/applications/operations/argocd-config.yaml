@@ -1,0 +1,18 @@
+# ArgoCD Application Configuration for Operations
+# This ConfigMap centralizes all environment-specific values for ArgoCD applications
+# These values are used by Kustomize replacements to inject into Application manifests
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-app-config
+  namespace: argocd
+data:
+  # Git repository configuration
+  repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+  targetRevision: "eks"  # Operations track the development branch
+
+  # Operations applications don't have a specific namespace/project
+  # (each operation targets its own environment-specific namespace)
+  # But we centralize the repo URL for consistency
+  clusterServer: "https://kubernetes.default.svc"

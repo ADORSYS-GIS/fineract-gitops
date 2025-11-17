@@ -1,0 +1,32 @@
+apiVersion: fineract.apache.org/v1
+kind: DataTable
+metadata:
+  name: savings-additional-info
+  labels:
+    entity-type: savings
+spec:
+  datatableName: savings_additional_info
+  apptableName: SAVINGS
+  multiRow: false
+  columns:
+  - name: savings_goal
+    type: String
+    mandatory: false
+    length: 100
+  - name: target_amount
+    type: Decimal
+    mandatory: false
+    length: null
+  - name: target_date
+    type: Date
+    mandatory: false
+    length: null
+  - name: monthly_commitment
+    type: Decimal
+    mandatory: false
+    length: null
+  - name: preferred_transaction_channel
+    type: Dropdown
+    mandatory: false
+    length: null
+    code: savings_additional_info_preferred_transaction_channel_options

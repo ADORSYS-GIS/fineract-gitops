@@ -1,0 +1,31 @@
+apiVersion: fineract.apache.org/v1
+kind: Role
+metadata:
+  name: system-administrator
+  labels:
+    role-type: custom
+spec:
+  name: System Administrator
+  description: Create and manage offices/branches
+  disabled: false
+  permissions:
+  - grouping: Office
+    code: Office_ALL_FUNCTIONS
+  - grouping: Staff
+    code: Staff_ALL_FUNCTIONS
+  - grouping: Loan Product
+    code: Loan Product_ALL_FUNCTIONS
+  - grouping: Savings Product
+    code: Savings Product_ALL_FUNCTIONS
+  - grouping: Charge
+    code: Charge_ALL_FUNCTIONS
+  - grouping: Client
+    code: Client_CREATE_UPDATE_READ
+  - grouping: Loan
+    code: Loan_READ
+  - grouping: Savings
+    code: Savings_READ
+  - grouping: Report
+    code: Report_READ
+  - grouping: Maker-Checker
+    code: Maker-Checker_CREATE

@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: orange-money-enabled
+  labels:
+    config-type: Payment
+spec:
+  name: ORANGE_MONEY_ENABLED
+  enabled: true
+  value: 'No'
+  description: ''

@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: tax-expense---withholding-tax
+  labels:
+    account-type: expense
+    usage: detail
+spec:
+  name: Tax Expense - Withholding Tax
+  glCode: '97'
+  type: Expense
+  usage: Detail
+  manualEntriesAllowed: true
+  description: Withholding tax on interest

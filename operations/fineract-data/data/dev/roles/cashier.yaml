@@ -1,0 +1,23 @@
+apiVersion: fineract.apache.org/v1
+kind: Role
+metadata:
+  name: cashier
+  labels:
+    role-type: custom
+spec:
+  name: Cashier
+  description: View client information only
+  disabled: false
+  permissions:
+  - grouping: Client
+    code: Client_READ
+  - grouping: Loan
+    code: Loan_READ
+  - grouping: Savings
+    code: Savings_TRANSACTION
+  - grouping: Transaction
+    code: Transaction_CREATE_READ
+  - grouping: Report
+    code: Report_READ
+  - grouping: Maker-Checker
+    code: Maker-Checker_CREATE

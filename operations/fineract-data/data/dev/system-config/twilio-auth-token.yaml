@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: twilio-auth-token
+  labels:
+    config-type: sms-gateway
+    provider: twilio
+spec:
+  configType: SMS Gateway
+  provider: Twilio
+  configKey: auth_token
+  configValue: YOUR_TWILIO_AUTH_TOKEN
+  isActive: true
+  description: Twilio Authentication Token (keep secure!)

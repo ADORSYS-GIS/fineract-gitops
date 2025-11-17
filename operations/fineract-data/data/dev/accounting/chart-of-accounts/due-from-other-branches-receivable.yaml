@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: due-from-other-branches-(receivable)
+  labels:
+    account-type: asset
+    usage: detail
+spec:
+  name: Due from Other Branches (Receivable)
+  glCode: '122'
+  type: Asset
+  usage: Detail
+  manualEntriesAllowed: true
+  description: Inter-branch receivables

@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: Charge
+metadata:
+  name: monthly-account-maintenance
+  labels:
+    charge-applies-to: loan
+    charge-type: Savings
+spec:
+  name: Monthly Account Maintenance
+  currency: XAF
+  amount: 500.0
+  chargeAppliesTo: LOAN
+  chargeTimeType: DISBURSEMENT
+  chargeCalculationType: Flat
+  active: true
+  penalty: false

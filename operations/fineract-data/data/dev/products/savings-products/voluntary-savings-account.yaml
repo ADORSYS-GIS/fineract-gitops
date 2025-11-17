@@ -1,0 +1,19 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsProduct
+metadata:
+  name: voluntary-savings-account
+  labels:
+    product-type: savings
+    category: general
+spec:
+  name: Voluntary Savings Account
+  shortName: VSAV
+  description: Standard voluntary savings account
+  currency: XAF
+  digitsAfterDecimal: 2
+  nominalAnnualInterestRate: 3.0
+  interestCompoundingPeriod: Monthly
+  interestPostingPeriod: Monthly
+  interestCalculationType: Daily Balance
+  minRequiredOpeningBalance: 0.0
+  withdrawalFeeForTransfers: false

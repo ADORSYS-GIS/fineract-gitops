@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: PaymentType
+metadata:
+  name: payment-0
+  labels:
+    payment-category: general
+spec:
+  name: payment-0
+  description: Cash payment
+  isCashPayment: false
+  position: 1

@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: infobip-sender-id
+  labels:
+    config-type: sms-gateway
+    provider: infobip
+spec:
+  configType: SMS Gateway
+  provider: Infobip
+  configKey: sender_id
+  configValue: MicroFin
+  isActive: false
+  description: Sender ID shown to recipients

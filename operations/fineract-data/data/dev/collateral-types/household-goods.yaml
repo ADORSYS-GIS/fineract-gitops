@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: CollateralType
+metadata:
+  name: household-goods
+  labels:
+    collateral-category: physical
+spec:
+  name: Household Goods
+  description: Furniture, appliances
+  requiresValuation: true

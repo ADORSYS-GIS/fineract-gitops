@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fineract-oauth2-config
+data:
+  # Development environment OAuth2/OIDC configuration
+  oidc-issuer-url: "https://ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com/auth/realms/fineract"
+  jwk-set-uri-internal: "http://keycloak-service:8080/auth/realms/fineract/protocol/openid-connect/certs"

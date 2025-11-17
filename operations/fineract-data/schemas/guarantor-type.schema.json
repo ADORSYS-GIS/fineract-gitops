@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Guarantor Type",
+  "description": "Schema for validating Fineract guarantor type configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["Guarantortype"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["name", "guarantorType"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Guarantor type name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Guarantor type description"
+        },
+        "guarantorType": {
+          "type": "string",
+          "enum": ["CUSTOMER", "STAFF", "EXTERNAL"],
+          "description": "Type of guarantor: customer, staff member, or external"
+        }
+      }
+    }
+  }
+}

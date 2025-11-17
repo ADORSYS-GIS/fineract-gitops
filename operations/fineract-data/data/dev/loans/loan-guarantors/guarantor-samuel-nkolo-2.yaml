@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanGuarantor
+metadata:
+  name: guarantor-samuel-nkolo-2
+  labels:
+    guarantor-type: individual
+spec:
+  loanAccountId: LOAN-003
+  guarantorTypeId: Individual
+  fullName: Samuel Nkolo
+  identificationNumber: ID-34567890
+  phone: +237 677 22 33 44
+  address: Bonapriso, Douala
+  relationship: Friend
+  amount: 375000.0
+  guaranteeDate: '2024-02-12'

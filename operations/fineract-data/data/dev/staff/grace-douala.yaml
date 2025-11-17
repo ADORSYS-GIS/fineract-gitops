@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: grace-douala
+  labels:
+    staff-type: regular
+spec:
+  firstName: Grace
+  lastName: Douala
+  officeId: Douala Branch
+  isLoanOfficer: true
+  externalId: STF-004
+  mobileNo: +237 677 45 67 89
+  emailAddress: g.douala@mfi.cm
+  isActive: true
+  username: manager.douala
+  role: Branch Manager

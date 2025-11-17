@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: TellerCashierMapping
+metadata:
+  name: cashier-yaounde-branch
+  labels:
+    mapping-type: cashier
+    office: yaounde-branch
+spec:
+  officeName: Yaounde Branch
+  tellerName: Teller - Yaounde
+  cashGLCode: '42'
+  vaultGLCode: '42'
+  shortageGLCode: '98'
+  overageGLCode: '86'
+  description: Yaounde branch teller and vault configuration
+  startDate: '2025-11-11'
+  endDate: null

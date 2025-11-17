@@ -1,0 +1,118 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-production
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: production
+  infrastructure: aws
+  provider: aws-managed
+  criticality: high
+
+# No configMapGenerator needed - URLs are built dynamically from ingress-config
+# Domain values are centralized in apps/ingress/overlays/production/kustomization.yaml:
+#   - apps-hostname=apps.fineract.com
+#   - auth-hostname=auth.fineract.com
+# OAuth2 Proxy init container reads these and builds full URLs at runtime
+
+# Patch deployment to build URLs dynamically from ingress-config domains
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: oauth2-proxy
+      spec:
+        template:
+          spec:
+            # Init container to build URLs from domain configuration and substitute in config file
+            initContainers:
+            - name: envsubst-config
+              image: alpine:3.18
+              securityContext:
+                runAsUser: 0
+                runAsNonRoot: false
+              command:
+                - sh
+                - -c
+                - |
+                  # Install gettext for envsubst command
+                  apk add --no-cache gettext
+
+                  echo "===================================="
+                  echo "Building OAuth2 Proxy URLs from centralized domain configuration"
+                  echo "===================================="
+
+                  # Read domain values from ingress-config (single source of truth)
+                  APPS_DOMAIN=$(cat /ingress-config/apps-hostname)
+                  AUTH_DOMAIN=$(cat /ingress-config/auth-hostname)
+                  REALM_NAME=$(cat /static-config/REALM_NAME)
+
+                  # Build full URLs from domain components
+                  # Use internal Kubernetes service URL for OIDC discovery (no dependency on ingress/DNS)
+                  export OIDC_ISSUER_URL="http://keycloak-service:8080/realms/${REALM_NAME}"
+                  export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
+                  export WHITELIST_DOMAINS="${APPS_DOMAIN}"
+                  export COOKIE_DOMAINS="${APPS_DOMAIN}"
+
+                  echo "Domain configuration:"
+                  echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
+                  echo "  AUTH_DOMAIN: ${AUTH_DOMAIN}"
+                  echo "  REALM_NAME: ${REALM_NAME}"
+                  echo ""
+                  echo "Generated URLs:"
+                  echo "  OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+                  echo "  REDIRECT_URL: ${REDIRECT_URL}"
+                  echo "  WHITELIST_DOMAINS: ${WHITELIST_DOMAINS}"
+                  echo "  COOKIE_DOMAINS: ${COOKIE_DOMAINS}"
+                  echo ""
+
+                  # Substitute environment variables in config file
+                  echo "Substituting variables in OAuth2 Proxy configuration..."
+                  envsubst < /config-template/oauth2_proxy.cfg > /config-processed/oauth2_proxy.cfg
+                  echo "Configuration file generated successfully."
+                  echo "===================================="
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "200m"
+              volumeMounts:
+              - name: config
+                mountPath: /config-template
+                readOnly: true
+              - name: config-processed
+                mountPath: /config-processed
+              - name: ingress-config
+                mountPath: /ingress-config
+                readOnly: true
+              - name: static-config
+                mountPath: /static-config
+                readOnly: true
+
+            # Update main container to use processed config
+            containers:
+            - name: oauth2-proxy
+              volumeMounts:
+              - name: config-processed
+                mountPath: /etc/oauth2-proxy
+                readOnly: true
+
+            # Add volumes for configuration
+            volumes:
+            - name: config-processed
+              emptyDir: {}
+            - name: ingress-config
+              configMap:
+                name: ingress-config
+            - name: static-config
+              configMap:
+                name: oauth2-proxy-config-static
+    target:
+      kind: Deployment
+      name: oauth2-proxy

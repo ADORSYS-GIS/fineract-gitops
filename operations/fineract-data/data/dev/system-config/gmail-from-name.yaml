@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: gmail-from-name
+  labels:
+    config-type: email-smtp
+    provider: gmail
+spec:
+  configType: Email SMTP
+  provider: Gmail
+  configKey: from_name
+  configValue: Cameroon MicroFinance
+  isActive: true
+  description: Display name shown as sender

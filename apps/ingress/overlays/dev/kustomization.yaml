@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+# Override hostname configuration for dev environment
+configMapGenerator:
+  - name: ingress-config
+    behavior: replace
+    literals:
+      - apps-hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+      - auth-hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+      - cluster-issuer=selfsigned-issuer
+
+commonLabels:
+  environment: dev
+  deployment-type: aws
+  managed-by: argocd

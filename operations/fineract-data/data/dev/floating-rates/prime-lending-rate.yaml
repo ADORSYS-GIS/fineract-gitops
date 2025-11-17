@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: FloatingRate
+metadata:
+  name: prime-lending-rate
+  labels:
+    rate-type: derived
+spec:
+  name: Prime Lending Rate
+  description: Prime rate for best customers (BEAC + 4%)
+  isBaseLendingRate: false
+  isActive: true
+  ratePeriods:
+  - fromDate: '2024-01-01'
+    interestRate: 7.5

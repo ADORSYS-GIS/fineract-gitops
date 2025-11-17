@@ -1,0 +1,166 @@
+---
+# Prometheus Alert Rules for Keycloak Security Monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: keycloak-security-alerts
+  namespace: monitoring
+  labels:
+    app: keycloak
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: keycloak.security
+    interval: 30s
+    rules:
+    # High Failed Login Rate
+    - alert: KeycloakHighFailedLoginRate
+      expr: |
+        rate(keycloak_failed_login_attempts{realm="fineract"}[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+        component: keycloak
+        category: security
+      annotations:
+        summary: "High failed login rate detected"
+        description: "Keycloak realm {{ $labels.realm }} is experiencing {{ $value }} failed logins per second over the last 5 minutes. This may indicate a brute force attack."
+        runbook_url: "https://docs.webank.com/runbooks/keycloak-high-failed-logins"
+
+    # Multiple Account Lockouts
+    - alert: KeycloakMultipleAccountLockouts
+      expr: |
+        increase(keycloak_user_event_LOGIN_ERROR{realm="fineract", error="user_temporarily_disabled"}[10m]) > 5
+      for: 2m
+      labels:
+        severity: warning
+        component: keycloak
+        category: security
+      annotations:
+        summary: "Multiple account lockouts detected"
+        description: "{{ $value }} accounts have been locked in the last 10 minutes. Investigate for potential brute force attack."
+
+    # Admin Console Access in Production (Should Never Happen)
+    - alert: KeycloakAdminConsoleAccessProduction
+      expr: |
+        increase(keycloak_admin_event_total{realm="fineract"}[5m]) > 0 and on() environment{name="production"}
+      for: 1m
+      labels:
+        severity: critical
+        component: keycloak
+        category: security
+      annotations:
+        summary: "⚠️ CRITICAL: Admin console accessed in production"
+        description: "Admin console activity detected in production environment. This should NEVER happen as admin console is disabled. Immediate investigation required."
+        runbook_url: "https://docs.webank.com/runbooks/keycloak-admin-access-production"
+
+    # Unusual Login Pattern
+    - alert: KeycloakUnusualLoginVolume
+      expr: |
+        rate(keycloak_logins{realm="fineract"}[5m]) > 100
+      for: 10m
+      labels:
+        severity: info
+        component: keycloak
+        category: security
+      annotations:
+        summary: "Unusual login volume detected"
+        description: "Login rate is {{ $value }} per second, which is higher than normal. Monitor for suspicious activity."
+
+    # WebAuthn Registration Failures
+    - alert: KeycloakWebAuthnRegistrationFailures
+      expr: |
+        rate(keycloak_user_event_CREDENTIAL_TOTP_REMOVE{realm="fineract"}[10m]) > 5
+      for: 5m
+      labels:
+        severity: warning
+        component: keycloak
+        category: security
+      annotations:
+        summary: "High WebAuthn registration failure rate"
+        description: "Users are experiencing difficulties registering WebAuthn devices. Check for browser compatibility issues."
+
+    # Password Reset Abuse
+    - alert: KeycloakPasswordResetAbuse
+      expr: |
+        rate(keycloak_user_event_SEND_RESET_PASSWORD{realm="fineract"}[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+        component: keycloak
+        category: security
+      annotations:
+        summary: "High password reset request rate"
+        description: "Receiving {{ $value }} password reset requests per second. May indicate account enumeration attack."
+
+    # Keycloak Service Down
+    - alert: KeycloakDown
+      expr: |
+        up{job="keycloak"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: keycloak
+        category: availability
+      annotations:
+        summary: "Keycloak service is down"
+        description: "Keycloak instance {{ $labels.instance }} is not responding. Authentication services are unavailable."
+        runbook_url: "https://docs.webank.com/runbooks/keycloak-down"
+
+    # High Response Time
+    - alert: KeycloakHighResponseTime
+      expr: |
+        histogram_quantile(0.95, rate(keycloak_request_duration_seconds_bucket{job="keycloak"}[5m])) > 2
+      for: 10m
+      labels:
+        severity: warning
+        component: keycloak
+        category: performance
+      annotations:
+        summary: "Keycloak response time degraded"
+        description: "95th percentile response time is {{ $value }}s. Users may experience slow logins."
+
+    # Database Connection Issues
+    - alert: KeycloakDatabaseConnectionIssues
+      expr: |
+        keycloak_database_connection_pool_active / keycloak_database_connection_pool_max > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        component: keycloak
+        category: performance
+      annotations:
+        summary: "Keycloak database connection pool exhaustion"
+        description: "Database connection pool is {{ $value | humanizePercentage }} full. May lead to connection timeouts."
+
+    # Token Revocation Events (Potential Compromise)
+    - alert: KeycloakMassTokenRevocation
+      expr: |
+        increase(keycloak_user_event_REVOKE_GRANT{realm="fineract"}[5m]) > 20
+      for: 2m
+      labels:
+        severity: warning
+        component: keycloak
+        category: security
+      annotations:
+        summary: "Mass token revocation detected"
+        description: "{{ $value }} tokens have been revoked in the last 5 minutes. Investigate for potential security incident."
+
+---
+# ServiceMonitor for Keycloak metrics scraping
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keycloak
+  namespace: monitoring
+  labels:
+    app: keycloak
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s

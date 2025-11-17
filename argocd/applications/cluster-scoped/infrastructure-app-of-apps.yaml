@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infrastructure-app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    description: "App of Apps for cluster-wide infrastructure components"
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main
+    path: argocd/applications/cluster-scoped
+    directory:
+      recurse: false
+      exclude: 'infrastructure-app-of-apps.yaml'  # Don't include self
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false  # argocd namespace exists
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Infrastructure App-of-Apps
+    - name: Scope
+      value: Cluster-wide infrastructure
+    - name: Applications
+      value: "Sealed Secrets, cert-manager, Ingress Nginx"
+    - name: Deployment Order
+      value: "Sync waves -1 to 0"
+    - name: Auto-Deploy
+      value: "true"

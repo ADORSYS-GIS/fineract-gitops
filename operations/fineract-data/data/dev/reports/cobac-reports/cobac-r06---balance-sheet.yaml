@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: COBACReport
+metadata:
+  name: cobac-r06---balance-sheet
+  labels:
+    report-category: cobac
+spec:
+  reportName: COBAC R06 - Balance Sheet
+  reportCode: ''
+  reportType: Regulatory
+  useReport: true
+  reportSql: ''

@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsWithdrawal
+metadata:
+  name: withdrawal-marie-kamga-1
+  labels:
+    transaction-type: withdrawal
+spec:
+  savingsAccountId: SAV-002
+  transactionDate: '2024-03-18'
+  transactionAmount: 10000.0
+  paymentTypeId: ATM
+  receiptNumber: WDL-002
+  note: Cash withdrawal

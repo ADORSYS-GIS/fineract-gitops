@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: AccountNumberFormat
+metadata:
+  name: savings-account-format
+  labels:
+    format-type: savings
+spec:
+  accountType: SAVINGS
+  prefixType: PRODUCT SHORT NAME
+  accountNumberLength: 12

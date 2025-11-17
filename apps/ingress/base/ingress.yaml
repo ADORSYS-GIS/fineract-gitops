@@ -1,0 +1,625 @@
+
+---
+# Ingress for public endpoints (no authentication required)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-public-ingress
+  labels:
+    app: fineract
+    component: ingress
+    purpose: public-endpoints
+  annotations:
+    # SSL/TLS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "internal-ca-issuer"
+
+    # Backend protocol (Fineract services use HTTPS)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # CORS for public API
+    # Note: cors-allow-origin should be set per environment via Kustomize overlay
+    # Do not use wildcard (*) in production
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-Fineract-Platform-TenantId"
+
+    # Rate limiting (stricter for public endpoints)
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - $(APPS_HOSTNAME)
+    secretName: fineract-tls
+
+  rules:
+  - host: $(APPS_HOSTNAME)
+    http:
+      paths:
+
+      # Health check endpoint (no auth)
+      - path: /fineract-provider/actuator/health
+        pathType: Exact
+        backend:
+          service:
+            name: fineract-read-service
+            port:
+              number: 8443
+---
+# OAuth2 Proxy Public Endpoints (no authentication required)
+# This ingress handles OAuth2 flow endpoints that must be accessible without auth
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-oauth2-public
+  labels:
+    app: fineract
+    component: ingress
+    purpose: oauth2-public-endpoints
+  annotations:
+    # SSL/TLS Configuration
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "internal-ca-issuer"
+
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - $(APPS_HOSTNAME)
+    secretName: fineract-tls
+
+  rules:
+  - host: $(APPS_HOSTNAME)
+    http:
+      paths:
+
+      # OAuth2 Proxy endpoints (no auth required for OAuth flow)
+      - path: /oauth2
+        pathType: Prefix
+        backend:
+          service:
+            name: oauth2-proxy
+            port:
+              number: 4180
+---
+# Fineract Protected Ingress with OAuth2 Proxy Authentication
+# This ingress handles all application endpoints that require authentication
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-oauth2-protected
+  labels:
+    app: fineract
+    component: ingress
+    purpose: oauth2-proxy-integration
+  annotations:
+    # ============================================================================
+    # OAuth2 Proxy Authentication
+    # ============================================================================
+
+    # Delegate authentication to OAuth2 Proxy
+    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth"
+
+    # Redirect unauthenticated users to OAuth2 Proxy login
+    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
+
+    # Pass authentication headers from OAuth2 Proxy to backend
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
+
+    # Auth caching for performance (5 minute cache)
+    nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
+    nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+
+    # ============================================================================
+    # CORS Configuration
+    # ============================================================================
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "3600"
+
+    # ============================================================================
+    # SSL/TLS Configuration
+    # ============================================================================
+
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # SSL protocols
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "internal-ca-issuer"
+
+    # Backend protocol (Fineract services use HTTPS)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # ============================================================================
+    # Proxy Settings
+    # ============================================================================
+
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+
+    # Buffering
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # ============================================================================
+    # Rate Limiting
+    # ============================================================================
+
+    # Rate limiting for API endpoints
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # ============================================================================
+    # Additional Settings
+    # ============================================================================
+
+    # Enable access logs
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+
+    # Upstream hash for session affinity
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_auth_request_user"
+
+    # Pass correct port to backend and set Authorization header from OAuth2-Proxy token
+    # Extract access token from upstream auth response header X-Auth-Request-Access-Token
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+      proxy_set_header Authorization "Bearer $access_token";
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
+
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration
+  tls:
+  - hosts:
+    - $(APPS_HOSTNAME)
+    secretName: fineract-tls
+
+  rules:
+  - host: $(APPS_HOSTNAME)
+    http:
+      paths:
+
+      # ============================================================================
+      # Fineract API Endpoints - Read Operations (GET, HEAD, OPTIONS)
+      # ============================================================================
+      # Default: Route to read service for GET operations
+      # Write operations handled by canary ingress below
+
+      - path: /fineract-provider
+        pathType: Prefix
+        backend:
+          service:
+            name: fineract-read-service
+            port:
+              number: 8443
+
+---
+# Fineract Write Operations Canary Ingress (Method-based Routing)
+# This canary ingress intercepts POST/PUT/DELETE/PATCH requests and routes them to write service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-oauth2-protected-write-canary
+  labels:
+    app: fineract
+    component: ingress
+    purpose: method-based-routing-write
+  annotations:
+    # ============================================================================
+    # Canary Configuration for Method-Based Routing
+    # ============================================================================
+
+    # Enable canary deployment
+    nginx.ingress.kubernetes.io/canary: "true"
+
+    # Route 100% of POST/PUT/DELETE/PATCH requests to this backend (write service)
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary-Method"
+    nginx.ingress.kubernetes.io/canary-by-header-value: "write"
+
+    # Use Lua to set header based on request method
+    nginx.ingress.kubernetes.io/server-snippet: |
+      set $canary_method "";
+      if ($request_method ~* ^(POST|PUT|DELETE|PATCH)$) {
+        set $canary_method "write";
+      }
+      # Inject header for canary matching
+      more_set_input_headers "X-Canary-Method: $canary_method";
+
+    # ============================================================================
+    # OAuth2 Proxy Authentication (same as main ingress)
+    # ============================================================================
+
+    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
+    nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
+    nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+
+    # ============================================================================
+    # CORS Configuration (same as main ingress)
+    # ============================================================================
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "3600"
+
+    # ============================================================================
+    # SSL/TLS Configuration
+    # ============================================================================
+
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    cert-manager.io/cluster-issuer: "internal-ca-issuer"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # ============================================================================
+    # Proxy Settings
+    # ============================================================================
+
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # ============================================================================
+    # Rate Limiting
+    # ============================================================================
+
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # ============================================================================
+    # Additional Settings
+    # ============================================================================
+
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_auth_request_user"
+
+    # Configuration snippet for headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+      proxy_set_header Authorization "Bearer $access_token";
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
+
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration
+  tls:
+  - hosts:
+    - $(APPS_HOSTNAME)
+    secretName: fineract-tls
+
+  rules:
+  - host: $(APPS_HOSTNAME)
+    http:
+      paths:
+      # Same path as main ingress - canary routing determines which backend
+      - path: /fineract-provider
+        pathType: Prefix
+        backend:
+          service:
+            name: fineract-write-service
+            port:
+              number: 8443
+
+---
+# Web App Protected Ingress with OAuth2 Proxy Authentication
+# This ingress handles the frontend application that requires authentication
+# Note: Separated from API ingress because web-app uses HTTP backend, not HTTPS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-web-app-protected
+  labels:
+    app: fineract
+    component: ingress
+    purpose: web-app-oauth2-integration
+  annotations:
+    # ============================================================================
+    # OAuth2 Proxy Authentication
+    # ============================================================================
+
+    # Delegate authentication to OAuth2 Proxy
+    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth"
+
+    # Redirect unauthenticated users to OAuth2 Proxy login
+    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
+
+    # Pass authentication headers from OAuth2 Proxy to backend
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
+
+    # Auth caching for performance (5 minute cache)
+    nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
+    nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+
+    # Skip authentication for static assets to prevent MIME type errors
+    # IMPORTANT: Use server-snippet to create separate location blocks for static files
+    nginx.ingress.kubernetes.io/server-snippet: |
+      # Skip OAuth2 authentication for static file requests (but NOT /auth/ paths for Keycloak)
+      location ~* ^(?!/auth/).*\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$ {
+        auth_request off;
+        # Route to appropriate app based on path prefix
+        set $backend "web-app.fineract-dev.svc.cluster.local:80";
+        if ($request_uri ~* ^/reporting/) {
+          set $backend "reporting-app.fineract-dev.svc.cluster.local:80";
+        }
+        if ($request_uri ~* ^/accounting/) {
+          set $backend "accounting-app.fineract-dev.svc.cluster.local:80";
+        }
+        proxy_pass http://$backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+      }
+      location ~* ^/assets/ {
+        auth_request off;
+        proxy_pass http://web-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+      }
+      location ~* ^/reporting/assets/ {
+        auth_request off;
+        proxy_pass http://reporting-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+      }
+      location ~* ^/accounting/assets/ {
+        auth_request off;
+        proxy_pass http://accounting-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+      }
+
+    # ============================================================================
+    # CORS Configuration
+    # ============================================================================
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "3600"
+
+    # ============================================================================
+    # SSL/TLS Configuration
+    # ============================================================================
+
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # SSL protocols
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "internal-ca-issuer"
+
+    # Backend protocol (web-app uses HTTP, not HTTPS)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # ============================================================================
+    # Proxy Settings
+    # ============================================================================
+
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+
+    # Buffering
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # ============================================================================
+    # Rate Limiting
+    # ============================================================================
+
+    # Rate limiting for web app
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # ============================================================================
+    # URL Rewriting
+    # ============================================================================
+
+    # Strip /mifosweb prefix before forwarding to backend
+    # The web-app expects requests at root path (e.g., /assets/env.js not /mifosweb/assets/env.js)
+    # Capture group $2 contains everything after /mifosweb/
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+    # ============================================================================
+    # Additional Settings
+    # ============================================================================
+
+    # Enable access logs
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+
+    # Upstream hash for session affinity
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_auth_request_user"
+
+    # Pass correct port to backend and set Authorization header from OAuth2-Proxy token
+    # Extract access token from upstream auth response header X-Auth-Request-Access-Token
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+      proxy_set_header Authorization "Bearer $access_token";
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
+
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration
+  tls:
+  - hosts:
+    - $(APPS_HOSTNAME)
+    secretName: fineract-tls
+
+  rules:
+  - host: $(APPS_HOSTNAME)
+    http:
+      paths:
+
+      # ============================================================================
+      # Frontend Applications (with OAuth2 authentication)
+      # ============================================================================
+      # Serves frontend apps with OAuth2 protection
+      # IMPORTANT: These MUST be the LAST path rules to avoid matching API paths
+      #
+      # Reporting App - Read-only reporting and audit trail
+      #   - Matches: /reporting, /reporting/, /reporting/anything
+      #   - Capture group $2 contains everything after /reporting/ for rewriting
+
+      - path: /reporting(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: reporting-app
+            port:
+              number: 80
+
+      # Accounting App - Financial accounting and ledger management
+      #   - Matches: /accounting, /accounting/, /accounting/anything
+      #   - Capture group $2 contains everything after /accounting/ for rewriting
+
+      - path: /accounting(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: accounting-app
+            port:
+              number: 80
+
+      # Web App (MIFOS) - Main application
+      #   - Matches: /mifosweb, /mifosweb/, /mifosweb/anything
+      #   - Capture group $2 contains everything after /mifosweb/ for rewriting
+      #   - Rewrites /mifosweb/assets/env.js -> /assets/env.js
+
+      - path: /mifosweb(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: web-app
+            port:
+              number: 80
+
+      # Path 2: Root / (fallback for application with base href="/")
+      #   - Serves app at root path since Angular app has <base href="/">
+      #   - NO rewriting needed - serves directly from root
+      #   - Matches all paths not matched by other ingress rules
+
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-app
+            port:
+              number: 80
+
+---
+# Ingress for Keycloak (authentication server)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  labels:
+    app: keycloak
+    component: ingress
+    purpose: authentication
+  annotations:
+    # SSL/TLS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "internal-ca-issuer"
+
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # Proxy settings for Keycloak
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - $(AUTH_HOSTNAME)
+    secretName: keycloak-tls
+
+  rules:
+  - host: $(AUTH_HOSTNAME)
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak-service
+            port:
+              number: 8080

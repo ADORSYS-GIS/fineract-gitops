@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ArgoCD Applications for Fineract Operations
+#
+# This kustomization deploys Applications that manage operational components:
+# - Keycloak configuration
+# - Fineract data loading operations (per environment)
+# - Database initialization
+# - User sync service
+#
+# Uses Kustomize replacements to centralize repository URL
+#
+# Usage:
+#   kubectl apply -k argocd/applications/operations
+
+resources:
+  - argocd-config.yaml
+  - keycloak-config.yaml
+  - fineract-data-dev.yaml
+  - fineract-data-uat.yaml
+  - fineract-data-production.yaml
+  - database-init.yaml
+  - database-setup.yaml
+  - user-sync-service.yaml
+
+# Replacements to inject repository URL into all Application manifests
+replacements:
+  # Replace repoURL in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.repoURL
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.source.repoURL
+
+  # Replace targetRevision in all Applications
+  - source:
+      kind: ConfigMap
+      name: argocd-app-config
+      fieldPath: data.targetRevision
+    targets:
+      - select:
+          kind: Application
+        fieldPaths:
+          - spec.source.targetRevision
+
+commonLabels:
+  app.kubernetes.io/managed-by: argocd
+  app.kubernetes.io/part-of: fineract-operations
+
+# Namespace where these Applications will be created
+namespace: argocd

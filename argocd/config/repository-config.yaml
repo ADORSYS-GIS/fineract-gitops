@@ -1,0 +1,39 @@
+# Repository URL Configuration Reference
+#
+# This file serves as the single source of truth for repository URLs
+# used across all ArgoCD Application manifests.
+#
+# ⚠️  IMPORTANT: When changing repository URL or branch configuration:
+#     1. Update the values below (REPO_URL and/or TARGET_REVISION_*)
+#     2. Run: ./scripts/update-argocd-config.sh
+#     3. Review changes: git diff argocd/
+#     4. Commit all changes together
+#
+# Current Configuration:
+REPO_URL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+
+# Branch/Revision Strategy:
+# Updated for EKS migration - dev environment uses eks branch
+TARGET_REVISION_DEV: "eks"
+TARGET_REVISION_UAT: "main"
+TARGET_REVISION_PRODUCTION: "main"
+
+# Usage Statistics:
+# - Total ArgoCD Applications: ~48
+# - All applications reference REPO_URL above
+# - Bootstrap files: 3 (dev, uat, production)
+# - Project definitions: 3
+#
+# Configuration Update Script:
+# The update-argocd-config.sh script will:
+#   1. Read REPO_URL and TARGET_REVISION_* from this file
+#   2. Update all ArgoCD Application manifests (repoURL)
+#   3. Update all targetRevision values per environment
+#   4. Update ArgoCD bootstrap files
+#   5. Clean up trailing spaces and comments
+#
+# Note: Legacy update-repo-urls.sh only updates URLs, not branches
+#
+# For ApplicationSets:
+# - ApplicationSets use templating: '{{ .repoURL }}'
+# - Update the ApplicationSet generator parameters separately

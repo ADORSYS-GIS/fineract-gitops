@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: cert-manager
+
+namespace: cert-manager
+
+resources:
+  - namespace.yaml
+  - cert-manager.yaml
+  - selfsigned-issuer.yaml
+  - internal-ca-certificate.yaml
+  - letsencrypt-staging.yaml
+  - letsencrypt-prod.yaml
+
+commonLabels:
+  app: cert-manager
+  managed-by: argocd
+
+commonAnnotations:
+  component: "certificate-management"
+  purpose: "Automated SSL/TLS with Let's Encrypt"

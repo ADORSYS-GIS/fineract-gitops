@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+
+    # Notification templates
+    templates:
+    - '/etc/alertmanager/template/*.tmpl'
+
+    # Routing tree
+    route:
+      # Default receiver
+      receiver: 'default'
+
+      # Group alerts by these labels
+      group_by: ['alertname', 'cluster', 'service']
+
+      # Wait before sending notification for new group
+      group_wait: 30s
+
+      # Wait before sending notification about new alerts in group
+      group_interval: 5m
+
+      # Wait before sending notification again if alert still firing
+      repeat_interval: 4h
+
+      # Child routes
+      routes:
+      # Critical alerts - send immediately
+      - match:
+          severity: critical
+        receiver: critical-alerts
+        group_wait: 10s
+        repeat_interval: 1h
+
+      # Database alerts
+      - match:
+          component: database
+        receiver: database-alerts
+        repeat_interval: 2h
+
+      # Certificate expiration alerts
+      - match:
+          alertname: CertificateExpiringSoon
+        receiver: security-alerts
+        repeat_interval: 24h
+
+    # Alert receivers
+    receivers:
+    # Default receiver - logs only
+    - name: 'default'
+      # webhook_configs:
+      # - url: 'http://webhook-receiver:8080/alerts'
+
+    # Critical alerts - multiple channels
+    - name: 'critical-alerts'
+      # Email configuration (update with actual SMTP details)
+      # email_configs:
+      # - to: 'platform-team@yourcompany.com'
+      #   from: 'alertmanager@yourcompany.com'
+      #   smarthost: 'smtp.yourcompany.com:587'
+      #   auth_username: 'alertmanager@yourcompany.com'
+      #   auth_password: 'SMTP_PASSWORD'
+      #   headers:
+      #     Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+
+      # Slack configuration (update with actual webhook URL)
+      # slack_configs:
+      # - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      #   channel: '#alerts-critical'
+      #   title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+      #   text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+    # Database alerts
+    - name: 'database-alerts'
+      # email_configs:
+      # - to: 'dba-team@yourcompany.com'
+      #   from: 'alertmanager@yourcompany.com'
+      #   smarthost: 'smtp.yourcompany.com:587'
+      #   auth_username: 'alertmanager@yourcompany.com'
+      #   auth_password: 'SMTP_PASSWORD'
+      #   headers:
+      #     Subject: '[DATABASE] {{ .GroupLabels.alertname }}'
+
+    # Security alerts (certificates, etc.)
+    - name: 'security-alerts'
+      # email_configs:
+      # - to: 'security-team@yourcompany.com'
+      #   from: 'alertmanager@yourcompany.com'
+      #   smarthost: 'smtp.yourcompany.com:587'
+      #   auth_username: 'alertmanager@yourcompany.com'
+      #   auth_password: 'SMTP_PASSWORD'
+      #   headers:
+      #     Subject: '[SECURITY] {{ .GroupLabels.alertname }}'
+
+    # Inhibition rules - suppress alerts if others are firing
+    inhibit_rules:
+    # Suppress warning if critical is firing
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'cluster', 'service']
+
+    # Suppress individual pod alerts if deployment is down
+    - source_match:
+        alertname: 'DeploymentDown'
+      target_match:
+        alertname: 'PodDown'
+      equal: ['deployment']

@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: christine-biaka
+  labels:
+    staff-type: regular
+spec:
+  firstName: Christine
+  lastName: Biaka
+  officeId: Head Office
+  isLoanOfficer: true
+  externalId: STF-102
+  mobileNo: +237 677 22 22 22
+  emailAddress: c.biaka@mfi.cm
+  isActive: true
+  username: accountant
+  role: Accountant

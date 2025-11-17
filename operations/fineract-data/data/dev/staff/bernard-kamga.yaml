@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: bernard-kamga
+  labels:
+    staff-type: regular
+spec:
+  firstName: Bernard
+  lastName: Kamga
+  officeId: Bafoussam Branch
+  isLoanOfficer: true
+  externalId: STF-007
+  mobileNo: +237 677 78 90 12
+  emailAddress: b.kamga@mfi.cm
+  isActive: true
+  username: manager.bafoussam
+  role: Branch Manager

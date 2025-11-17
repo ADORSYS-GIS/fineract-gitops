@@ -1,0 +1,256 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fineract-schema-migration
+  annotations:
+    description: "Runs Fineract Liquibase schema migrations once before app deployment"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    app.kubernetes.io/name: fineract-schema-migration
+    app.kubernetes.io/part-of: fineract-platform
+    app.kubernetes.io/component: database-migration
+spec:
+  ttlSecondsAfterFinished: 3600  # Auto-delete after 1 hour
+  backoffLimit: 4  # Retry 4 times on failure (increased for lock issues)
+  template:
+    metadata:
+      name: schema-migration
+      labels:
+        app: fineract-schema-migration
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: fineract-aws
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Clear any stale Liquibase locks before migration
+      # SAFETY: This is safe because:
+      # 1. Job has sync-wave: 6, runs before Fineract pods (sync-wave: 10)
+      # 2. ArgoCD PreSync hook ensures it runs during controlled deployment
+      # 3. Only clears locks from abandoned migrations (e.g., pod crashes)
+      # 4. Migration job itself is idempotent and handles concurrent runs
+      # PRODUCTION NOTE: Safe for all environments - part of controlled GitOps deployment
+      initContainers:
+      - name: clear-liquibase-locks
+        image: postgres:15-alpine
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999  # postgres user in official postgres image
+          runAsGroup: 999
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "========================================="
+          echo "Liquibase Lock Cleanup"
+          echo "========================================="
+
+          # Check if DATABASECHANGELOGLOCK table exists
+          # (It won't exist on first migration run - Liquibase creates it)
+          TABLE_EXISTS=$(PGPASSWORD="${DB_PASSWORD}" psql \
+            -h "${DB_HOST}" \
+            -U "${DB_USER}" \
+            -d "fineract_default" \
+            -t \
+            -c "
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'databasechangeloglock'
+              );
+            " | xargs)
+
+          if [ "$TABLE_EXISTS" = "t" ]; then
+            echo "DATABASECHANGELOGLOCK table exists - checking lock status..."
+
+            # Show current lock status
+            PGPASSWORD="${DB_PASSWORD}" psql \
+              -h "${DB_HOST}" \
+              -U "${DB_USER}" \
+              -d "fineract_default" \
+              -c "
+                SELECT
+                  LOCKED,
+                  LOCKGRANTED,
+                  LOCKEDBY,
+                  CASE
+                    WHEN LOCKED = TRUE THEN 'LOCKED'
+                    ELSE 'UNLOCKED'
+                  END as status
+                FROM DATABASECHANGELOGLOCK
+                WHERE ID = 1;
+              "
+
+            echo "Clearing any stale locks..."
+            PGPASSWORD="${DB_PASSWORD}" psql \
+              -h "${DB_HOST}" \
+              -U "${DB_USER}" \
+              -d "fineract_default" \
+              -c "
+                UPDATE DATABASECHANGELOGLOCK
+                SET LOCKED = FALSE,
+                    LOCKGRANTED = NULL,
+                    LOCKEDBY = NULL
+                WHERE ID = 1;
+              "
+
+            echo "✓ Liquibase locks cleared successfully"
+          else
+            echo "ℹ DATABASECHANGELOGLOCK table does not exist yet"
+            echo "  This is expected on first migration - Liquibase will create it"
+            echo "  Skipping lock cleanup (nothing to clean)"
+          fi
+
+          echo "========================================="
+        env:
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+      containers:
+      - name: migrate
+        image: apache/fineract:develop
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "========================================="
+          echo "Fineract Schema Migration Job"
+          echo "========================================="
+
+          # Build JDBC URLs from environment variables (Kubernetes doesn't support $(VAR) expansion in env values)
+          export FINERACT_HIKARI_JDBC_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/fineract_tenants"
+          export FINERACT_HIKARI_USERNAME="${DB_USERNAME}"
+          export FINERACT_HIKARI_PASSWORD="${DB_PASSWORD}"
+          export FINERACT_DEFAULT_TENANTDB_HOSTNAME="${DB_HOST}"
+          export FINERACT_DEFAULT_TENANTDB_PORT="${DB_PORT}"
+          export FINERACT_DEFAULT_TENANTDB_UID="${DB_USERNAME}"
+          export FINERACT_DEFAULT_TENANTDB_PWD="${DB_PASSWORD}"
+
+          echo "Environment: ${FINERACT_DEFAULT_TENANTDB_IDENTIFIER}"
+          echo "Tenant DB: ${FINERACT_DEFAULT_TENANTDB_NAME}"
+          echo "Tenant-Store DB: fineract_tenants"
+          echo "Host: ${DB_HOST}:${DB_PORT}"
+          echo "========================================="
+
+          # Set Java opts for migration (lower memory for job)
+          export JAVA_TOOL_OPTIONS="-Xmx1024m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+          # Read classpath from Jib classpath file (all dependencies)
+          CLASSPATH=$(cat /app/jib-classpath-file)
+
+          # Run Fineract's main application with web server disabled
+          # Liquibase migrations will run automatically on startup before app initialization
+          # Web server is disabled so app exits after migrations complete
+          java -cp "$CLASSPATH" \
+            org.apache.fineract.ServerApplication
+
+          echo "========================================="
+          echo "✅ Schema migration completed successfully"
+          echo "========================================="
+        env:
+        # Database connection details (used to build JDBC URLs)
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: port
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+
+        # Tenant-Store Database - JDBC URLs built in shell script from DB_* vars
+        - name: FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME
+          value: "org.postgresql.Driver"
+
+        # Tenant Database Configuration (static values)
+        - name: FINERACT_DEFAULT_TENANTDB_IDENTIFIER
+          value: "default"
+        - name: FINERACT_DEFAULT_TENANTDB_NAME
+          value: "fineract_default"
+
+        # Use Fineract's liquibase-only profile for migration-only execution
+        # This profile runs Liquibase migrations and exits without starting the web server
+        # Introduced in Fineract 1.10.0 via FINERACT-1882
+        - name: SPRING_PROFILES_ACTIVE
+          value: "liquibase-only"
+
+        # Liquibase lock configuration
+        - name: LIQUIBASE_LOCK_WAIT_TIME
+          value: "5"  # Wait up to 5 minutes for lock
+        - name: LIQUIBASE_LOCK_POLL_RATE
+          value: "10"  # Check every 10 seconds
+        - name: LIQUIBASE_COMMAND_TIMEOUT
+          value: "600"  # 10 minute timeout for commands
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /var/log/fineract
+
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}

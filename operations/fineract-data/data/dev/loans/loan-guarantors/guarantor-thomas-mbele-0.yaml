@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanGuarantor
+metadata:
+  name: guarantor-thomas-mbele-0
+  labels:
+    guarantor-type: individual
+spec:
+  loanAccountId: LOAN-001
+  guarantorTypeId: Individual
+  fullName: Thomas Mbele
+  identificationNumber: ID-12345678
+  phone: +237 677 88 99 00
+  address: Mvan, Yaounde
+  relationship: Brother
+  amount: 250000.0
+  guaranteeDate: '2024-02-10'

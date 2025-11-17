@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: Holiday
+metadata:
+  name: christmas-day-2024
+  labels:
+    holiday-type: public
+    year: '2024'
+spec:
+  name: Christmas Day
+  fromDate: '2024-12-25'
+  toDate: '2024-12-25'
+  repaymentsRescheduledTo: '2024-12-26'
+  offices:
+  - all
+  description: Christmas Holiday

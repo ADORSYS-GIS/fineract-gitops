@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fineract-redis-network-policy
+  labels:
+    app: fineract-redis
+spec:
+  podSelector:
+    matchLabels:
+      app: fineract-redis
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow from OAuth2 Proxy (session storage)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: oauth2-proxy
+    ports:
+    - protocol: TCP
+      port: 6379
+
+  # Allow from Fineract (caching)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fineract
+    ports:
+    - protocol: TCP
+      port: 6379
+
+  # Allow from monitoring (metrics)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 9121
+
+  egress:
+  # Allow DNS resolution (redis-exporter sidecar needs to resolve kube-dns)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

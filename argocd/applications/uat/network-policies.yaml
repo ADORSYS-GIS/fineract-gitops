@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-network-policies
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"  # Deploy early with infrastructure
+    description: "Network policies for service isolation and security in UAT"
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main
+    path: apps/network-policies
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-uat
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Network Security
+    - name: Environment
+      value: UAT
+    - name: Purpose
+      value: "Service-level network isolation and firewall rules"
+    - name: Policies
+      value: "PostgreSQL, Redis, Keycloak, Fineract isolation"
+    - name: Auto-Deploy
+      value: "false"

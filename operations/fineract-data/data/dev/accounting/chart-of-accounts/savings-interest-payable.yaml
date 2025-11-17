@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: savings-interest-payable
+  labels:
+    account-type: liability
+    usage: detail
+spec:
+  name: Savings Interest Payable
+  glCode: '64'
+  type: Liability
+  usage: Detail
+  manualEntriesAllowed: false
+  description: Accrued interest payable to savers

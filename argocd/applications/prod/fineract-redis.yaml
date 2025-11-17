@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-fineract-redis
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Deploy after Keycloak, before OAuth2 Proxy
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Production syncs from main branch (tagged releases preferred)
+    path: apps/fineract-redis/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3  # Fewer retries for production
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  info:
+    - name: Component
+      value: Redis Session Store
+    - name: Environment
+      value: Production
+    - name: Criticality
+      value: HIGH
+    - name: Profile
+      value: ephemeral
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Sync Window
+      value: "Tue-Thu, 10 AM - 4 PM only"
+    - name: Features
+      value: "In-Memory Storage, LRU Eviction, Session TTL"
+    - name: Purpose
+      value: "OAuth2 Proxy session storage for authentication"

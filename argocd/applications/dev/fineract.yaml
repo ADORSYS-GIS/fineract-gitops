@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-fineract
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"  # Core application - deploys after ingress routing (wave 5)
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: eks  # Auto-sync from eks branch
+    path: environments/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore replica count drift to allow HPA (Horizontal Pod Autoscaler) to manage scaling
+  # ArgoCD would otherwise revert HPA-managed replica counts back to Git values
+  # This enables:
+  # - Manual scaling via kubectl scale (for testing/emergencies)
+  # - Future HPA implementation without ArgoCD conflicts
+  # - Replica count adjustments without Git commits
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+  info:
+    - name: Component
+      value: Apache Fineract Core Banking
+    - name: Environment
+      value: Development
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "true"
+    - name: Features
+      value: "PostgreSQL + Redis (Standard Profile)"
+    - name: Instances
+      value: "Read (2), Write (2), Batch (1)"

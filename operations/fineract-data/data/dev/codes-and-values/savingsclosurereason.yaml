@@ -1,0 +1,20 @@
+apiVersion: fineract.apache.org/v1
+kind: CodeValue
+metadata:
+  name: savingsclosurereason
+  labels:
+    category: code-value
+spec:
+  codeName: SavingsClosureReason
+  systemDefined: false
+  values:
+  - name: Client Request
+    position: 1
+  - name: Dormant Account
+    position: 2
+  - name: Moved to Another Branch
+    position: 3
+  - name: Deceased
+    position: 4
+  - name: Fraudulent Activity
+    position: 5

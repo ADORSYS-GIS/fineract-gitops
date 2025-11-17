@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: PaymentType
+metadata:
+  name: payment-2
+  labels:
+    payment-category: general
+spec:
+  name: payment-2
+  description: Orange Money payment
+  isCashPayment: false
+  position: 3

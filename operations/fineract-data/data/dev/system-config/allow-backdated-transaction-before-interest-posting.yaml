@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: allow-backdated-transaction-before-interest-posting
+  labels:
+    config-scope: global
+spec:
+  name: allow-backdated-transaction-before-interest-posting
+  enabled: false
+  value: 'false'
+  trapDoor: false
+  description: Prevent backdated transactions before interest posting

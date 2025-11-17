@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: keycloak-pdb
+  labels:
+    app: keycloak
+    app.kubernetes.io/name: keycloak
+  annotations:
+    description: "Ensures at least 1 Keycloak instance remains available during disruptions"
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: keycloak

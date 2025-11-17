@@ -1,0 +1,16 @@
+# ArgoCD Application Configuration for Cluster-Scoped Resources
+# This ConfigMap centralizes all environment-specific values for ArgoCD applications
+# These values are used by Kustomize replacements to inject into Application manifests
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-app-config
+  namespace: argocd
+data:
+  # Git repository configuration
+  repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+  targetRevision: "eks"  # Cluster infrastructure tracks development branch
+
+  # Cluster-scoped resources are cluster-wide (no specific namespace)
+  clusterServer: "https://kubernetes.default.svc"

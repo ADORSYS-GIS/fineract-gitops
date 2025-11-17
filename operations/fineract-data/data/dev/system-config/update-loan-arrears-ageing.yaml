@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: SchedulerJob
+metadata:
+  name: update-loan-arrears-ageing
+  labels:
+    job-type: scheduled
+spec:
+  jobName: Update Loan Arrears Ageing
+  displayName: Update Loan Arrears Ageing
+  cronExpression: 0 0 0 1/1 * ? *
+  active: true
+  description: Update loan arrears aging daily

@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: loan-approval-limit-manager
+  labels:
+    config-type: Approval
+spec:
+  name: LOAN_APPROVAL_LIMIT_MANAGER
+  enabled: true
+  value: '5000000'
+  description: ''

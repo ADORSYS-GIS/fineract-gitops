@@ -1,0 +1,75 @@
+---
+# Service for Fineract Read Instances
+apiVersion: v1
+kind: Service
+metadata:
+  name: fineract-read-service
+  labels:
+    app: fineract-read
+    component: read-instance
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+  selector:
+    app: fineract-read
+  sessionAffinity: None
+
+---
+# Service for Fineract Write Instances
+apiVersion: v1
+kind: Service
+metadata:
+  name: fineract-write-service
+  labels:
+    app: fineract-write
+    component: write-instance
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+  selector:
+    app: fineract-write
+  # Session affinity for write instances to handle in-flight transactions
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+
+---
+# Service for Fineract Batch Workers
+# Note: Batch workers typically don't need external service exposure
+# This is mainly for internal monitoring and health checks
+apiVersion: v1
+kind: Service
+metadata:
+  name: fineract-batch-service
+  labels:
+    app: fineract-batch
+    component: batch-worker
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for direct pod access
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: fineract-batch
+  publishNotReadyAddresses: true
+

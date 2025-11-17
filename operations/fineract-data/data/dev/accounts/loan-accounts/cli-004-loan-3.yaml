@@ -1,0 +1,22 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanAccount
+metadata:
+  name: cli-004-loan-3
+  labels:
+    account-type: loan
+spec:
+  clientId: CLI-004
+  productId: ASEA
+  loanOfficerId: loan.bafoussam
+  externalId: LOAN-004
+  fundId: Donor - AfDB
+  principal: 500000.0
+  loanTermFrequency: 6
+  loanTermFrequencyType: MONTHS
+  numberOfRepayments: 6
+  repaymentEvery: 1
+  repaymentFrequencyType: MONTHS
+  interestRatePerPeriod: 18.0
+  expectedDisbursementDate: '2024-02-19'
+  submittedOnDate: '2024-02-12'
+  approvedOnDate: '2024-02-15'

@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app: cert-manager
+spec:
+  acme:
+    # Let's Encrypt production server (real certificates)
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Email for certificate expiration notifications
+    # IMPORTANT: Replace with your organization's email before production deployment
+    # This email receives expiration warnings (30 days, 7 days before expiry)
+    # See: config/contact-emails.yaml for centralized email configuration
+    email: platform-team@example.com
+    
+    # Private key secret for ACME account
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    
+    # HTTP-01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx

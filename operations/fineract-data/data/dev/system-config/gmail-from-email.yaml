@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: SMSEmailConfig
+metadata:
+  name: gmail-from-email
+  labels:
+    config-type: email-smtp
+    provider: gmail
+spec:
+  configType: Email SMTP
+  provider: Gmail
+  configKey: from_email
+  configValue: noreply@yourmfi.com
+  isActive: true
+  description: Email address shown as sender

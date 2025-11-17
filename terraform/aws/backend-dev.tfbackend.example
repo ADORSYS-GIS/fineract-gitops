@@ -1,0 +1,21 @@
+# Terraform Backend Configuration - Development Environment
+#
+# Copy this file to backend-dev.tfbackend and update with your values.
+# DO NOT commit backend-dev.tfbackend to version control (added to .gitignore)
+#
+# Usage:
+#   cp backend-dev.tfbackend.example backend-dev.tfbackend
+#   # Edit backend-dev.tfbackend with your values
+#   terraform init -backend-config=backend-dev.tfbackend
+
+bucket         = "your-terraform-state-bucket-dev"
+key            = "fineract/dev/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "terraform-state-lock-dev"
+encrypt        = true
+
+# Optional: Enable versioning for state recovery
+# versioning = true
+
+# Optional: Server-side encryption with KMS
+# kms_key_id = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"

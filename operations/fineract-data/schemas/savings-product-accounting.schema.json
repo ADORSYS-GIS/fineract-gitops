@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Savings Product Accounting",
+  "description": "Schema for validating Fineract savings product GL account mappings",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["SavingsProductAccounting"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["productName", "accountMappings"],
+      "properties": {
+        "productName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the savings product to configure accounting for"
+        },
+        "accountMappings": {
+          "type": "array",
+          "minItems": 1,
+          "description": "List of GL account mappings for savings accounting",
+          "items": {
+            "type": "object",
+            "required": ["mappingType", "glAccountCode"],
+            "properties": {
+              "mappingType": {
+                "type": "string",
+                "enum": [
+                  "Savings Reference",
+                  "Savings Control",
+                  "Interest on Savings",
+                  "Income from Fees",
+                  "Income from Penalties",
+                  "Overdraft Portfolio Control",
+                  "Income from Interest",
+                  "Losses Written Off",
+                  "Escheat Liability",
+                  "Withholding Tax",
+                  "Transfer in Suspense"
+                ],
+                "description": "Type of accounting mapping"
+              },
+              "glAccountCode": {
+                "type": "string",
+                "minLength": 1,
+                "description": "GL account code to map to this activity"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

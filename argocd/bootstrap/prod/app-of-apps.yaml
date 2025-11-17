@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "fineract-production"
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: "fineract-production"
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: "fineract-production"
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: main  # Deploy from main branch (tagged releases preferred)
+    path: argocd/applications/prod
+    directory:
+      recurse: false
+      exclude: 'app-of-apps.yaml'  # Don't include self
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    # Manual sync required for production - respects sync windows
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3  # Fewer retries for production
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  info:
+    - name: Component
+      value: Fineract Production Environment - App of Apps
+    - name: Environment
+      value: Production
+    - name: Criticality
+      value: CRITICAL
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Sync Window
+      value: "Tue-Thu, 10 AM - 4 PM only"
+    - name: Branch
+      value: main (tagged releases)
+    - name: Applications
+      value: "PostgreSQL HA, Redis, Keycloak, OAuth2 Proxy, Fineract, Monitoring, Logging"
+    - name: Deployment Order
+      value: "Sync waves 1-11 (databases → services → apps)"

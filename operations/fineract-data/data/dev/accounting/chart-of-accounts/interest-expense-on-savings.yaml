@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: interest-expense-on-savings
+  labels:
+    account-type: expense
+    usage: detail
+spec:
+  name: Interest Expense on Savings
+  glCode: '91'
+  type: Expense
+  usage: Detail
+  manualEntriesAllowed: false
+  description: Interest paid to savers

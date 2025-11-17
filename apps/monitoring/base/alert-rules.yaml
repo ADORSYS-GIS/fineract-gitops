@@ -1,0 +1,256 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fineract-alert-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: monitoring-stack
+    prometheus: fineract
+spec:
+  groups:
+  # Resource Alerts
+  - name: resource-alerts
+    interval: 30s
+    rules:
+    - alert: HighCPUUsage
+      expr: |
+        (sum(rate(container_cpu_usage_seconds_total{namespace=~"fineract.*"}[5m])) by (pod, namespace) /
+        sum(container_spec_cpu_quota{namespace=~"fineract.*"}/container_spec_cpu_period{namespace=~"fineract.*"}) by (pod, namespace)) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: resource
+      annotations:
+        summary: "High CPU usage detected"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of CPU"
+
+    - alert: HighMemoryUsage
+      expr: |
+        (sum(container_memory_working_set_bytes{namespace=~"fineract.*"}) by (pod, namespace) /
+        sum(container_spec_memory_limit_bytes{namespace=~"fineract.*"}) by (pod, namespace)) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: resource
+      annotations:
+        summary: "High memory usage detected"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of memory"
+
+    - alert: CriticalCPUUsage
+      expr: |
+        (sum(rate(container_cpu_usage_seconds_total{namespace=~"fineract.*"}[5m])) by (pod, namespace) /
+        sum(container_spec_cpu_quota{namespace=~"fineract.*"}/container_spec_cpu_period{namespace=~"fineract.*"}) by (pod, namespace)) > 0.95
+      for: 2m
+      labels:
+        severity: critical
+        component: resource
+      annotations:
+        summary: "Critical CPU usage detected"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of CPU"
+
+  # Pod Alerts
+  - name: pod-alerts
+    interval: 30s
+    rules:
+    - alert: PodRestarting
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace=~"fineract.*"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+        component: pod
+      annotations:
+        summary: "Pod is restarting frequently"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in the last 15 minutes"
+
+    - alert: PodNotReady
+      expr: |
+        kube_pod_status_phase{namespace=~"fineract.*", phase!~"Running|Succeeded"} > 0
+      for: 5m
+      labels:
+        severity: warning
+        component: pod
+      annotations:
+        summary: "Pod is not ready"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been in {{ $labels.phase }} state for more than 5 minutes"
+
+    - alert: PodCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace=~"fineract.*"}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: critical
+        component: pod
+      annotations:
+        summary: "Pod is crash looping"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash looping"
+
+  # Database Alerts
+  - name: database-alerts
+    interval: 30s
+    rules:
+    - alert: PostgreSQLDown
+      expr: |
+        pg_up{namespace=~"fineract.*"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        component: database
+      annotations:
+        summary: "PostgreSQL is down"
+        description: "PostgreSQL instance {{ $labels.instance }} in namespace {{ $labels.namespace }} is down"
+
+    - alert: PostgreSQLTooManyConnections
+      expr: |
+        sum(pg_stat_activity_count{namespace=~"fineract.*"}) by (namespace) >
+        sum(pg_settings_max_connections{namespace=~"fineract.*"}) by (namespace) * 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: database
+      annotations:
+        summary: "PostgreSQL has too many connections"
+        description: "PostgreSQL in namespace {{ $labels.namespace }} is using {{ $value }} connections (>80% of max)"
+
+    - alert: PostgreSQLSlowQueries
+      expr: |
+        rate(pg_stat_activity_max_tx_duration{namespace=~"fineract.*"}[5m]) > 300
+      for: 5m
+      labels:
+        severity: warning
+        component: database
+      annotations:
+        summary: "PostgreSQL has slow queries"
+        description: "PostgreSQL in namespace {{ $labels.namespace }} has queries running longer than 5 minutes"
+
+    - alert: PostgreSQLReplicationLag
+      expr: |
+        pg_replication_lag{namespace=~"fineract.*"} > 30
+      for: 5m
+      labels:
+        severity: warning
+        component: database
+      annotations:
+        summary: "PostgreSQL replication lag detected"
+        description: "PostgreSQL replica in namespace {{ $labels.namespace }} has {{ $value }} seconds of replication lag"
+
+  # Application Alerts
+  - name: application-alerts
+    interval: 30s
+    rules:
+    - alert: HighErrorRate
+      expr: |
+        (sum(rate(http_requests_total{namespace=~"fineract.*", status=~"5.."}[5m])) by (namespace, service) /
+        sum(rate(http_requests_total{namespace=~"fineract.*"}[5m])) by (namespace, service)) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        component: application
+      annotations:
+        summary: "High error rate detected"
+        description: "Service {{ $labels.service }} in namespace {{ $labels.namespace }} has error rate of {{ $value | humanizePercentage }}"
+
+    - alert: HighResponseTime
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{namespace=~"fineract.*"}[5m])) by (le, namespace, service)
+        ) > 2
+      for: 5m
+      labels:
+        severity: warning
+        component: application
+      annotations:
+        summary: "High response time detected"
+        description: "Service {{ $labels.service }} in namespace {{ $labels.namespace }} has p95 response time of {{ $value }}s"
+
+    - alert: ServiceDown
+      expr: |
+        up{namespace=~"fineract.*"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: application
+      annotations:
+        summary: "Service is down"
+        description: "Service {{ $labels.job }} in namespace {{ $labels.namespace }} is down"
+
+  # Certificate Alerts
+  - name: certificate-alerts
+    interval: 1h
+    rules:
+    - alert: CertificateExpiringSoon
+      expr: |
+        (certmanager_certificate_expiration_timestamp_seconds{namespace=~"fineract.*"} - time()) / 86400 < 30
+      for: 1h
+      labels:
+        severity: warning
+        component: security
+      annotations:
+        summary: "Certificate expiring soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} expires in {{ $value }} days"
+
+    - alert: CertificateExpiringCritical
+      expr: |
+        (certmanager_certificate_expiration_timestamp_seconds{namespace=~"fineract.*"} - time()) / 86400 < 7
+      for: 1h
+      labels:
+        severity: critical
+        component: security
+      annotations:
+        summary: "Certificate expiring very soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} expires in {{ $value }} days"
+
+  # Storage Alerts
+  - name: storage-alerts
+    interval: 30s
+    rules:
+    - alert: PVCAlmostFull
+      expr: |
+        (kubelet_volume_stats_used_bytes{namespace=~"fineract.*"} /
+        kubelet_volume_stats_capacity_bytes{namespace=~"fineract.*"}) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: storage
+      annotations:
+        summary: "PVC is almost full"
+        description: "PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} is {{ $value | humanizePercentage }} full"
+
+    - alert: PVCCriticallyFull
+      expr: |
+        (kubelet_volume_stats_used_bytes{namespace=~"fineract.*"} /
+        kubelet_volume_stats_capacity_bytes{namespace=~"fineract.*"}) > 0.95
+      for: 2m
+      labels:
+        severity: critical
+        component: storage
+      annotations:
+        summary: "PVC is critically full"
+        description: "PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} is {{ $value | humanizePercentage }} full"
+
+  # Deployment Alerts
+  - name: deployment-alerts
+    interval: 30s
+    rules:
+    - alert: DeploymentReplicasMismatch
+      expr: |
+        kube_deployment_spec_replicas{namespace=~"fineract.*"} !=
+        kube_deployment_status_replicas_available{namespace=~"fineract.*"}
+      for: 10m
+      labels:
+        severity: warning
+        component: deployment
+      annotations:
+        summary: "Deployment replicas mismatch"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has {{ $value }} available replicas vs {{ $labels.spec_replicas }} desired"
+
+    - alert: DeploymentDown
+      expr: |
+        kube_deployment_status_replicas_available{namespace=~"fineract.*"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        component: deployment
+      annotations:
+        summary: "Deployment is down"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has no available replicas"

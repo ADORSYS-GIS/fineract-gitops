@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: mandatory-group-savings
+  labels:
+    account-type: liability
+    usage: detail
+spec:
+  name: Mandatory Group Savings
+  glCode: '63'
+  type: Liability
+  usage: Detail
+  manualEntriesAllowed: false
+  description: Mandatory group savings liabilities

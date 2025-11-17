@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Office",
+  "description": "Schema for Fineract office/branch configuration",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "enum": ["fineract.apache.org/v1"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["Office"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["name", "openingDate"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "externalId": {
+          "type": "string"
+        },
+        "parentOffice": {
+          "type": "string",
+          "description": "Reference to parent office"
+        },
+        "openingDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "address": {
+          "type": "object",
+          "properties": {
+            "street": {"type": "string"},
+            "building": {"type": "string"},
+            "city": {"type": "string"},
+            "postalCode": {"type": "string"},
+            "country": {"type": "string"}
+          }
+        },
+        "contact": {
+          "type": "object",
+          "properties": {
+            "phone": {"type": "string"},
+            "email": {"type": "string", "format": "email"},
+            "manager": {"type": "string"}
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "INACTIVE"],
+          "default": "ACTIVE"
+        }
+      }
+    }
+  }
+}

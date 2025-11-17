@@ -1,0 +1,17 @@
+# Terraform S3 Backend Configuration - Production Environment
+#
+# Usage: terraform init -backend-config=backend-production.tfbackend
+#
+# This file configures the S3 backend for the production environment's
+# Terraform state. Each environment uses a separate state file for isolation.
+#
+# IMPORTANT: Production state is critical - ensure proper access controls
+# and backup policies are in place for the S3 bucket and DynamoDB table.
+
+bucket         = "fineract-gitops-terraform-state"
+key            = "production/fineract/terraform.tfstate"
+region         = "us-east-2"
+dynamodb_table = "fineract-gitops-terraform-lock"
+
+# Additional recommended settings (inherited from main.tf if not specified)
+# encrypt        = true  # Already set in main.tf backend block

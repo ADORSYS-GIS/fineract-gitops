@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: COBACReport
+metadata:
+  name: cobac-r01---portfolio-quality
+  labels:
+    report-category: cobac
+spec:
+  reportName: COBAC R01 - Portfolio Quality
+  reportCode: ''
+  reportType: Regulatory
+  useReport: true
+  reportSql: ''

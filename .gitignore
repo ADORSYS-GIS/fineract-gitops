@@ -1,0 +1,130 @@
+# AWS Credentials (NEVER commit these!)
+.aws/credentials
+.aws/config
+*.pem
+*.key
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfbackend
+!*.tfbackend.example
+.terraform/
+.terraform.lock.hcl
+
+# Kubernetes Secrets (plain text)
+# Ignore plain text secrets but allow sealed secrets (encrypted)
+*-secret.yaml
+!*-secret-template.yaml
+!*-sealed.yaml
+
+# Kubeconfig files (contain cluster credentials)
+*.kubeconfig
+*.kubeconfig*
+.kubeconfig-*
+
+# Sealed Secrets (encrypted - these CAN be committed)
+# Sealed secrets with pattern *-sealed.yaml are allowed above
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+*.ppk
+
+# Certificate files
+*.crt
+*.cer
+*.ca-bundle
+*.p7b
+*.p7c
+*.p12
+*.pfx
+*.pem
+
+# Password files
+passwords.txt
+credentials.txt
+
+# Database dumps
+*.sql
+*.dump
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+
+# OS Files
+Thumbs.db
+.DS_Store
+tmp/
+logs/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pyc
+*.pyo
+
+# Excel/Office files (test data, not version controlled)
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.xltx
+*.xltm
+
+# Terraform plan files
+*.tfplan
+tfplan

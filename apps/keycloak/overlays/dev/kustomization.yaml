@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+# Use labels instead of commonLabels to avoid affecting Service selectors
+labels:
+  - pairs:
+      environment: dev
+      deployment-type: aws
+      managed-by: argocd
+    includeSelectors: false
+
+# Override hostname configuration for dev environment
+configMapGenerator:
+  - name: ingress-config
+    behavior: merge
+    literals:
+      - auth-hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: keycloak
+      spec:
+        template:
+          spec:
+            containers:
+            - name: keycloak
+              args:
+              - start
+              - --http-enabled=true
+              - --health-enabled=true
+              - --proxy-headers=xforwarded
+              - --hostname-backchannel-dynamic=true
+              - --hostname=https://ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com/auth
+    target:
+      kind: Deployment
+      name: keycloak
+  # Fix service selector to match pod labels (override commonLabels)
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: keycloak-service
+      spec:
+        selector:
+          app: keycloak
+    target:
+      kind: Service
+      name: keycloak-service

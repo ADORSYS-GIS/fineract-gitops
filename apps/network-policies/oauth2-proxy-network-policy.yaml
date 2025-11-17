@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oauth2-proxy-network-policy
+  labels:
+    app: oauth2-proxy
+spec:
+  podSelector:
+    matchLabels:
+      app: oauth2-proxy
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow from Nginx Ingress
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 4180
+
+  egress:
+  # Allow to Keycloak
+  - to:
+    - podSelector:
+        matchLabels:
+          app: keycloak
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow to fineract-redis (session storage)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: fineract-redis
+    ports:
+    - protocol: TCP
+      port: 6379
+
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

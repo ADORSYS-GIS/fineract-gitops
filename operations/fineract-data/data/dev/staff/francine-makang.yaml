@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: francine-makang
+  labels:
+    staff-type: regular
+spec:
+  firstName: Francine
+  lastName: Makang
+  officeId: Douala Branch
+  isLoanOfficer: true
+  externalId: STF-006
+  mobileNo: +237 677 67 89 01
+  emailAddress: f.makang@mfi.cm
+  isActive: true
+  username: cashier.douala
+  role: Cashier

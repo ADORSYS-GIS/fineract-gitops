@@ -1,0 +1,11 @@
+apiVersion: fineract.apache.org/v1
+kind: Configuration
+metadata:
+  name: mtn-momo-enabled
+  labels:
+    config-type: Payment
+spec:
+  name: MTN_MOMO_ENABLED
+  enabled: true
+  value: 'No'
+  description: ''

@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-production-keycloak
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Deploy after databases
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "fineract-production"
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: "fineract-production"
+spec:
+  project: fineract-production
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # Deploy from main branch (tagged releases preferred)
+    path: apps/keycloak/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-production
+
+  syncPolicy:
+    # Manual sync required for production - respects sync windows
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3  # Fewer retries for production
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  info:
+    - name: Component
+      value: Keycloak SSO/IAM
+    - name: Environment
+      value: Production
+    - name: Criticality
+      value: HIGH
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual approval required"
+    - name: Sync Window
+      value: "Tue-Thu, 10 AM - 4 PM only"
+    - name: Features
+      value: "OIDC, User Management"

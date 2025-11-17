@@ -1,0 +1,223 @@
+---
+# NetworkPolicy: Block Admin Console in Production
+# This policy restricts access to Keycloak admin console routes in production
+#
+# POD SELECTOR LABEL CONSISTENCY:
+# This policy uses `app: keycloak` label which MUST match Keycloak deployment labels
+# - Deployment labels: see apps/keycloak/base/deployment.yaml (spec.template.metadata.labels)
+# - Service selector: see apps/keycloak/base/service.yaml (spec.selector)
+# - IMPORTANT: If deployment labels change, update this policy accordingly
+#
+# ALLOWED TRAFFIC SOURCES:
+# 1. apache-gateway (app: apache-gateway) - Handles user authentication flows
+# 2. fineract-keycloak-sync (app: fineract-keycloak-sync) - User synchronization
+# 3. apply-keycloak-config (job-name: apply-keycloak-config) - GitOps configuration
+# 4. prometheus (app: prometheus, namespace: monitoring) - Metrics scraping
+# 5. kube-dns (k8s-app: kube-dns, namespace: kube-system) - DNS resolution
+#
+# BLOCKED TRAFFIC:
+# - Direct admin console access from users
+# - Any pods not matching the allowed selectors above
+# - External traffic (handled by Ingress layer)
+#
+# VERIFICATION:
+# To verify labels are consistent:
+#   kubectl get pods -n fineract-dev -l app=keycloak --show-labels
+#   kubectl get svc -n fineract-dev keycloak-service -o yaml | grep selector
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-block-admin-console
+  # namespace managed by Kustomize overlay
+  labels:
+    app: keycloak
+    environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow authentication traffic from Apache gateway
+  - from:
+    - podSelector:
+        matchLabels:
+          app: apache-gateway
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+
+  # Allow traffic from user sync service
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fineract-keycloak-sync
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow traffic from config-cli job (for GitOps)
+  - from:
+    - podSelector:
+        matchLabels:
+          job-name: apply-keycloak-config
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow traffic from monitoring (Prometheus scraping)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow internal cluster DNS
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: UDP
+      port: 53
+
+---
+# NetworkPolicy: Allow Admin Console in Development/Staging
+# This is for non-production environments where admin console access is needed
+#
+# DEVELOPMENT/STAGING SECURITY TRADE-OFF:
+# This policy allows ALL namespace traffic for rapid development
+# RATIONALE:
+# - Dev: Developers need admin console access for testing realm configs
+# - Staging: QA needs access for integration testing and user setup
+# - Simplified debugging: No network policy troubleshooting during development
+#
+# MORE RESTRICTIVE STAGING ALTERNATIVE (recommended for uat):
+# Instead of namespaceSelector: {}, use specific podSelectors:
+#   - from:
+#     - podSelector:
+#         matchLabels:
+#           team: platform-engineering  # Only platform team pods
+#   - from:
+#     - podSelector:
+#         matchLabels:
+#           app: admin-bastion  # Dedicated admin bastion pod
+#
+# PRODUCTION: This policy should NOT be deployed (managed via environment overlays)
+# - Use keycloak-block-admin-console instead
+# - Kustomize overlays control which policy applies per environment
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-allow-admin-console
+  # namespace managed by Kustomize overlay
+  labels:
+    app: keycloak
+    environment: development
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow all traffic in development (less restrictive)
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+
+---
+# Ingress rule to block /admin routes (additional layer)
+# This provides HTTP-level blocking in addition to NetworkPolicy
+#
+# HOST FIELD PATCHING STRATEGY:
+# Base value: auth.fineract.com (production domain)
+# Environment-specific patching via Kustomize overlays:
+#
+# METHOD 1: JSON Patch (recommended for Ingress resources):
+#   # environments/dev/kustomization.yaml
+#   patches:
+#   - target:
+#       kind: Ingress
+#       name: keycloak-admin-block
+#     patch: |-
+#       - op: replace
+#         path: /spec/rules/0/host
+#         value: auth.dev.fineract.com
+#
+# METHOD 2: Strategic Merge Patch (alternative):
+#   # environments/dev/keycloak-ingress-patch.yaml
+#   apiVersion: networking.k8s.io/v1
+#   kind: Ingress
+#   metadata:
+#     name: keycloak-admin-block
+#   spec:
+#     rules:
+#     - host: auth.dev.fineract.com
+#
+# METHOD 3: Kustomize replacements (for shared values):
+#   # environments/dev/kustomization.yaml
+#   replacements:
+#   - source:
+#       kind: ConfigMap
+#       name: env-config
+#       fieldPath: data.auth_domain
+#     targets:
+#     - select:
+#         kind: Ingress
+#         name: keycloak-admin-block
+#       fieldPaths:
+#       - spec.rules.0.host
+#
+# VERIFICATION:
+#   kustomize build environments/dev | grep -A 5 "name: keycloak-admin-block"
+#
+# ENVIRONMENTS:
+# - dev: auth.dev.fineract.com
+# - uat: auth.uat.fineract.com
+# - prod: auth.fineract.com (base value)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-admin-block
+  # namespace managed by Kustomize overlay
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~ ^/admin {
+        deny all;
+        return 403 "Admin console access is disabled in production. Use GitOps for configuration changes.";
+      }
+      location ~ ^/realms/master {
+        deny all;
+        return 403 "Master realm access is disabled.";
+      }
+spec:
+  rules:
+  # Host will be patched per environment overlay (auth.dev.fineract.com, auth.uat.fineract.com, auth.fineract.com)
+  - host: auth.fineract.com
+    http:
+      paths:
+      - path: /realms/fineract
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak-service
+            port:
+              number: 8080

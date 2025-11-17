@@ -1,0 +1,17 @@
+apiVersion: fineract.apache.org/v1
+kind: Staff
+metadata:
+  name: peter-nkeng
+  labels:
+    staff-type: regular
+spec:
+  firstName: Peter
+  lastName: Nkeng
+  officeId: Bamenda Branch
+  isLoanOfficer: true
+  externalId: STF-010
+  mobileNo: +237 677 01 23 45
+  emailAddress: p.nkeng@mfi.cm
+  isActive: true
+  username: manager.bamenda
+  role: Branch Manager

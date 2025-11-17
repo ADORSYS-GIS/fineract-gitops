@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fineract-scale-up
+spec:
+  schedule: "0 7 * * 1-5" # 7 AM on weekdays
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: fineract-scaler
+          restartPolicy: OnFailure
+          containers:
+          - name: kubectl
+            image: bitnami/kubectl:1.28.4
+            command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl scale rollout fineract-read -n fineract-dev --replicas=1
+              kubectl scale rollout fineract-read -n fineract-uat --replicas=1
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"

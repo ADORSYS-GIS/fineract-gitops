@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: allow-dividend-calculation-for-inactive-clients
+  labels:
+    config-scope: global
+spec:
+  name: allow-dividend-calculation-for-inactive-clients
+  enabled: false
+  value: 'false'
+  trapDoor: false
+  description: Exclude inactive clients from dividend calculation

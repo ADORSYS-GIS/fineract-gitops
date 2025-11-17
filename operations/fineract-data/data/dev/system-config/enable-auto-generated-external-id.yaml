@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: GlobalConfiguration
+metadata:
+  name: enable-auto-generated-external-id
+  labels:
+    config-scope: global
+spec:
+  name: enable-auto-generated-external-id
+  enabled: true
+  value: 'true'
+  trapDoor: false
+  description: Auto-generate external IDs if not provided

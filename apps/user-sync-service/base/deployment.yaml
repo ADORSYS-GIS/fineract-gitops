@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-keycloak-sync
+  labels:
+    app: fineract-keycloak-sync
+    component: user-sync
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fineract-keycloak-sync
+  template:
+    metadata:
+      labels:
+        app: fineract-keycloak-sync
+        component: user-sync
+    spec:
+      serviceAccountName: fineract-keycloak-sync
+      containers:
+      - name: sync-service
+        image: ghcr.io/apache/fineract/fineract-keycloak-sync:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        env:
+        - name: KEYCLOAK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: user-sync-config
+              key: KEYCLOAK_URL
+        - name: KEYCLOAK_REALM
+          valueFrom:
+            configMapKeyRef:
+              name: user-sync-config
+              key: KEYCLOAK_REALM
+        - name: ADMIN_CLI_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: user-sync-config
+              key: ADMIN_CLI_CLIENT_ID
+        - name: ADMIN_CLI_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: admin-cli
+        # Keycloak Admin API credentials for password reset and user management
+        - name: KEYCLOAK_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: username
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: password
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: user-sync-config
+              key: PORT
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fineract-keycloak-sync
+  labels:
+    app: fineract-keycloak-sync
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: fineract-keycloak-sync
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fineract-keycloak-sync
+  labels:
+    app: fineract-keycloak-sync

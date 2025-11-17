@@ -1,0 +1,197 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fineract-dev-aws
+
+# Development Environment with AWS Managed Services
+#
+# Uses AWS managed services instead of self-hosted:
+# - RDS PostgreSQL instead of StatefulSet
+# - In-cluster Redis (fineract-redis) for sessions
+# - S3 for object storage
+#
+# Prerequisites: Terraform must provision AWS resources first
+# Benefits: ~73% cost savings, no database operations
+
+namespace: fineract-dev
+
+resources:
+  # Namespace (created first)
+  - namespace.yaml
+
+  # Database initialization (ArgoCD PreSync hook, runs before Fineract)
+  - ../../operations/fineract-database-init/base
+
+  # Fineract application
+  - ../../apps/fineract/base
+
+  # NOTE: Other components are deployed via ArgoCD applications:
+
+  # - fineract-redis (deployed via ArgoCD app)
+  # - keycloak (deployed via ArgoCD app)
+  # - oauth2-proxy (deployed via ArgoCD app)
+  # - monitoring, logging, network-policies (all via ArgoCD)
+
+  # DELETED COMPONENTS:
+  # - apache-gateway (replaced by OAuth2 Proxy + Nginx Ingress)
+  # - message-gateway (removed - no published image)
+  # - fineract-web-apps (removed - deprecated frontend apps)
+
+# AWS Managed Services Configuration
+# Fineract deployments will be patched below to connect to:
+# - RDS PostgreSQL (AWS managed)
+# - In-cluster Redis (fineract-redis StatefulSet)
+# - S3 Buckets (AWS managed)
+# Prerequisites: Terraform must provision AWS resources first
+
+# Patches to inject environment-specific configuration
+patches:
+  # OAuth2/Fineract configuration - environment-specific URLs
+  - path: fineract-oauth2-config-patch.yaml
+    target:
+      kind: ConfigMap
+      name: fineract-oauth2-config
+
+  # IRSA (IAM Roles for Service Accounts) configuration
+  # Injects the IAM role ARN created by Terraform into the Fineract service account
+  # This enables Fineract pods to assume AWS IAM roles for S3 and RDS access
+  - path: fineract-irsa-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: fineract-aws
+
+images:
+  # ============================================================
+  # Image Version Configuration for Dev Environment
+  # ============================================================
+  # This is the single source of truth for all image versions
+  # in the dev environment. Update versions here directly.
+  #
+  # Dev Environment Strategy:
+  # - Use "develop" or "latest" tags for rapid testing
+  # - Test new versions here before promoting to UAT/production
+  # ============================================================
+
+  # Core Applications
+  # --------------------------------------------------------
+
+  # Apache Fineract - Core Banking Platform
+  # Using develop tag to test latest features and ICU bug fixes
+  - name: apache/fineract
+    newName: apache/fineract
+    newTag: "develop"
+
+  # Components Deployed via Separate ArgoCD Applications
+  # --------------------------------------------------------
+
+  # Keycloak - Identity and Access Management
+  # Deployed via: argocd/applications/dev/keycloak.yaml
+  - name: quay.io/keycloak/keycloak
+    newName: quay.io/keycloak/keycloak
+    newTag: "26.4.0"
+
+  # OAuth2 Proxy - Authentication Gateway
+  # Deployed via: argocd/applications/dev/oauth2-proxy.yaml
+  - name: quay.io/oauth2-proxy/oauth2-proxy
+    newName: quay.io/oauth2-proxy/oauth2-proxy
+    newTag: "v7.13.0"
+
+  # Redis - Session Storage
+  # Deployed via: argocd/applications/dev/fineract-redis.yaml
+  - name: redis
+    newName: redis
+    newTag: "7.2-alpine"
+
+  # Redis Exporter - Prometheus Metrics
+  # Deployed via: argocd/applications/dev/fineract-redis.yaml
+  - name: oliver006/redis_exporter
+    newName: oliver006/redis_exporter
+    newTag: "v1.55.0-alpine"
+
+  # Utility Images
+  # --------------------------------------------------------
+
+  # alpine - Lightweight Linux with envsubst via gettext
+  # Usage: OAuth2 Proxy init containers, Keycloak config jobs
+  - name: alpine
+    newName: alpine
+    newTag: "3.18"
+
+  # curlimages/curl - HTTP Client for health checks
+  # Usage: OAuth2 Proxy initContainers
+  - name: curlimages/curl
+    newName: curlimages/curl
+    newTag: "8.4.0"
+
+  # postgres - PostgreSQL Client for database operations
+  # Usage: Database init jobs, create database jobs
+  - name: postgres
+    newName: postgres
+    newTag: "15-alpine"
+
+  # python - Python runtime for data loading and drift detection
+  # Usage: Fineract data loaders, config drift detection
+  - name: python
+    newName: python
+    newTag: "3.11-slim"
+
+  # kubectl - Kubernetes CLI
+  # Usage: Database init jobs, scale cronjobs, export jobs
+  - name: bitnami/kubectl
+    newName: bitnami/kubectl
+    newTag: "1.28.4"
+
+  # busybox - Minimal Unix Tools
+  # Usage: Init containers, data loader jobs
+  - name: busybox
+    newName: busybox
+    newTag: "1.36.1"
+
+  # keycloak-config-cli - Keycloak Configuration Tool
+  # Usage: Apply Keycloak realm configuration
+  - name: adorsys/keycloak-config-cli
+    newName: adorsys/keycloak-config-cli
+    newTag: "5.9.0"
+
+  # Custom Images
+  # --------------------------------------------------------
+
+  # fineract-keycloak-sync - User Sync Service
+  # Custom-built image, built via scripts/build-user-sync-service.sh
+  - name: fineract-keycloak-sync
+    newName: fineract-keycloak-sync
+    newTag: "v1.0.0"
+
+  # Frontend Applications
+  # --------------------------------------------------------
+
+  # Reporting App - Read-only reporting and audit trail
+  # Built from: https://github.com/ADORSYS-GIS/fineract-apps
+  # Workflow: .github/workflows/publish-frontend-images.yml
+  # Deployed via: argocd/applications/dev/reporting-app.yaml
+  - name: ghcr.io/adorsys-gis/fineract-reporting-app
+    newName: ghcr.io/adorsys-gis/fineract-reporting-app
+    newTag: "latest"
+
+  # Accounting App - Financial accounting and ledger management
+  # Built from: https://github.com/ADORSYS-GIS/fineract-apps
+  # Workflow: .github/workflows/publish-frontend-images.yml
+  # Deployed via: argocd/applications/dev/accounting-app.yaml
+  - name: ghcr.io/adorsys-gis/fineract-accounting-app
+    newName: ghcr.io/adorsys-gis/fineract-accounting-app
+    newTag: "latest"
+
+commonLabels:
+  provider: aws-managed
+  infrastructure: aws
+  environment: dev
+  managed-by: argocd
+
+commonAnnotations:
+  provider-type: "aws-managed"
+  deployment-profile: "aws - managed services"
+  environment: development
+  auto-sync: "enabled"
+  contact: "dev-team@example.com"
+  terraform-required: "true"

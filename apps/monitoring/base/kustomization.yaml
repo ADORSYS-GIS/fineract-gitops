@@ -1,0 +1,65 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: monitoring-stack
+
+namespace: monitoring
+
+resources:
+  # Prometheus Operator CRDs and components
+  # Using kube-prometheus-stack from prometheus-community Helm chart
+  # This includes: Prometheus, Grafana, AlertManager, node-exporter, kube-state-metrics
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagerconfigs.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+  - https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.70.0/example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
+
+  # Namespace
+  - namespace.yaml
+
+  # Prometheus Operator
+  - prometheus-operator.yaml
+
+  # Prometheus
+  - prometheus.yaml
+  - prometheus-service.yaml
+  - prometheus-rbac.yaml
+
+  # Grafana
+  - grafana-deployment.yaml
+  - grafana-service.yaml
+  - grafana-configmap.yaml
+
+  # AlertManager
+  - alertmanager.yaml
+  - alertmanager-service.yaml
+  - alertmanager-config.yaml
+
+  # Service Monitors
+  - servicemonitor-fineract.yaml
+  - servicemonitor-keycloak.yaml
+  - servicemonitor-kubernetes.yaml
+  - servicemonitor-oauth2-proxy.yaml
+  - servicemonitor-redis.yaml
+
+  # Alert Rules
+  - alert-rules.yaml
+
+  # Additional Scrape Configs
+  - prometheus-additional-scrape-configs.yaml
+
+  # Pod Disruption Budgets
+  - pdb.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: monitoring-stack
+  managed-by: argocd
+
+commonAnnotations:
+  component: "monitoring"
+  purpose: "Observability and alerting for Fineract platform"

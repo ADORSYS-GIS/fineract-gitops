@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: NotificationTemplate
+metadata:
+  name: low-balance-alert
+  labels:
+    channel: sms
+spec:
+  name: Low Balance Alert
+  channel: SMS
+  eventTrigger: Balance Below Minimum
+  subject: ''
+  messageBody: 'Alert: Your savings account {savingsAccountNumber} balance ({accountBalance}
+    XAF) is below minimum ({minimumBalance} XAF). Please deposit to avoid charges.'
+  isActive: true
+  description: Sent when balance falls below minimum

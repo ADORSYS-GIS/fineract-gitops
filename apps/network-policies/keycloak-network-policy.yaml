@@ -1,0 +1,93 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-network-policy
+  labels:
+    app: keycloak
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow from OAuth2 Proxy
+  - from:
+    - podSelector:
+        matchLabels:
+          app: oauth2-proxy
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow from Fineract (for token validation)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fineract
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow from Nginx Ingress (direct admin access)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  egress:
+  # Allow to RDS PostgreSQL (external to cluster)
+  # Uses ipBlock to allow egress outside cluster to AWS RDS
+  # RDS is protected by security groups (Terraform-managed)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+          - 10.0.0.0/8      # Private networks
+          - 172.16.0.0/12   # Private networks
+          - 192.168.0.0/16  # Private networks
+    ports:
+    - protocol: TCP
+      port: 5432
+
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+  # Allow HTTPS to external (for OIDC federation with external IdPs)
+  # Uses ipBlock to allow outbound HTTPS connections
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+          - 10.0.0.0/8      # Private networks
+          - 172.16.0.0/12   # Private networks
+          - 192.168.0.0/16  # Private networks
+    ports:
+    - protocol: TCP
+      port: 443

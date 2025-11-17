@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: MakerChecker
+metadata:
+  name: close-savings-account
+  labels:
+    entity: savingsaccount
+spec:
+  taskName: Close Savings Account
+  entity: SAVINGSACCOUNT
+  action: CLOSE
+  thresholdAmount: 500000.0
+  thresholdCurrency: XAF
+  makerRole: Cashier
+  checkerRole: Branch Manager
+  enabled: true

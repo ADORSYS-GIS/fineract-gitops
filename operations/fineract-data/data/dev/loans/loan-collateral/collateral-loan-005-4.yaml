@@ -1,0 +1,15 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanCollateral
+metadata:
+  name: collateral-loan-005-4
+  labels:
+    collateral-type: agricultural-land
+spec:
+  loanAccountId: LOAN-005
+  collateralTypeId: Agricultural Land
+  value: 800000.0
+  description: 2 hectares farmland with coffee plantation
+  location: Baleng, Bafoussam
+  condition: Good
+  valuationDate: '2024-01-22'
+  valuationBy: Agricultural Assessor

@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: Office
+metadata:
+  name: test-office
+  labels:
+    office-type: test
+    region: test
+spec:
+  name: Test Office
+  externalId: TEST-001
+  openingDate: "2024-01-01"
+  status: ACTIVE
+  description: Minimal test office for loader validation

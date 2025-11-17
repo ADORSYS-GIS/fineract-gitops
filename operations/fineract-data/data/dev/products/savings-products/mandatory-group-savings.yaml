@@ -1,0 +1,19 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsProduct
+metadata:
+  name: mandatory-group-savings
+  labels:
+    product-type: savings
+    category: general
+spec:
+  name: Mandatory Group Savings
+  shortName: MGRP
+  description: Mandatory savings for group loan members
+  currency: XAF
+  digitsAfterDecimal: 2
+  nominalAnnualInterestRate: 2.0
+  interestCompoundingPeriod: Monthly
+  interestPostingPeriod: Monthly
+  interestCalculationType: Daily Balance
+  minRequiredOpeningBalance: 0.0
+  withdrawalFeeForTransfers: false

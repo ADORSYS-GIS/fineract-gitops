@@ -1,0 +1,9 @@
+apiVersion: fineract.apache.org/v1
+kind: Fund
+metadata:
+  name: donor---world-bank
+  labels:
+    fund-type: general
+spec:
+  name: Donor - World Bank
+  externalId: FUND-006

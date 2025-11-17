@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app: cert-manager
+spec:
+  acme:
+    # Let's Encrypt staging server (for testing)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+    # Email for certificate expiration notifications
+    # NOTE: For staging/testing, this can remain as placeholder
+    # Replace with your organization's email if you need expiration notifications
+    # See: config/contact-emails.yaml for centralized email configuration
+    email: platform-team@example.com
+    
+    # Private key secret for ACME account
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    
+    # HTTP-01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx

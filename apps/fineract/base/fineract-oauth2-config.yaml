@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fineract-oauth2-config
+data:
+  # OAuth2/OIDC configuration for Fineract
+  # These are placeholder values - MUST be overridden in environment overlays
+  oidc-issuer-url: "https://auth.fineract.example.com/realms/fineract"
+  jwk-set-uri-internal: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/certs"

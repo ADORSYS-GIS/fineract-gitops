@@ -1,0 +1,16 @@
+apiVersion: fineract.apache.org/v1
+kind: SavingsAccount
+metadata:
+  name: cli-001-savings-0
+  labels:
+    account-type: savings
+spec:
+  clientId: CLI-001
+  productId: VSAV
+  fieldOfficerId: loan.douala
+  externalId: SAV-001
+  submittedOnDate: '2024-01-20'
+  approvedOnDate: '2024-01-20'
+  activatedOnDate: '2024-01-20'
+  nominalAnnualInterestRate: 5.0
+  minRequiredOpeningBalance: 25000.0

@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rds-shutdown
+spec:
+  schedule: "0 19 * * 1-5" # 7 PM on weekdays
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: fineract-scaler
+          restartPolicy: OnFailure
+          containers:
+          - name: aws-cli
+            image: amazon/aws-cli:2.15.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              aws rds stop-db-instance --db-instance-identifier fineract-dev
+              aws rds stop-db-instance --db-instance-identifier fineract-uat
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rds-startup
+spec:
+  schedule: "0 7 * * 1-5" # 7 AM on weekdays
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: fineract-scaler
+          restartPolicy: OnFailure
+          containers:
+          - name: aws-cli
+            image: amazon/aws-cli:2.15.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              aws rds start-db-instance --db-instance-identifier fineract-dev
+              aws rds start-db-instance --db-instance-identifier fineract-uat
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"

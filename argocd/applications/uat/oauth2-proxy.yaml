@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-uat-oauth2-proxy
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"  # Deploy after Keycloak and Redis
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: main  # UAT syncs from main branch
+    path: apps/oauth2-proxy/overlays/uat
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-uat
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: OAuth2 Proxy
+    - name: Environment
+      value: UAT
+    - name: Profile
+      value: standard
+    - name: Auto-Deploy
+      value: "false - manual sync required"
+    - name: Features
+      value: "OIDC Authentication, Session Management, Keycloak Integration"
+    - name: Dependencies
+      value: "Keycloak, Redis Session Store"
+    - name: Purpose
+      value: "OIDC authentication proxy for Nginx-based ingress"

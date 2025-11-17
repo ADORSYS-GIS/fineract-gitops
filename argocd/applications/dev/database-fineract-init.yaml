@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-database-fineract-init
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # Database initialization - runs before all applications
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    targetRevision: eks  # Auto-sync from eks branch
+    path: operations/fineract-database-init/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Database Initialization
+    - name: Environment
+      value: Development
+    - name: Purpose
+      value: Creates fineract_tenants and fineract_default databases before application deployment
+    - name: Auto-Deploy
+      value: "true"
+    - name: Jobs
+      value: "create-databases (PreSync), schema-migration (PreSync wave 6)"
+    - name: Dependencies
+      value: "RDS PostgreSQL instance must be available"

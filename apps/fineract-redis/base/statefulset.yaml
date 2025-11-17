@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fineract-redis
+  labels:
+    app: fineract-redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: session-storage
+    app.kubernetes.io/part-of: fineract-platform
+spec:
+  serviceName: fineract-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fineract-redis
+  template:
+    metadata:
+      labels:
+        app: fineract-redis
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: session-storage
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+    spec:
+      containers:
+      - name: redis
+        image: redis
+        imagePullPolicy: IfNotPresent
+
+        command:
+        - sh
+        - -c
+        - |
+          redis-server /etc/redis/redis.conf --requirepass "${REDIS_PASSWORD}"
+
+        ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-redis-secret
+              key: redis-password
+
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+          readOnly: true
+        - name: redis-data
+          mountPath: /data
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"  # Increased for Fineract application caching
+            cpu: "200m"
+
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - |
+              redis-cli -a "${REDIS_PASSWORD}" ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          runAsGroup: 999
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+      # Redis Exporter for Prometheus metrics
+      - name: redis-exporter
+        image: oliver006/redis_exporter
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 9121
+          name: metrics
+          protocol: TCP
+
+        env:
+        - name: REDIS_ADDR
+          value: "localhost:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-redis-secret
+              key: redis-password
+
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9121
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+      # Volumes
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: gp3  # AWS EBS gp3 storage for EKS
+      resources:
+        requests:
+          storage: 1Gi

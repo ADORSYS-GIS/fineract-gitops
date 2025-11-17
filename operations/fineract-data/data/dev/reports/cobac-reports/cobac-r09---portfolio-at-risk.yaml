@@ -1,0 +1,12 @@
+apiVersion: fineract.apache.org/v1
+kind: COBACReport
+metadata:
+  name: cobac-r09---portfolio-at-risk
+  labels:
+    report-category: cobac
+spec:
+  reportName: COBAC R09 - Portfolio at Risk
+  reportCode: ''
+  reportType: Regulatory
+  useReport: true
+  reportSql: ''

@@ -1,0 +1,10 @@
+apiVersion: fineract.apache.org/v1
+kind: WorkingDays
+metadata:
+  name: working-days
+  labels:
+    config-type: calendar
+spec:
+  recurrence: FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
+  repaymentReschedulingType: MOVE_TO_NEXT_WORKING_DAY
+  extendTermForDailyRepayments: false

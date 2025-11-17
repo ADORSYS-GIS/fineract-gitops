@@ -1,0 +1,9 @@
+apiVersion: fineract.apache.org/v1
+kind: Fund
+metadata:
+  name: bank-loan---ecobank
+  labels:
+    fund-type: general
+spec:
+  name: Bank Loan - Ecobank
+  externalId: FUND-002

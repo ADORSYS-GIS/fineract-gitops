@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fineract-dev
+  namespace: argocd
+  # Finalizer ensures project is not deleted until no longer referenced
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Fineract Development Environment
+
+  # Allow manifests to deploy from this Git repository
+  sourceRepos:
+    - '*'  # Allow all repos for development flexibility
+
+  # Only permit applications to deploy to the dev namespace and argocd namespace
+  destinations:
+    - namespace: fineract-dev
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: logging
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+
+  # Deny all cluster-scoped resources from being created, except for namespaces and Sealed Secrets resources
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    # Sealed Secrets Controller CRDs and resources
+    - group: 'apiextensions.k8s.io'
+      kind: CustomResourceDefinition
+    # Sealed Secrets Controller RBAC
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+    # Sealed Secrets Controller Services
+    - group: ''
+      kind: Service
+
+  # Allow all namespaced-scoped resources to be created, except for ResourceQuota, LimitRange
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+
+  # Enables namespace orphaned resource monitoring
+  orphanedResources:
+    warn: true
+
+  roles:
+    # A role which provides read-only access to all applications in the project
+    - name: read-only
+      description: Read-only privileges to fineract-dev project
+      policies:
+        - p, proj:fineract-dev:read-only, applications, get, fineract-dev/*, allow
+      groups:
+        - developers
+        - viewers
+
+    # A role which provides full access to all applications in the project
+    - name: admin
+      description: Admin privileges to fineract-dev project
+      policies:
+        - p, proj:fineract-dev:admin, applications, *, fineract-dev/*, allow
+      groups:
+        - platform-admins
+        - dev-leads

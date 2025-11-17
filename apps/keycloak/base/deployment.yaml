@@ -1,0 +1,292 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: keycloak
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        # Pod anti-affinity for when scaling to multiple replicas
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: keycloak
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak
+        imagePullPolicy: IfNotPresent
+        args:
+        - start
+        - --http-enabled=true
+        - --health-enabled=true
+        - --metrics-enabled=true  # Enable Prometheus metrics at /metrics endpoint
+        - --proxy-headers=xforwarded
+        - --hostname-backchannel-dynamic=true
+
+        env:
+        # Database Configuration - Using RDS PostgreSQL
+        - name: KC_DB
+          value: "postgres"
+        - name: KC_DB_URL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-credentials
+              key: host
+        - name: KC_DB_URL_PORT
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-credentials
+              key: port
+        - name: KC_DB_URL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-credentials
+              key: database
+        - name: KC_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-credentials
+              key: username
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-credentials
+              key: password
+        # PostgreSQL Connection Properties - Enable SSL for RDS
+        - name: KC_DB_URL_PROPERTIES
+          value: "?sslmode=require"
+
+        # Admin User
+        - name: KEYCLOAK_ADMIN
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: username
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: password
+
+        # HTTP Relative Path - Serve Keycloak from /auth subpath
+        - name: KC_HTTP_RELATIVE_PATH
+          value: "/auth"
+
+        # Hostname Configuration (Keycloak 26.x - Official Best Practice)
+        #
+        # Keycloak 26.x requires explicit hostname configuration for security.
+        # Configuration is done via startup args in overlays (not environment variables here).
+        #
+        # Required startup args (set in overlays/*/kustomization.yaml):
+        # - --hostname=https://auth.example.com
+        #   Sets the public-facing URL for OIDC issuer and tokens
+        #
+        # - --hostname-backchannel-dynamic=true
+        #   Allows internal cluster services to communicate via service names
+        #   while maintaining public URLs for browsers
+        #
+        # - --proxy-headers=xforwarded
+        #   Trust X-Forwarded-* headers from reverse proxy (NGINX Ingress)
+        #
+        # See: https://www.keycloak.org/server/hostname
+        #      https://www.keycloak.org/server/reverseproxy
+
+        # Logging
+        - name: KC_LOG_LEVEL
+          value: "INFO"
+
+        # Health Monitoring
+        - name: KC_HEALTH_ENABLED
+          value: "true"
+
+        # JVM Options (optimized for t3a.large with 8GB RAM, conservative for dev)
+        - name: JAVA_OPTS
+          value: "-Xms192m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=192m"
+
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: management
+          containerPort: 9000
+
+        resources:
+          requests:
+            memory: "384Mi"
+            cpu: "200m"
+          limits:
+            memory: "768Mi"
+            cpu: "500m"
+
+        livenessProbe:
+          httpGet:
+            path: /auth/health/live
+            port: 9000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /auth/health/ready
+            port: 9000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        startupProbe:
+          httpGet:
+            path: /auth/health/started
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 120  # Increased to 120 (20 minutes total) for initial Quarkus build on t3a.large
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+
+        volumeMounts:
+        - name: keycloak-data
+          mountPath: /opt/keycloak/data
+        - name: keycloak-themes
+          mountPath: /opt/keycloak/themes/webank
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+
+      # Init container to deploy custom theme
+      # THEME DEPLOYMENT STRATEGY:
+      # Current approach: initContainer copies theme from ConfigMaps to PVC
+      #
+      # RATIONALE:
+      # - GitOps-friendly: Theme files managed as ConfigMaps in Git
+      # - Dynamic updates: Can update theme without rebuilding Keycloak image
+      # - Separation of concerns: Theme content separate from Keycloak base image
+      # - Simplicity: No custom Docker image build pipeline needed
+      #
+      # ALTERNATIVE APPROACHES:
+      # 1. Custom Keycloak Docker Image (recommended for production):
+      #    - Build custom image FROM quay.io/keycloak/keycloak:23.0.0
+      #    - COPY theme files during docker build
+      #    - Pros: Faster startup (no init container), immutable deployments
+      #    - Cons: Requires CI/CD pipeline, image registry, slower theme updates
+      #    - Example Dockerfile:
+      #      FROM quay.io/keycloak/keycloak:23.0.0
+      #      COPY --chown=keycloak:keycloak themes/webank /opt/keycloak/themes/webank
+      #      RUN /opt/keycloak/bin/kc.sh build
+      #
+      # 2. Keycloak Theme Deployment via Admin API:
+      #    - Upload theme as JAR via REST API
+      #    - Pros: No restart needed, dynamic deployment
+      #    - Cons: Complex, not GitOps-friendly, requires custom automation
+      #
+      # 3. Git Clone in initContainer:
+      #    - Clone theme repo in initContainer
+      #    - Pros: Direct from source control
+      #    - Cons: Requires Git credentials, slower, more complex
+      #
+      # CURRENT APPROACH TRADE-OFFS:
+      # - Pros: Simple, GitOps-native, no CI/CD needed
+      # - Cons: initContainer adds ~5-10s to pod startup time
+      # - Acceptable for: Dev, staging, small-scale production
+      # - Consider custom image for: High-scale production, strict startup SLAs
+      initContainers:
+      - name: deploy-webank-theme
+        image: busybox:1.36.1
+        command:
+        - sh
+        - -c
+        - |
+          echo "Deploying Webank theme to persistent storage..."
+
+          # Create theme directory structure
+          mkdir -p /themes/webank/login/resources/css
+          mkdir -p /themes/webank/login/resources/img
+          mkdir -p /themes/webank/login/resources/js
+          mkdir -p /themes/webank/login/messages
+
+          # Copy theme root files
+          cp /theme-files/theme.properties /themes/webank/
+
+          # Copy login templates
+          cp /theme-files/login-template.ftl /themes/webank/login/template.ftl
+          cp /theme-files/login-login.ftl /themes/webank/login/login.ftl
+
+          # Copy CSS
+          cp /theme-css/webank.css /themes/webank/login/resources/css/
+
+          # Copy messages
+          cp /theme-files/messages_en.properties /themes/webank/login/messages/
+
+          echo "Webank theme deployed successfully!"
+          echo "Theme structure:"
+          ls -la /themes/webank/
+          ls -la /themes/webank/login/
+          ls -la /themes/webank/login/resources/css/
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+        - name: theme-files
+          mountPath: /theme-files
+          readOnly: true
+        - name: theme-css
+          mountPath: /theme-css
+          readOnly: true
+        - name: keycloak-themes
+          mountPath: /themes
+
+      volumes:
+      - name: keycloak-data
+        persistentVolumeClaim:
+          claimName: keycloak-data # NOTE: This PVC must be created separately
+      - name: keycloak-themes
+        persistentVolumeClaim:
+          claimName: keycloak-themes # PVC for custom themes
+      - name: theme-files
+        configMap:
+          name: keycloak-webank-theme
+      - name: theme-css
+        configMap:
+          name: keycloak-webank-theme-css
+      - name: tmp
+        emptyDir: {}

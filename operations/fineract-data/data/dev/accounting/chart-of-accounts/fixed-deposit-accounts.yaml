@@ -1,0 +1,14 @@
+apiVersion: fineract.apache.org/v1
+kind: GLAccount
+metadata:
+  name: fixed-deposit-accounts
+  labels:
+    account-type: liability
+    usage: detail
+spec:
+  name: Fixed Deposit Accounts
+  glCode: '62'
+  type: Liability
+  usage: Detail
+  manualEntriesAllowed: false
+  description: Fixed deposit liabilities

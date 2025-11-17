@@ -1,0 +1,13 @@
+apiVersion: fineract.apache.org/v1
+kind: LoanRepayment
+metadata:
+  name: repayment-justine-moukouri-5
+  labels:
+    transaction-type: repayment
+spec:
+  loanAccountId: LOAN-006
+  transactionDate: '2024-03-29'
+  transactionAmount: 44000.0
+  paymentTypeId: Mobile Money
+  receiptNumber: REP-006
+  note: Monthly repayment

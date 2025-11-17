@@ -1,0 +1,21 @@
+apiVersion: fineract.apache.org/v1
+kind: Client
+metadata:
+  name: samuel-ebong
+  labels:
+    client-type: Individual
+spec:
+  firstName: Samuel
+  middleName: ''
+  lastName: Ebong
+  officeId: Douala Branch
+  staffId: loan.douala
+  externalId: CLI-008
+  mobileNo: +237 690 89 01 23
+  emailAddress: s.ebong@yahoo.fr
+  dateOfBirth: '1980-08-30'
+  genderId: Male
+  clientTypeId: Individual
+  clientClassificationId: Active
+  active: true
+  activationDate: '2024-03-01'

@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fineract Code Value",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"type": "string", "enum": ["fineract.apache.org/v1"]},
+    "kind": {"type": "string", "enum": ["CodeValue"]},
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9-]+$"}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["name", "codeName"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name for this code"
+        },
+        "codeName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique code name identifier"
+        },
+        "position": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Display position/order"
+        },
+        "description": {
+          "type": "string",
+          "description": "Code description"
+        },
+        "isActive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this code is active"
+        },
+        "values": {
+          "type": "array",
+          "description": "List of values for this code",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Value name"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Display position/order"
+              },
+              "active": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether this value is active"
+              },
+              "description": {
+                "type": "string",
+                "description": "Value description"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

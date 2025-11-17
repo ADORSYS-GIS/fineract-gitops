@@ -1,0 +1,289 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-keycloak-config
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  template:
+    metadata:
+      name: keycloak-config-cli
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: keycloak-config-cli
+        image: adorsys/keycloak-config-cli
+        env:
+        # Keycloak Connection
+        # KEYCLOAK_URL should be set via ConfigMap in environment overlays
+        # Default: http://keycloak-service:8080 (internal service)
+        - name: KEYCLOAK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: keycloak-url
+              optional: false
+        - name: KEYCLOAK_USER
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: username
+        - name: KEYCLOAK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: password
+
+        # Configuration
+        - name: KEYCLOAK_AVAILABILITYCHECK_ENABLED
+          value: "true"
+        - name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT
+          value: "120s"
+
+        # Import Settings
+        - name: IMPORT_FILES_LOCATIONS
+          value: "/config-processed/*"  # Use processed config with substituted variables
+        # IMPORT_FORCE Design Decision:
+        # Set to "false" to allow manual Keycloak admin changes while maintaining GitOps
+        # RATIONALE:
+        # - frontendUrl now uses dynamic ${AUTH_HOSTNAME} variable (environment-specific)
+        # - Configuration will be correct on first deployment in each environment
+        # - No need to force overwrite manual changes made via Keycloak admin UI
+        # - Supports semi-GitOps approach: Git controls structure, admins can customize
+        #
+        # BEHAVIOR with IMPORT_FORCE=false:
+        # - New realms/clients/roles from Git will be created
+        # - Existing items will NOT be overwritten (manual changes preserved)
+        # - Users are never overwritten (only created if missing)
+        # - Role assignments and client secrets persist
+        #
+        # NOTE: Set to "true" temporarily if you need to force a configuration reset
+        - name: IMPORT_FORCE
+          value: "false"
+        - name: IMPORT_VALIDATE
+          value: "true"
+        # IMPORT_VAR_SUBSTITUTION_ENABLED Design Decision:
+        # Set to "false" because we use a custom init container for variable substitution
+        # RATIONALE:
+        # - keycloak-config-cli's built-in substitution uses Java system properties/env vars
+        # - Our init container uses envsubst for ${VAR} syntax (shell-style)
+        # - This gives us more control over substitution (preprocessing step)
+        # - Allows validation/debugging of processed config before import
+        # - Secrets are available only in init container scope (better isolation)
+        # ALTERNATIVE: Enable built-in substitution and remove init container
+        # - Simpler job definition (fewer moving parts)
+        # - Requires changing config syntax to match keycloak-config-cli expectations
+        # - Less control over substitution process
+        # CURRENT APPROACH: Manual envsubst in init container (lines 95-124)
+        - name: IMPORT_VAR_SUBSTITUTION_ENABLED
+          value: "false"
+
+        # Parallelism
+        - name: IMPORT_PARALLEL
+          value: "false"  # Sequential import
+
+        # Logging
+        - name: LOGGING_LEVEL_ROOT
+          value: "INFO"
+        - name: LOGGING_LEVEL_KEYCLOAK_CONFIGCLI
+          value: "DEBUG"
+
+        # Note: Environment variables are substituted in init container
+        # No need to pass them here
+
+        volumeMounts:
+        - name: keycloak-config-processed
+          mountPath: /config-processed
+          readOnly: false  # emptyDir needs write access
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "50m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+      volumes:
+      - name: keycloak-config-templates
+        configMap:
+          name: keycloak-realm-config
+      - name: keycloak-config-processed
+        emptyDir: {}  # Temporary storage for processed config
+
+      # Wait for Keycloak to be ready
+      initContainers:
+      - name: substitute-variables
+        # Image tag managed by Kustomize image transformers per environment
+        # Default: alpine:3.20 (from environment kustomization.yaml)
+        image: alpine
+        securityContext:
+          runAsUser: 0
+          runAsNonRoot: false
+        command:
+        - sh
+        - -c
+        - |
+          # Install gettext for envsubst command
+          apk add --no-cache gettext
+
+          echo "Substituting environment variables in realm configuration (includes users)..."
+          envsubst < /config-templates/realm-fineract.yaml > /config-processed/realm-fineract.yaml
+          echo "✓ Variable substitution complete for realm configuration"
+          echo "  File size: $(wc -c < /config-processed/realm-fineract.yaml) bytes"
+          echo "✓ All configuration files processed securely (sensitive data not logged)"
+        env:
+        # Environment-specific variables
+        - name: DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: domain
+        - name: APPS_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: apps-hostname
+        - name: SMTP_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: smtp-host
+        - name: SMTP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: smtp-port
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: smtp-credentials
+              key: username
+              optional: true
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smtp-credentials
+              key: password
+              optional: true
+        - name: SMTP_SSL
+          value: "true"
+        - name: SMTP_STARTTLS
+          value: "false"
+        - name: SMTP_AUTH
+          value: "true"
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: oauth2-proxy
+              optional: true
+        - name: ADMIN_CLI_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: admin-cli
+              optional: true
+        - name: FINERACT_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-api
+              optional: true
+        - name: MESSAGE_GATEWAY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: message-gateway
+              optional: true
+        - name: PAYMENT_GATEWAY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: payment-gateway
+              optional: true
+        - name: DATA_LOADER_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: data-loader
+              optional: true
+        - name: FINERACT_DATA_LOADER_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-data-loader
+              optional: true
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-default-users
+              key: admin-password
+              optional: true
+        - name: MIFOS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-default-users
+              key: mifos-password
+              optional: true
+        - name: LOAN_OFFICER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-default-users
+              key: loan-officer-password
+              optional: true
+        - name: TELLER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-default-users
+              key: teller-password
+              optional: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: keycloak-config-templates
+          mountPath: /config-templates
+          readOnly: true
+        - name: keycloak-config-processed
+          mountPath: /config-processed
+
+      - name: wait-for-keycloak
+        image: curlimages/curl:8.4.0
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Keycloak to be ready..."
+          MAX_RETRIES=60
+          RETRY_COUNT=0
+
+          until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+            # Check if master realm is accessible (best indicator Keycloak is ready)
+            # Note: Keycloak is served from /auth path
+            if curl -f -s http://keycloak-service:8080/auth/realms/master > /dev/null 2>&1; then
+              echo "✓ Keycloak master realm is accessible!"
+              echo "Keycloak is fully ready for realm configuration!"
+              exit 0
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Keycloak not ready yet (attempt $RETRY_COUNT/$MAX_RETRIES), waiting 5s..."
+            sleep 5
+          done
+
+          echo "❌ Keycloak did not become ready within timeout"
+          exit 1
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
