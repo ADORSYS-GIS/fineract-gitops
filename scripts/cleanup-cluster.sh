@@ -201,13 +201,19 @@ clean_namespace_resources() {
                     kubectl get jobs -n $ns -o name 2>/dev/null | while read job; do
                         # Remove all finalizers including argocd.argoproj.io/hook-finalizer
                         echo -e "${BLUE}        Patching $job...${NC}"
-                        kubectl patch $job -n $ns -p '{"metadata":{"finalizers":null}}' --type=merge || true
+                        kubectl patch $job -n $ns -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
+                        # Also try with empty array
+                        kubectl patch $job -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                        # Give each patch a moment to apply
+                        sleep 1
                     done
-                    # Give patches time to apply
-                    sleep 2
+                    # Give all patches time to fully apply
+                    sleep 3
                     # Force delete jobs
                     echo -e "${BLUE}      Force deleting jobs...${NC}"
                     kubectl delete jobs --all -n $ns --force --grace-period=0 2>/dev/null || true
+                    # Wait a bit more for deletion to complete
+                    sleep 2
                 else
                     # Remove finalizers from all resources of this type
                     kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
