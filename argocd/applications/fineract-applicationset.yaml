@@ -10,15 +10,15 @@ spec:
       - environment: dev
         targetRevision: eks
         project: fineract-dev
-        repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+        repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
       - environment: uat
         targetRevision: main
         project: fineract-uat
-        repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+        repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
       - environment: prod
         targetRevision: main
         project: fineract-production
-        repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+        repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
   template:
     metadata:
       name: 'fineract-{{environment}}-fineract'

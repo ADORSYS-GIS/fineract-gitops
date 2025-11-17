@@ -32,19 +32,24 @@ fi
 
 echo ""
 
-# Create GitHub credentials for ArgoCD
+# Create GitHub credentials for ArgoCD using SSH deploy key
 echo "→ Creating ArgoCD repository credentials..."
-if [ -z "$GITHUB_TOKEN" ]; then
-    echo -e "${RED}✗${NC} GITHUB_TOKEN not set"
+
+# Check if SSH key exists
+SSH_KEY_PATH="${HOME}/.ssh/argocd-deploy-key"
+if [ ! -f "$SSH_KEY_PATH" ]; then
+    echo -e "${RED}✗${NC} SSH deploy key not found at $SSH_KEY_PATH"
+    echo -e "${YELLOW}Generate one with:${NC}"
+    echo -e "${YELLOW}  ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f $SSH_KEY_PATH -N \"\"${NC}"
+    echo -e "${YELLOW}  Then add ${SSH_KEY_PATH}.pub to GitHub repository deploy keys${NC}"
     exit 1
 fi
 
 kubectl create secret generic repo-fineract-gitops \
   --namespace=argocd \
   --from-literal=type=git \
-  --from-literal=url=https://github.com/ADORSYS-GIS/fineract-gitops.git \
-  --from-literal=username=ADORSYS-GIS \
-  --from-literal=password=$GITHUB_TOKEN \
+  --from-literal=url=git@github.com:ADORSYS-GIS/fineract-gitops.git \
+  --from-file=sshPrivateKey="$SSH_KEY_PATH" \
   --dry-run=client -o yaml | \
   kubectl label -f- --dry-run=client -o yaml --local argocd.argoproj.io/secret-type=repository | \
   kubeseal --format=yaml | \
@@ -53,7 +58,7 @@ kubectl create secret generic repo-fineract-gitops \
 echo "  Waiting for secret to unseal..."
 sleep 5
 kubectl get secret repo-fineract-gitops -n argocd &>/dev/null || (echo -e "${RED}✗${NC} Secret not unsealed"; exit 1)
-echo -e "${GREEN}✓${NC} ArgoCD repository credentials created"
+echo -e "${GREEN}✓${NC} ArgoCD repository credentials created (SSH)"
 
 # Create namespaces
 echo "→ Creating namespaces..."

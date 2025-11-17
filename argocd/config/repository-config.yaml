@@ -10,7 +10,8 @@
 #     4. Commit all changes together
 #
 # Current Configuration:
-REPO_URL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+# Changed from HTTPS to SSH for deploy key authentication
+REPO_URL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
 
 # Branch/Revision Strategy:
 # Updated for EKS migration - dev environment uses eks branch
