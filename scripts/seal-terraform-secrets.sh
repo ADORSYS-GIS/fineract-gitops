@@ -133,6 +133,30 @@ IRSA_ROLE_ARN=$(terraform output -raw irsa_role_arn 2>/dev/null || echo "")
 # Get Keycloak-specific credentials (must fetch before leaving terraform directory)
 KEYCLOAK_DB_USER=$(terraform output -raw keycloak_db_username 2>/dev/null || echo "keycloak")
 
+# Validate Terraform state has OAuth2 resources (added after moving OAuth2 to Terraform)
+echo -e "${BLUE}→ Validating OAuth2 resources in Terraform state...${NC}"
+if ! terraform state list 2>/dev/null | grep -q "random_password.oauth2_client_secret"; then
+    echo -e "${RED}✗ OAuth2 secrets not found in Terraform state${NC}"
+    echo ""
+    echo -e "${YELLOW}Terraform has not been applied or OAuth2 resources don't exist.${NC}"
+    echo ""
+    echo "Required Terraform resources:"
+    echo "  - random_password.oauth2_client_secret"
+    echo "  - random_password.oauth2_cookie_secret"
+    echo ""
+    echo "These resources were added in commit 51a5838 to make OAuth2 secrets persistent."
+    echo ""
+    echo -e "${BLUE}To fix this, run:${NC}"
+    echo "  cd terraform/aws"
+    echo "  terraform apply -var-file=environments/${ENV}-eks.tfvars"
+    echo ""
+    echo "Or if you want auto-approval:"
+    echo "  terraform apply -var-file=environments/${ENV}-eks.tfvars -auto-approve"
+    exit 1
+fi
+echo -e "${GREEN}✓ OAuth2 resources found in Terraform state${NC}"
+echo ""
+
 # Get OAuth2 Proxy secrets (must fetch before leaving terraform directory)
 OAUTH2_CLIENT_SECRET=$(terraform output -raw oauth2_client_secret 2>/dev/null || echo "")
 OAUTH2_COOKIE_SECRET=$(terraform output -raw oauth2_cookie_secret 2>/dev/null || echo "")

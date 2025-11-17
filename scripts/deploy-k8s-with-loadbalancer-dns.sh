@@ -300,6 +300,54 @@ fi
 # PHASE 2.5: Sealed Secrets Strategy - Restore or Regenerate
 # ============================================================================
 
+# Pre-flight check: Validate Terraform state has OAuth2 resources
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PRE-FLIGHT CHECK: Terraform OAuth2 Resources${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Validating Terraform state before sealed secrets generation..."
+echo
+
+cd "$REPO_ROOT/terraform/aws"
+if ! terraform state list 2>/dev/null | grep -q "random_password.oauth2"; then
+    echo -e "${RED}✗ OAuth2 secrets not found in Terraform state${NC}"
+    echo ""
+    echo -e "${YELLOW}Terraform must be applied first to create OAuth2 random passwords.${NC}"
+    echo ""
+    echo "These resources were added in commit 51a5838 to make OAuth2 secrets persistent."
+    echo "Without them, Keycloak and OAuth2-Proxy will fail to authenticate."
+    echo ""
+    echo -e "${BLUE}Required resources:${NC}"
+    echo "  - random_password.oauth2_client_secret"
+    echo "  - random_password.oauth2_cookie_secret"
+    echo ""
+    read -p "Run terraform apply now? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Running terraform apply..."
+        if terraform apply -var-file="environments/${ENV}-eks.tfvars"; then
+            echo -e "${GREEN}✓ Terraform apply completed successfully${NC}"
+        else
+            echo -e "${RED}✗ Terraform apply failed${NC}"
+            echo "Deployment cannot continue without OAuth2 secrets."
+            exit 1
+        fi
+    else
+        echo -e "${RED}Deployment cannot continue without Terraform OAuth2 secrets.${NC}"
+        echo ""
+        echo "Please run manually:"
+        echo "  cd terraform/aws"
+        echo "  terraform apply -var-file=environments/${ENV}-eks.tfvars"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✓ OAuth2 resources found in Terraform state${NC}"
+fi
+echo
+
+cd "$REPO_ROOT"
+
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}PHASE 2.5: Sealed Secrets Strategy${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"

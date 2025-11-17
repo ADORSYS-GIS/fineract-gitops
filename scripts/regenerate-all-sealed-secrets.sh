@@ -187,11 +187,10 @@ if [ -f "./scripts/seal-terraform-secrets.sh" ]; then
     if ./scripts/seal-terraform-secrets.sh "${ENV}"; then
         log "✓ Terraform-managed secrets generated successfully"
     else
-        log_warn "Terraform-managed secrets generation failed (non-fatal)"
-        log_warn "You may need to run this manually after Terraform outputs are available"
+        error_exit "Failed to generate Terraform-managed secrets. See error above for details."
     fi
 else
-    log_warn "seal-terraform-secrets.sh not found (skipping Terraform-managed secrets)"
+    error_exit "seal-terraform-secrets.sh not found at ./scripts/seal-terraform-secrets.sh"
 fi
 
 echo
