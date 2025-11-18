@@ -214,9 +214,12 @@ update_hostnames() {
 
     log_info "Updating apps/keycloak/overlays/dev/kustomization.yaml..."
     sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
-    # Also update the KC_HOSTNAME value in the patch
-    sed -i.bak "s/value: .*.elb.us-east-2.amazonaws.com/value: ${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
+    # Also update the KC_HOSTNAME value in the patch (match any AWS ELB hostname pattern)
+    sed -i.bak "s/value: .*\.elb\..*\.amazonaws\.com/value: ${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
 
+    log_info "Updating operations/keycloak-config/overlays/dev/kustomization.yaml..."
+    sed -i.bak "s/apps-hostname=.*/apps-hostname=${load_balancer_hostname}/" "$REPO_ROOT/operations/keycloak-config/overlays/dev/kustomization.yaml"
+    sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/operations/keycloak-config/overlays/dev/kustomization.yaml"
 
     log "Hostnames updated successfully!"
 }
