@@ -55,15 +55,6 @@ metadata:
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
-    nginx.ingress.kubernetes.io/server-snippet: |
-      location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$ {
-        auth_request off;
-        proxy_pass http://web-app.$(NAMESPACE).svc.cluster.local:80;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-      }
 
 spec:
   ingressClassName: nginx
@@ -91,13 +82,6 @@ spec:
               number: 80
       - path: /mifosweb(/|$)(.*)
         pathType: ImplementationSpecific
-        backend:
-          service:
-            name: web-app
-            port:
-              number: 80
-      - path: /
-        pathType: Prefix
         backend:
           service:
             name: web-app
