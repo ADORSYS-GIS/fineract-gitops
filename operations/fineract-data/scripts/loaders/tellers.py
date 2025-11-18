@@ -72,7 +72,7 @@ class TellersLoader(BaseLoader):
         logger.info("LOADING TELLERS")
         logger.info("=" * 80)
 
-        yaml_files = sorted(self.yaml_dir.glob('**/*.yaml'))
+        yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
 
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.yaml_dir}")
@@ -88,7 +88,7 @@ class TellersLoader(BaseLoader):
 
             # Check if it's the correct kind
             if yaml_data.get('kind') != 'Teller':
-                logger.warning(f"  Skipping (not Teller): {yaml_file.name}")
+                logger.debug(f"  Skipping (not Teller): {yaml_file.name}")
                 continue
 
             spec = yaml_data.get('spec', {})

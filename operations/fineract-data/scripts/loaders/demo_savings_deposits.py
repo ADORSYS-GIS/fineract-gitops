@@ -47,7 +47,7 @@ class DemoSavingsDepositsLoader(BaseLoader):
         logger.info("LOADING DEMO SAVINGS DEPOSITS")
         logger.info("=" * 80)
 
-        yaml_files = sorted(self.yaml_dir.glob('**/*.yaml'))
+        yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
 
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.yaml_dir}")
@@ -63,7 +63,7 @@ class DemoSavingsDepositsLoader(BaseLoader):
 
             # Check if it's the correct kind
             if yaml_data.get('kind') != 'SavingsDeposit':
-                logger.warning(f"  Skipping (not SavingsDeposit): {yaml_file.name}")
+                logger.debug(f"  Skipping (not SavingsDeposit): {yaml_file.name}")
                 continue
 
             spec = yaml_data.get('spec', {})

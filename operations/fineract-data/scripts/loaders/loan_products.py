@@ -202,7 +202,7 @@ class LoanProductsLoader(BaseLoader):
         logger.info("LOADING LOAN PRODUCTS")
         logger.info("=" * 80)
 
-        yaml_files = sorted(self.yaml_dir.glob('**/*.yaml'))
+        yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
 
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.yaml_dir}")
@@ -218,7 +218,7 @@ class LoanProductsLoader(BaseLoader):
 
             # Check if it's a LoanProduct kind
             if yaml_data.get('kind') != 'LoanProduct':
-                logger.warning(f"  Skipping (not LoanProduct): {yaml_file.name}")
+                logger.debug(f"  Skipping (not LoanProduct): {yaml_file.name}")
                 continue
 
             spec = yaml_data.get('spec', {})

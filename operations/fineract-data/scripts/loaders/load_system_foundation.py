@@ -62,34 +62,27 @@ def main():
     parser = argparse.ArgumentParser(
         description='Load System Foundation entities into Fineract (Waves 1-9)'
     )
-    parser.add_argument('--yaml-dir', required=True, help='Base data directory')
+    parser.add_argument('--yaml-dir', required=True, help='Flat data directory with all YAML files (ConfigMap compatible)')
     parser.add_argument('--fineract-url', required=True, help='Fineract API base URL')
     parser.add_argument('--tenant', default='default', help='Tenant identifier')
 
     args = parser.parse_args()
 
-    base_data_dir = Path(args.yaml_dir)
+    # Use flat directory structure (ConfigMap compatible)
+    # All YAML files are in a single directory, filtered by 'kind' field
+    data_dir = Path(args.yaml_dir)
 
-    # Map entity names to their data directories
-    entity_data_dirs = {
-        'code_values': base_data_dir / 'codes-and-values',
-        'offices': base_data_dir / 'offices',
-        'staff': base_data_dir / 'staff',
-        'roles': base_data_dir / 'roles',
-        'currency_config': base_data_dir / 'system-config' / 'currency-config',
-        'working_days': base_data_dir / 'system-config' / 'working-days',
-        'account_number_formats': base_data_dir / 'system-config' / 'account-number-formats',
-        'maker_checker': base_data_dir / 'system-config' / 'maker-checker',
-        'scheduler_jobs': base_data_dir / 'system-config' / 'scheduler-jobs',
-    }
+    if not data_dir.exists():
+        logger.error(f"Data directory not found: {data_dir}")
+        sys.exit(1)
 
     logger.info("=" * 80)
     logger.info("SYSTEM FOUNDATION LOADER")
     logger.info("=" * 80)
-    logger.info(f"Base data directory: {base_data_dir}")
+    logger.info(f"Data directory: {data_dir}")
     logger.info(f"Fineract URL: {args.fineract_url}")
     logger.info(f"Tenant: {args.tenant}")
-    logger.info(f"Loading {len(ENTITY_LOADERS)} entity types...")
+    logger.info(f"Loading {len(ENTITY_LOADERS)} entity types from flat directory...")
     logger.info("=" * 80)
 
     total_loaded = 0
@@ -104,13 +97,6 @@ def main():
         logger.info(f"LOADING: {entity_name}")
         logger.info(f"{'=' * 80}")
 
-        # Get data directory for this entity
-        data_dir = entity_data_dirs.get(module_name)
-        if not data_dir or not data_dir.exists():
-            logger.warning(f"Data directory not found: {data_dir}")
-            logger.info(f"Skipping {entity_name}...")
-            continue
-
         # Load the entity loader class
         loader_class = load_entity_loader(module_name, class_name)
         if not loader_class:
@@ -120,7 +106,9 @@ def main():
             continue
 
         try:
-            # Instantiate and run the loader
+            # All loaders now use the same flat directory
+            # They filter files by 'kind' field internally
+            # All loaders now use the same flat directory
             loader = loader_class(str(data_dir), args.fineract_url, args.tenant)
             summary = loader.load_all()
 
