@@ -10,8 +10,8 @@ data:
   # Note: API calls go through Kubernetes Ingress NGINX, not directly to Fineract
   # The accounting-app container nginx only serves static files
   fineractApiUrl: "https://$(APPS_HOSTNAME)"
-  fineractApiProvider: "/fineract-provider/api"
-  fineractApiVersion: "/v1"
+  fineractApiProvider: "/fineract-provider/api/v1"
+  fineractApiVersion: ""
 
   # Tenant Configuration
   fineractPlatformTenantId: "default"
