@@ -5,15 +5,7 @@ namespace: fineract-dev
 
 resources:
   - ../../base
-
-# Override hostname configuration for dev environment
-configMapGenerator:
-  - name: ingress-config
-    namespace: fineract-dev
-    literals:
-      - apps-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
-      - auth-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
-      - cluster-issuer=selfsigned-issuer
+  - ingress-config.yaml
 
 commonLabels:
   environment: dev
