@@ -83,7 +83,7 @@ WAVE_MAPPINGS = [
 ]
 
 
-def find_yaml_files(data_dir: Path, entity_dir: str) -> List[str]:
+def find_yaml_files(data_dir: Path, entity_dir: str) -> List[Tuple[str, str]]:
     """
     Find all YAML files for an entity type
 
@@ -92,7 +92,9 @@ def find_yaml_files(data_dir: Path, entity_dir: str) -> List[str]:
         entity_dir: Entity subdirectory (e.g., 'products/loan-products')
 
     Returns:
-        List of file paths relative to kustomization.yaml location
+        List of tuples (configmap_key, file_path) where:
+        - configmap_key: Path within ConfigMap that preserves directory structure
+        - file_path: Actual file path relative to kustomization.yaml location
     """
     full_path = data_dir / entity_dir
 
@@ -104,8 +106,22 @@ def find_yaml_files(data_dir: Path, entity_dir: str) -> List[str]:
     # Filter out kustomization.yaml files (they're metadata, not data)
     yaml_files = [f for f in yaml_files if f.name != 'kustomization.yaml']
 
-    # Return paths relative to kustomization.yaml (which is in operations/fineract-data/)
-    return [f"data/dev/{entity_dir}/{f.relative_to(full_path)}" for f in yaml_files]
+    # Return tuples of (key_in_configmap, actual_file_path)
+    # Key preserves the directory structure so loaders can find files by path
+    result = []
+    for f in yaml_files:
+        # Key: relative path from entity_dir root (e.g., "subfolder/file.yaml" or just "file.yaml")
+        rel_from_entity = f.relative_to(full_path)
+        # Actual path: relative to kustomization.yaml location
+        actual_path = f"data/dev/{entity_dir}/{rel_from_entity}"
+
+        # ConfigMap key: preserve entity_dir structure
+        # For entity_dir like "accounts/savings-accounts", we want the key to be "accounts/savings-accounts/file.yaml"
+        configmap_key = f"{entity_dir}/{rel_from_entity}"
+
+        result.append((configmap_key, actual_path))
+
+    return result
 
 
 def generate_kustomization(data_dir: Path, jobs_dir: Path) -> str:
@@ -158,6 +174,7 @@ def generate_kustomization(data_dir: Path, jobs_dir: Path) -> str:
 
     for configmap_name, entity_dirs in WAVE_MAPPINGS:
         # Collect all YAML files for all entities in this wave
+        # Each entry is a tuple of (configmap_key, file_path)
         all_wave_files = []
         for entity_dir in entity_dirs:
             yaml_files = find_yaml_files(data_dir, entity_dir)
@@ -175,9 +192,12 @@ def generate_kustomization(data_dir: Path, jobs_dir: Path) -> str:
         total_yaml_files += len(all_wave_files)
 
         lines.append(f"- name: {configmap_name}")
+        # Use 'files' with key=value syntax to preserve directory structure
+        # Format: key=file_path (key is the ConfigMap key, file_path is the source)
         lines.append("  files:")
-        for yaml_file in sorted(all_wave_files):
-            lines.append(f"  - {yaml_file}")
+        for configmap_key, file_path in sorted(all_wave_files):
+            # Kustomize syntax: configmap_key=source_file_path
+            lines.append(f"  - {configmap_key}={file_path}")
         lines.append("")
 
     # Summary comment at the end
