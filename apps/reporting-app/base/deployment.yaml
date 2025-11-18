@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: copy-assets
-        image: ghcr.io/adorsys-gis/fineract-reporting-app:6cc0179
+        image: ghcr.io/adorsys-gis/fineract-reporting-app:e29c07d
         command: ['sh', '-c', 'cp -r /usr/share/nginx/html/assets/* /assets-tmp/ || true']
         resources:
           requests:
@@ -46,7 +46,7 @@ spec:
           runAsUser: 1000
       containers:
       - name: reporting-app
-        image: ghcr.io/adorsys-gis/fineract-reporting-app:6cc0179
+        image: ghcr.io/adorsys-gis/fineract-reporting-app:e29c07d
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
