@@ -515,10 +515,10 @@ attributes:
   # - The value MUST include the /auth path to match KC_HTTP_RELATIVE_PATH
   #
   # Environment-specific values (from overlays/*/kustomization.yaml):
-  # - dev: Use internal service URL (http://keycloak-service:8080/auth) for stable issuer
+  # - dev: Uses AUTH_HOSTNAME from environment (LoadBalancer DNS)
   # - uat: auth.uat.fineract.com
   # - production: auth.fineract.com
-  frontendUrl: "http://keycloak-service:8080/auth"
+  frontendUrl: "https://${AUTH_HOSTNAME}/auth"
 
   acr.loa.map: '{"copper": 0, "silver": 1, "gold": 2}'
 
