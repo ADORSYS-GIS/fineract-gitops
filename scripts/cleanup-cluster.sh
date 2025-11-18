@@ -331,15 +331,47 @@ clean_namespace_resources() {
                         kubectl delete jobs --all -n $ns --force --grace-period=0 --timeout=30s 2>/dev/null || true
                         sleep 5
 
-                        # Step 8: Verify completion
+                        # Step 8: Verify completion and handle stuck jobs
                         local remaining=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l | tr -d ' ')
                         if [ "$remaining" -gt 0 ]; then
-                            echo -e "${YELLOW}        Warning: $remaining job(s) still remain${NC}"
+                            echo -e "${YELLOW}        Warning: $remaining job(s) still remain after initial cleanup${NC}"
+
+                            # Show what's remaining
                             if [ "$HAVE_JQ" = true ]; then
                                 kubectl get jobs -n $ns -o json 2>/dev/null | \
-                                    jq -r '.items[] | "          - " + .metadata.name + " (finalizers: " + (.metadata.finalizers | join(", ") // "none") + ")"' 2>/dev/null
+                                    jq -r '.items[] | "          - " + .metadata.name + " (finalizers: " + (.metadata.finalizers | join(", ") // "none") + ", deletionTimestamp: " + (.metadata.deletionTimestamp // "none") + ")"' 2>/dev/null
                             else
                                 kubectl get jobs -n $ns -o custom-columns=NAME:.metadata.name,FINALIZERS:.metadata.finalizers 2>/dev/null | sed 's/^/          /'
+                            fi
+
+                            # Nuclear option: Use kubectl replace --raw to force delete stuck jobs
+                            echo -e "${YELLOW}        Applying nuclear option for stuck jobs...${NC}"
+                            kubectl get jobs -n $ns -o name 2>/dev/null | while read job; do
+                                job_name=$(echo "$job" | sed 's|.*/||')
+
+                                # Method 1: Patch with null finalizers via API
+                                kubectl patch "$job" -n $ns -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
+
+                                # Method 2: Direct API manipulation to remove finalizers and deletionTimestamp
+                                if [ "$HAVE_JQ" = true ]; then
+                                    kubectl get "$job" -n $ns -o json 2>/dev/null | \
+                                        jq 'del(.metadata.finalizers) | del(.metadata.deletionTimestamp)' | \
+                                        kubectl replace --raw "/apis/batch/v1/namespaces/$ns/jobs/$job_name" -f - 2>/dev/null || true
+                                fi
+                            done
+
+                            sleep 3
+
+                            # Final force delete attempt
+                            kubectl delete jobs --all -n $ns --force --grace-period=0 2>/dev/null || true
+                            sleep 3
+
+                            # Final verification
+                            remaining=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l | tr -d ' ')
+                            if [ "$remaining" -gt 0 ]; then
+                                echo -e "${RED}        ✗ $remaining job(s) still stuck - may need manual intervention${NC}"
+                            else
+                                echo -e "${GREEN}        ✓ All jobs deleted successfully (after nuclear option)${NC}"
                             fi
                         else
                             echo -e "${GREEN}        ✓ All jobs deleted successfully${NC}"
@@ -459,6 +491,49 @@ force_delete_namespace() {
         echo -e "${BLUE}    Resources still in namespace:${NC}"
         kubectl api-resources --verbs=list --namespaced -o name 2>/dev/null | \
             xargs -n 1 kubectl get --show-kind --ignore-not-found -n $ns 2>/dev/null | head -20
+
+        # Check specifically for stuck jobs
+        local stuck_jobs=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$stuck_jobs" -gt 0 ]; then
+            echo -e "${YELLOW}    Found $stuck_jobs stuck job(s) - applying final nuclear cleanup...${NC}"
+
+            # Ultra-nuclear: Delete jobs via raw API with force
+            kubectl get jobs -n $ns -o name 2>/dev/null | while read job; do
+                job_name=$(echo "$job" | sed 's|.*/||')
+                echo -e "${YELLOW}      Forcing deletion of job: $job_name${NC}"
+
+                # Remove finalizers via raw API
+                kubectl get "$job" -n $ns -o json 2>/dev/null | \
+                    jq 'del(.metadata.finalizers) | del(.metadata.deletionTimestamp) | del(.metadata.deletionGracePeriodSeconds)' 2>/dev/null | \
+                    kubectl replace --raw "/apis/batch/v1/namespaces/$ns/jobs/$job_name" -f - 2>/dev/null || true
+
+                # Also try direct deletion via raw API
+                kubectl delete --raw "/apis/batch/v1/namespaces/$ns/jobs/$job_name" 2>/dev/null || true
+            done
+
+            # Delete job pods via raw API as well
+            kubectl get pods -n $ns -l job-name -o name 2>/dev/null | while read pod; do
+                pod_name=$(echo "$pod" | sed 's|.*/||')
+                kubectl delete --raw "/api/v1/namespaces/$ns/pods/$pod_name?gracePeriodSeconds=0&force=true" 2>/dev/null || true
+            done
+
+            sleep 5
+
+            # Try namespace deletion one more time
+            kubectl patch namespace $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+            kubectl delete namespace $ns --force --grace-period=0 2>/dev/null || true
+
+            sleep 5
+
+            # Final check
+            if kubectl get namespace $ns &>/dev/null; then
+                echo -e "${RED}    ✗ Namespace still stuck after nuclear cleanup${NC}"
+                return 1
+            else
+                echo -e "${GREEN}    ✓ Namespace deleted after nuclear cleanup!${NC}"
+                return 0
+            fi
+        fi
 
         return 1
     else
