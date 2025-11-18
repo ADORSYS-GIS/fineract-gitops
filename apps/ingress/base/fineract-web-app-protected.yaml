@@ -50,6 +50,33 @@ metadata:
     # ============================================================================
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/configuration-snippet: |
+      location ~* ^/mifosweb/.*\.(css|js|gif|ico|jpg|jpeg|png|svg|woff|woff2|ttf|map|json)$ {
+        auth_request off;
+        rewrite ^/mifosweb/(.*) /$1 break;
+        proxy_pass http://web-app.$(NAMESPACE).svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+      location ~* ^/reporting/.*\.(css|js|gif|ico|jpg|jpeg|png|svg|woff|woff2|ttf|map|json)$ {
+        auth_request off;
+        rewrite ^/reporting/(.*) /$1 break;
+        proxy_pass http://reporting-app.$(NAMESPACE).svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+      location ~* ^/accounting/.*\.(css|js|gif|ico|jpg|jpeg|png|svg|woff|woff2|ttf|map|json)$ {
+        auth_request off;
+        rewrite ^/accounting/(.*) /$1 break;
+        proxy_pass http://accounting-app.$(NAMESPACE).svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
       proxy_set_header Authorization "Bearer $access_token";
       more_set_headers "X-Forwarded-Host: $host";
