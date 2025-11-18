@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - eks
+      - deploy-key
     paths:
       - 'operations/fineract-data/scripts/**'
       - '.github/workflows/build-loader-image.yml'
