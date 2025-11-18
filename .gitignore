@@ -128,3 +128,4 @@ MANIFEST
 # Terraform plan files
 *.tfplan
 tfplan
+temp-argo-app.yaml

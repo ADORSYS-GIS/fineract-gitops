@@ -180,6 +180,47 @@ create_secrets() {
     log "All secrets created successfully!"
 }
 
+# Step 6: Update hostnames in kustomization files
+update_hostnames() {
+    log "Updating hostnames in kustomization files..."
+
+    local kubeconfig_path="$HOME/.kube/config-fineract-${ENV}-${ENV}"
+    local namespace="ingress-nginx"
+    local service_name="ingress-nginx-controller"
+    local max_attempts=30
+    local attempt=0
+    local load_balancer_hostname=""
+
+    log_info "Waiting for LoadBalancer hostname..."
+    while [ $attempt -lt $max_attempts ]; do
+        load_balancer_hostname=$(KUBECONFIG="$kubeconfig_path" kubectl get svc -n "$namespace" "$service_name" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+        if [ -n "$load_balancer_hostname" ]; then
+            log "LoadBalancer hostname found: $load_balancer_hostname"
+            break
+        fi
+
+        attempt=$((attempt + 1))
+        log_info "Waiting for LoadBalancer hostname... (attempt $attempt/$max_attempts)"
+        sleep 10
+    done
+
+    if [ -z "$load_balancer_hostname" ]; then
+        error_exit "Failed to get LoadBalancer hostname"
+    fi
+
+    log_info "Updating apps/ingress/overlays/dev/kustomization.yaml..."
+    sed -i.bak "s/apps-hostname=.*/apps-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/ingress/overlays/dev/kustomization.yaml"
+    sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/ingress/overlays/dev/kustomization.yaml"
+
+    log_info "Updating apps/keycloak/overlays/dev/kustomization.yaml..."
+    sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
+    # Also update the KC_HOSTNAME value in the patch
+    sed -i.bak "s/value: .*.elb.us-east-2.amazonaws.com/value: ${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
+
+
+    log "Hostnames updated successfully!"
+}
+
 # Main execution
 main() {
     log "=========================================="
@@ -194,6 +235,7 @@ main() {
     get_kubeconfig "$K3S_IP"
     create_namespace
     create_secrets
+    update_hostnames
 
     log ""
     log "=========================================="

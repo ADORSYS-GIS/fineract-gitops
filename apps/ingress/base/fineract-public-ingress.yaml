@@ -1,0 +1,61 @@
+---
+# Ingress for public endpoints (no authentication required)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-public-ingress
+  labels:
+    app: fineract
+    component: ingress
+    purpose: public-endpoints
+  annotations:
+    # SSL/TLS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+
+    # Backend protocol (Fineract services use HTTPS)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # CORS for public API
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-Fineract-Platform-TenantId"
+
+    # Rate limiting (stricter for public endpoints)
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+
+    # Proxy headers for proper forwarding
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - $(APPS_HOSTNAME)
+    secretName: fineract-tls
+
+  rules:
+  - host: $(APPS_HOSTNAME)
+    http:
+      paths:
+
+      # Health check endpoint (no auth)
+      - path: /fineract-provider/actuator/health
+        pathType: Exact
+        backend:
+          service:
+            name: fineract-read-service
+            port:
+              number: 8443

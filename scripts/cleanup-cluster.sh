@@ -199,40 +199,85 @@ clean_namespace_resources() {
                 if [[ "$resource" == "jobs" ]]; then
                     echo -e "${BLUE}      Cleaning jobs with enhanced finalizer removal...${NC}"
 
-                    # Step 1: Delete pods owned by jobs first
+                    # Step 1: Pre-check for ArgoCD hook finalizers (common stuck point)
+                    echo -e "${BLUE}        Checking for ArgoCD hook finalizers...${NC}"
+                    local argocd_hook_jobs=0
+                    kubectl get jobs -n $ns -o json 2>/dev/null | jq -r '.items[] | select(.metadata.finalizers[]? | contains("argocd.argoproj.io")) | .metadata.name' 2>/dev/null | while read job_name; do
+                        if [ -n "$job_name" ]; then
+                            argocd_hook_jobs=$((argocd_hook_jobs + 1))
+                            echo -e "${YELLOW}          Found job with ArgoCD hook finalizer: $job_name${NC}"
+                        fi
+                    done
+
+                    # Step 2: Delete pods owned by jobs first
                     echo -e "${BLUE}        Deleting job pods first...${NC}"
                     kubectl delete pods -n $ns -l job-name --force --grace-period=0 2>/dev/null || true
                     sleep 2
 
-                    # Step 2: Remove owner references and finalizers from jobs
+                    # Step 3: Remove owner references and finalizers from jobs
                     kubectl get jobs -n $ns -o name 2>/dev/null | while read job; do
                         echo -e "${BLUE}        Processing $job...${NC}"
+
+                        # Check what finalizers exist
+                        finalizers=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
+                        if [ -n "$finalizers" ]; then
+                            echo -e "${YELLOW}          Current finalizers: $finalizers${NC}"
+
+                            # Check specifically for ArgoCD hook finalizers
+                            if echo "$finalizers" | grep -q "argocd.argoproj.io"; then
+                                echo -e "${YELLOW}          Detected ArgoCD hook finalizer - using targeted removal${NC}"
+                            fi
+                        fi
 
                         # Remove owner references
                         kubectl patch $job -n $ns -p '{"metadata":{"ownerReferences":[]}}' --type=merge 2>/dev/null || true
 
                         # Remove finalizers (multiple attempts with different approaches)
+                        # Method 1: Set to null (most aggressive)
                         kubectl patch $job -n $ns -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
+                        sleep 1
+
+                        # Method 2: Set to empty array
                         kubectl patch $job -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                        sleep 1
+
+                        # Method 3: JSON patch remove operation
                         kubectl patch $job -n $ns --type json -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
+                        sleep 1
 
                         # Verify finalizer removal
-                        sleep 2
-                        finalizers=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers}' 2>/dev/null || echo "[]")
-                        if [ "$finalizers" != "[]" ] && [ -n "$finalizers" ]; then
-                            echo -e "${YELLOW}          Warning: Finalizers still present on $job: $finalizers${NC}"
+                        finalizers_after=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
+                        if [ -n "$finalizers_after" ]; then
+                            echo -e "${YELLOW}          Warning: Finalizers still present: $finalizers_after${NC}"
+                            echo -e "${YELLOW}          Attempting aggressive ArgoCD finalizer removal...${NC}"
+
+                            # Ultra-aggressive: Remove each ArgoCD finalizer individually
+                            kubectl get $job -n $ns -o json 2>/dev/null | \
+                                jq '.metadata.finalizers = (.metadata.finalizers // [] | map(select(. | contains("argocd.argoproj.io") | not)))' | \
+                                kubectl replace -f - 2>/dev/null || true
+                            sleep 2
+
+                            # Final check
+                            finalizers_final=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
+                            if [ -n "$finalizers_final" ]; then
+                                echo -e "${RED}          Error: Could not remove finalizers: $finalizers_final${NC}"
+                            else
+                                echo -e "${GREEN}          ✓ Finalizers successfully removed${NC}"
+                            fi
+                        else
+                            echo -e "${GREEN}          ✓ Finalizers removed${NC}"
                         fi
                     done
 
-                    # Step 3: Wait longer for API server to process changes
+                    # Step 4: Wait longer for API server to process changes
                     echo -e "${BLUE}        Waiting for API server to process finalizer removal...${NC}"
                     sleep 10
 
-                    # Step 4: Force delete all jobs
+                    # Step 5: Force delete all jobs
                     echo -e "${BLUE}        Force deleting all jobs...${NC}"
                     kubectl delete jobs --all -n $ns --force --grace-period=0 --timeout=30s 2>/dev/null || true
 
-                    # Step 5: Verify deletion
+                    # Step 6: Verify deletion
                     sleep 5
                     remaining=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
                     remaining=$(echo "$remaining" | tr -d ' ')
