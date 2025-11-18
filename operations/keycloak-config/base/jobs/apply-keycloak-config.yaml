@@ -154,6 +154,11 @@ spec:
             configMapKeyRef:
               name: keycloak-config-vars
               key: apps-hostname
+        - name: AUTH_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: auth-hostname
         - name: SMTP_HOST
           valueFrom:
             configMapKeyRef:
