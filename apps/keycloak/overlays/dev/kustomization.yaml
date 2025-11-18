@@ -32,14 +32,21 @@ patches:
           spec:
             containers:
             - name: keycloak
+              env:
+              - name: KC_HOSTNAME
+                value: ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+              - name: KC_HOSTNAME_STRICT
+                value: "false"
+              - name: KC_HOSTNAME_STRICT_BACKCHANNEL
+                value: "false"
+              - name: KC_HTTP_RELATIVE_PATH
+                value: "/auth"
               args:
               - start
               - --http-enabled=true
               - --health-enabled=true
               - --metrics-enabled=true
               - --proxy-headers=xforwarded
-              - --hostname-backchannel-dynamic=true
-              - --hostname=https://ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com/auth
     target:
       kind: Deployment
       name: keycloak
