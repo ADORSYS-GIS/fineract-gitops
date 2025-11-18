@@ -148,7 +148,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /auth/health/live
-            port: 9000
+            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
           initialDelaySeconds: 120
           periodSeconds: 30
           timeoutSeconds: 10
@@ -157,7 +157,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /auth/health/ready
-            port: 9000
+            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
           initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 5
@@ -166,7 +166,7 @@ spec:
         startupProbe:
           httpGet:
             path: /auth/health/started
-            port: 9000
+            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
