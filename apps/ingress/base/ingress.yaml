@@ -27,13 +27,19 @@ metadata:
     # Note: cors-allow-origin should be set per environment via Kustomize overlay
     # Do not use wildcard (*) in production
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-Fineract-Platform-TenantId"
 
     # Rate limiting (stricter for public endpoints)
     nginx.ingress.kubernetes.io/limit-rps: "10"
     nginx.ingress.kubernetes.io/limit-connections: "10"
+
+    # Proxy headers for proper forwarding
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
 
 spec:
   ingressClassName: nginx
@@ -77,6 +83,12 @@ metadata:
 
     # Backend protocol
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # Proxy headers for OAuth2 callback redirects
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
 
 spec:
   ingressClassName: nginx
@@ -670,16 +682,21 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
     nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
 
+    # Timeouts (important for Keycloak admin operations and realm import)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+
     # Rate limiting
     nginx.ingress.kubernetes.io/limit-rps: "20"
     nginx.ingress.kubernetes.io/limit-connections: "20"
 
-    # Proxy headers for Keycloak
+    # Proxy headers for Keycloak (standardized with other ingresses)
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
 
 spec:
   ingressClassName: nginx

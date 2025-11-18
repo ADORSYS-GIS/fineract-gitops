@@ -8,7 +8,6 @@ metadata:
 resources:
   - ingress-config.yaml
   - ingress.yaml
-  - ingress-root.yaml
 
 # Patch all Ingress resources to use configurable cluster-issuer
 patches:
