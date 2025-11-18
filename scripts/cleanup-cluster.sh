@@ -126,12 +126,84 @@ else
 fi
 
 # Check for jq (optional but helpful for nuclear option)
+HAVE_JQ=true
 if ! command -v jq &>/dev/null; then
     echo -e "${YELLOW}⚠ jq not found (optional, some advanced cleanup features won't work)${NC}"
     echo -e "${YELLOW}  Install with: brew install jq${NC}"
+    HAVE_JQ=false
 fi
 
 echo ""
+
+# Function to diagnose blocking resources in a namespace
+check_blocking_resources() {
+    local ns=$1
+    echo -e "${BLUE}  → Diagnostic check for namespace: $ns${NC}"
+
+    # Check for resources with finalizers
+    echo -e "${BLUE}    Checking for finalizers...${NC}"
+    local found_finalizers=false
+
+    if [ "$HAVE_JQ" = true ]; then
+        # Use jq for detailed finalizer analysis
+        kubectl api-resources --verbs=list --namespaced -o name 2>/dev/null | while read resource; do
+            local count=$(kubectl get $resource -n $ns -o json 2>/dev/null | \
+                jq '[.items[] | select(.metadata.finalizers)] | length' 2>/dev/null || echo "0")
+            if [ "$count" -gt 0 ]; then
+                echo -e "${YELLOW}      Found $count $resource(s) with finalizers${NC}"
+                # Show specific resources with finalizers
+                kubectl get $resource -n $ns -o json 2>/dev/null | \
+                    jq -r '.items[] | select(.metadata.finalizers) | "        - " + .metadata.name + ": " + (.metadata.finalizers | join(", "))' 2>/dev/null | head -5
+                found_finalizers=true
+            fi
+        done
+    else
+        # Fallback without jq - check common resource types
+        for resource in pods jobs deployments statefulsets services pvc; do
+            local resources_with_finalizers=$(kubectl get $resource -n $ns -o custom-columns=NAME:.metadata.name,FINALIZERS:.metadata.finalizers --no-headers 2>/dev/null | grep -v '<none>' | wc -l)
+            if [ "$resources_with_finalizers" -gt 0 ]; then
+                echo -e "${YELLOW}      Found $resources_with_finalizers $resource(s) with finalizers${NC}"
+                kubectl get $resource -n $ns -o custom-columns=NAME:.metadata.name,FINALIZERS:.metadata.finalizers --no-headers 2>/dev/null | grep -v '<none>' | head -3 | sed 's/^/        - /'
+                found_finalizers=true
+            fi
+        done
+    fi
+
+    if [ "$found_finalizers" = false ]; then
+        echo -e "${GREEN}      No resources with finalizers found${NC}"
+    fi
+
+    # Check for pods in bad states
+    local failed_pods=$(kubectl get pods -n $ns --field-selector=status.phase=Failed 2>/dev/null | tail -n +2 | wc -l)
+    local evicted_pods=$(kubectl get pods -n $ns --field-selector=status.reason=Evicted 2>/dev/null | tail -n +2 | wc -l)
+    local terminating_pods=$(kubectl get pods -n $ns --field-selector=metadata.deletionTimestamp!=null 2>/dev/null | tail -n +2 | wc -l)
+
+    if [ "$failed_pods" -gt 0 ]; then
+        echo -e "${YELLOW}      Found $failed_pods failed pod(s)${NC}"
+    fi
+    if [ "$evicted_pods" -gt 0 ]; then
+        echo -e "${YELLOW}      Found $evicted_pods evicted pod(s)${NC}"
+    fi
+    if [ "$terminating_pods" -gt 0 ]; then
+        echo -e "${YELLOW}      Found $terminating_pods terminating pod(s)${NC}"
+    fi
+
+    # Check for PVCs
+    local pvc_count=$(kubectl get pvc -n $ns --no-headers 2>/dev/null | wc -l)
+    if [ "$pvc_count" -gt 0 ]; then
+        echo -e "${YELLOW}      Found $pvc_count PVC(s)${NC}"
+        kubectl get pvc -n $ns --no-headers 2>/dev/null | awk '{print "        - " $1 " (" $2 ")"}'
+    fi
+
+    # Check for jobs
+    local job_count=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l)
+    if [ "$job_count" -gt 0 ]; then
+        echo -e "${YELLOW}      Found $job_count job(s)${NC}"
+        kubectl get jobs -n $ns -o custom-columns=NAME:.metadata.name,COMPLETIONS:.status.succeeded,ACTIVE:.status.active --no-headers 2>/dev/null | head -5 | sed 's/^/        - /'
+    fi
+
+    echo ""
+}
 
 # Function to check if namespace exists and is stuck
 check_namespace_stuck() {
@@ -197,96 +269,134 @@ clean_namespace_resources() {
 
                 # Enhanced job cleanup with proper pod deletion and finalizer handling
                 if [[ "$resource" == "jobs" ]]; then
-                    echo -e "${BLUE}      Cleaning jobs with enhanced finalizer removal...${NC}"
+                    echo -e "${BLUE}      Enhanced job cleanup (identify & fix all finalizer types)...${NC}"
 
-                    # Step 1: Pre-check for ArgoCD hook finalizers (common stuck point)
-                    echo -e "${BLUE}        Checking for ArgoCD hook finalizers...${NC}"
-                    local argocd_hook_jobs=0
-                    kubectl get jobs -n $ns -o json 2>/dev/null | jq -r '.items[] | select(.metadata.finalizers[]? | contains("argocd.argoproj.io")) | .metadata.name' 2>/dev/null | while read job_name; do
-                        if [ -n "$job_name" ]; then
-                            argocd_hook_jobs=$((argocd_hook_jobs + 1))
-                            echo -e "${YELLOW}          Found job with ArgoCD hook finalizer: $job_name${NC}"
-                        fi
-                    done
+                    # Step 1: Get total job count for verification
+                    local job_count=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l | tr -d ' ')
+                    echo -e "${BLUE}        Total jobs in namespace: $job_count${NC}"
 
-                    # Step 2: Delete pods owned by jobs first
-                    echo -e "${BLUE}        Deleting job pods first...${NC}"
-                    kubectl delete pods -n $ns -l job-name --force --grace-period=0 2>/dev/null || true
-                    sleep 2
-
-                    # Step 3: Remove owner references and finalizers from jobs
-                    kubectl get jobs -n $ns -o name 2>/dev/null | while read job; do
-                        echo -e "${BLUE}        Processing $job...${NC}"
-
-                        # Check what finalizers exist
-                        finalizers=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
-                        if [ -n "$finalizers" ]; then
-                            echo -e "${YELLOW}          Current finalizers: $finalizers${NC}"
-
-                            # Check specifically for ArgoCD hook finalizers
-                            if echo "$finalizers" | grep -q "argocd.argoproj.io"; then
-                                echo -e "${YELLOW}          Detected ArgoCD hook finalizer - using targeted removal${NC}"
-                            fi
+                    if [ "$job_count" -gt 0 ]; then
+                        # Step 2: Identify jobs and their finalizers
+                        echo -e "${BLUE}        Analyzing job finalizers...${NC}"
+                        if [ "$HAVE_JQ" = true ]; then
+                            kubectl get jobs -n $ns -o json 2>/dev/null | jq -r '.items[] |
+                                "\(.metadata.name):\(.metadata.finalizers | join(",") // "none")"' 2>/dev/null | \
+                            while IFS=: read job_name finalizers; do
+                                if [ -n "$job_name" ]; then
+                                    if [ "$finalizers" != "none" ] && [ -n "$finalizers" ]; then
+                                        echo -e "${YELLOW}          Job '$job_name' has finalizers: $finalizers${NC}"
+                                    fi
+                                fi
+                            done
+                        else
+                            echo -e "${YELLOW}          (jq not available - skipping detailed finalizer analysis)${NC}"
                         fi
 
-                        # Remove owner references
-                        kubectl patch $job -n $ns -p '{"metadata":{"ownerReferences":[]}}' --type=merge 2>/dev/null || true
+                        # Step 3: Remove ALL finalizers from jobs (do this BEFORE deleting pods)
+                        echo -e "${BLUE}        Removing finalizers from all jobs...${NC}"
+                        kubectl get jobs -n $ns -o name 2>/dev/null | while read job; do
+                            # Strategy 1: Set finalizers to empty array (most compatible)
+                            kubectl patch "$job" -n $ns -p '{"metadata":{"finalizers":[]}}' \
+                                --type=merge 2>/dev/null || true
+                        done
 
-                        # Remove finalizers (multiple attempts with different approaches)
-                        # Method 1: Set to null (most aggressive)
-                        kubectl patch $job -n $ns -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
-                        sleep 1
+                        # Step 4: If jq available, use ultra-aggressive removal for persistent finalizers
+                        if [ "$HAVE_JQ" = true ]; then
+                            echo -e "${BLUE}        Ultra-aggressive finalizer removal for stuck jobs...${NC}"
+                            kubectl get jobs -n $ns -o json 2>/dev/null | \
+                                jq -r '.items[] | select(.metadata.finalizers) | .metadata.name' 2>/dev/null | \
+                                while read job_name; do
+                                    if [ -n "$job_name" ]; then
+                                        # Get the job, remove finalizers, and replace
+                                        kubectl get "job/$job_name" -n $ns -o json 2>/dev/null | \
+                                            jq 'del(.metadata.finalizers)' | \
+                                            kubectl replace -f - 2>/dev/null || \
+                                            kubectl patch "job/$job_name" -n $ns -p '{"metadata":{"finalizers":null}}' \
+                                                --type=merge 2>/dev/null || true
+                                    fi
+                                done
+                        fi
 
-                        # Method 2: Set to empty array
-                        kubectl patch $job -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
-                        sleep 1
+                        # Step 5: Wait for API server to process finalizer removal
+                        echo -e "${BLUE}        Waiting for API server to process finalizer removal...${NC}"
+                        sleep 5
 
-                        # Method 3: JSON patch remove operation
-                        kubectl patch $job -n $ns --type json -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
-                        sleep 1
+                        # Step 6: Now delete job pods (AFTER finalizer removal)
+                        echo -e "${BLUE}        Deleting job pods...${NC}"
+                        kubectl delete pods -n $ns -l job-name --force --grace-period=0 2>/dev/null || true
+                        sleep 2
 
-                        # Verify finalizer removal
-                        finalizers_after=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
-                        if [ -n "$finalizers_after" ]; then
-                            echo -e "${YELLOW}          Warning: Finalizers still present: $finalizers_after${NC}"
-                            echo -e "${YELLOW}          Attempting aggressive ArgoCD finalizer removal...${NC}"
+                        # Step 7: Force delete jobs
+                        echo -e "${BLUE}        Force deleting all jobs...${NC}"
+                        kubectl delete jobs --all -n $ns --force --grace-period=0 --timeout=30s 2>/dev/null || true
+                        sleep 5
 
-                            # Ultra-aggressive: Remove each ArgoCD finalizer individually
-                            kubectl get $job -n $ns -o json 2>/dev/null | \
-                                jq '.metadata.finalizers = (.metadata.finalizers // [] | map(select(. | contains("argocd.argoproj.io") | not)))' | \
-                                kubectl replace -f - 2>/dev/null || true
-                            sleep 2
-
-                            # Final check
-                            finalizers_final=$(kubectl get $job -n $ns -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
-                            if [ -n "$finalizers_final" ]; then
-                                echo -e "${RED}          Error: Could not remove finalizers: $finalizers_final${NC}"
+                        # Step 8: Verify completion
+                        local remaining=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l | tr -d ' ')
+                        if [ "$remaining" -gt 0 ]; then
+                            echo -e "${YELLOW}        Warning: $remaining job(s) still remain${NC}"
+                            if [ "$HAVE_JQ" = true ]; then
+                                kubectl get jobs -n $ns -o json 2>/dev/null | \
+                                    jq -r '.items[] | "          - " + .metadata.name + " (finalizers: " + (.metadata.finalizers | join(", ") // "none") + ")"' 2>/dev/null
                             else
-                                echo -e "${GREEN}          ✓ Finalizers successfully removed${NC}"
+                                kubectl get jobs -n $ns -o custom-columns=NAME:.metadata.name,FINALIZERS:.metadata.finalizers 2>/dev/null | sed 's/^/          /'
                             fi
                         else
-                            echo -e "${GREEN}          ✓ Finalizers removed${NC}"
+                            echo -e "${GREEN}        ✓ All jobs deleted successfully${NC}"
                         fi
+                    else
+                        echo -e "${GREEN}        ✓ No jobs found${NC}"
+                    fi
+                elif [[ "$resource" == "statefulsets" ]]; then
+                    # Enhanced StatefulSet cleanup - must delete PVCs explicitly
+                    echo -e "${BLUE}      Cleaning StatefulSets and their PVCs...${NC}"
+
+                    # Step 1: Remove finalizers from StatefulSets
+                    kubectl get statefulsets -n $ns -o name 2>/dev/null | while read sts; do
+                        kubectl patch "$sts" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
                     done
 
-                    # Step 4: Wait longer for API server to process changes
-                    echo -e "${BLUE}        Waiting for API server to process finalizer removal...${NC}"
-                    sleep 10
+                    # Step 2: Delete StatefulSets
+                    kubectl delete statefulsets --all -n $ns --force --grace-period=0 2>/dev/null || true
+                    sleep 2
 
-                    # Step 5: Force delete all jobs
-                    echo -e "${BLUE}        Force deleting all jobs...${NC}"
-                    kubectl delete jobs --all -n $ns --force --grace-period=0 --timeout=30s 2>/dev/null || true
-
-                    # Step 6: Verify deletion
-                    sleep 5
-                    remaining=$(kubectl get jobs -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
-                    remaining=$(echo "$remaining" | tr -d ' ')
-                    if [ "$remaining" -gt 0 ]; then
-                        echo -e "${YELLOW}        Warning: $remaining job(s) still remain${NC}"
-                        kubectl get jobs -n $ns -o custom-columns=NAME:.metadata.name,FINALIZERS:.metadata.finalizers 2>/dev/null || true
+                    # Step 3: Explicitly clean up StatefulSet PVCs (they don't auto-delete)
+                    echo -e "${BLUE}        Cleaning StatefulSet PVCs...${NC}"
+                    if [ "$HAVE_JQ" = true ]; then
+                        # Use jq to find PVCs owned by StatefulSets
+                        kubectl get pvc -n $ns -o json 2>/dev/null | \
+                            jq -r '.items[] | select(.metadata.ownerReferences[]? | select(.kind=="StatefulSet")) | .metadata.name' 2>/dev/null | \
+                            while read pvc_name; do
+                                if [ -n "$pvc_name" ]; then
+                                    echo -e "${BLUE}          Deleting StatefulSet PVC: $pvc_name${NC}"
+                                    kubectl patch pvc "$pvc_name" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                                    kubectl delete pvc "$pvc_name" -n $ns --force --grace-period=0 2>/dev/null || true
+                                fi
+                            done
                     else
-                        echo -e "${GREEN}        ✓ All jobs deleted${NC}"
+                        # Fallback: Delete all PVCs with redis/stateful pattern in name
+                        kubectl get pvc -n $ns -o name 2>/dev/null | grep -E '(redis|data)' | while read pvc; do
+                            echo -e "${BLUE}          Deleting PVC: $pvc${NC}"
+                            kubectl patch "$pvc" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                            kubectl delete "$pvc" -n $ns --force --grace-period=0 2>/dev/null || true
+                        done
                     fi
+                    echo -e "${GREEN}        ✓ StatefulSets and PVCs cleaned${NC}"
+                elif [[ "$resource" == "services" ]]; then
+                    # Enhanced service cleanup - remove AWS LoadBalancer finalizers first
+                    echo -e "${BLUE}      Cleaning services (remove finalizers first)...${NC}"
+
+                    # Step 1: Remove finalizers from services (especially AWS ELB finalizers)
+                    kubectl get services -n $ns -o name 2>/dev/null | while read svc; do
+                        # Remove common service finalizers (service.kubernetes.io/load-balancer-cleanup, etc.)
+                        kubectl patch "$svc" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                    done
+
+                    sleep 2
+
+                    # Step 2: Now safe to delete
+                    kubectl delete services --all -n $ns --force --grace-period=0 2>/dev/null || true
+                    echo -e "${GREEN}        ✓ Services cleaned${NC}"
                 else
                     # Remove finalizers from all resources of this type
                     kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
@@ -506,9 +616,20 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     cleanup_sealed_secrets
     echo ""
 
-    # Step 2: Check and cleanup each namespace
+    # Step 1.75: Run pre-cleanup diagnostics for all target namespaces
+    echo -e "${BLUE}→ Pre-cleanup diagnostics for target namespaces...${NC}"
+    echo ""
     NAMESPACES=("argocd" "fineract-dev" "ingress-nginx" "cert-manager" "monitoring")
+    for ns in "${NAMESPACES[@]}"; do
+        status=$(check_namespace_stuck $ns)
+        if [ "$status" != "notfound" ]; then
+            echo -e "${BLUE}  Namespace: $ns (status: $status)${NC}"
+            check_blocking_resources "$ns"
+        fi
+    done
+    echo ""
 
+    # Step 2: Check and cleanup each namespace
 for ns in "${NAMESPACES[@]}"; do
     status=$(check_namespace_stuck $ns)
 
