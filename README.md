@@ -513,7 +513,6 @@ Apache License 2.0 - See [LICENSE](LICENSE) for details.
 - [x] AWS Terraform modules (RDS, S3, IRSA)
 - [x] Cost optimization (60-78% savings in dev)
 - [x] Provider selection guide
-- [x] IRSA/Workload Identity support
 
 ### In Progress 🚧
 - [ ] Azure Terraform modules
