@@ -46,22 +46,30 @@ spec:
         - name: IMPORT_FILES_LOCATIONS
           value: "/config-processed/*"  # Use processed config with substituted variables
         # IMPORT_FORCE Design Decision:
-        # Set to "false" to allow manual Keycloak admin changes while maintaining GitOps
-        # RATIONALE:
-        # - frontendUrl now uses dynamic ${AUTH_HOSTNAME} variable (environment-specific)
-        # - Configuration will be correct on first deployment in each environment
-        # - No need to force overwrite manual changes made via Keycloak admin UI
-        # - Supports semi-GitOps approach: Git controls structure, admins can customize
+        # Set to "true" for dev to enable true GitOps (Git as source of truth)
+        # Set to "false" for production to preserve manual admin changes
         #
-        # BEHAVIOR with IMPORT_FORCE=false:
+        # RATIONALE for dev=true:
+        # - Development environment where consistency matters more than manual tweaks
+        # - Allows realm configuration updates via Git to automatically apply
+        # - Prevents job failures when realm already exists
+        # - Easier to maintain and test configuration changes
+        #
+        # BEHAVIOR with IMPORT_FORCE=true:
+        # - Realms/clients/roles from Git will be created OR updated
+        # - Existing items WILL be overwritten to match Git configuration
+        # - Users are created if missing, updated if changed
+        # - Client secrets will be updated (ensure they're in sync with sealed secrets)
+        #
+        # BEHAVIOR with IMPORT_FORCE=false (recommended for production):
         # - New realms/clients/roles from Git will be created
         # - Existing items will NOT be overwritten (manual changes preserved)
         # - Users are never overwritten (only created if missing)
-        # - Role assignments and client secrets persist
+        # - Allows admins to customize via Keycloak UI
         #
-        # NOTE: Set to "true" temporarily if you need to force a configuration reset
+        # NOTE: Override per environment via kustomization.yaml patches
         - name: IMPORT_FORCE
-          value: "false"
+          value: "true"
         - name: IMPORT_VALIDATE
           value: "true"
         # IMPORT_VAR_SUBSTITUTION_ENABLED Design Decision:
