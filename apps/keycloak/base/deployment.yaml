@@ -42,7 +42,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak
+        image: quay.io/keycloak/keycloak:24.0.5
         imagePullPolicy: IfNotPresent
         args:
         - start
@@ -50,7 +50,6 @@ spec:
         - --health-enabled=true
         - --metrics-enabled=true  # Enable Prometheus metrics at /metrics endpoint
         - --proxy-headers=xforwarded
-        - --hostname-backchannel-dynamic=true
 
         env:
         # Database Configuration - Using RDS PostgreSQL
