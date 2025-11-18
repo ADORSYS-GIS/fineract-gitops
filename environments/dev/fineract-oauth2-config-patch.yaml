@@ -6,5 +6,6 @@ data:
   # Development environment OAuth2/OIDC configuration
   # Use internal service URL to avoid dependency on dynamic LoadBalancer DNS
   # Keycloak realm frontendUrl is configured to match this issuer
-  oidc-issuer-url: "http://keycloak-service:8080/auth/realms/fineract"
+  # Note: Keycloak normalizes the issuer by removing default port (80 for http)
+  oidc-issuer-url: "http://keycloak-service/auth/realms/fineract"
   jwk-set-uri-internal: "http://keycloak-service:8080/auth/realms/fineract/protocol/openid-connect/certs"
