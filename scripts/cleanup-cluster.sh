@@ -660,6 +660,150 @@ cleanup_sealed_secrets() {
     echo -e "${GREEN}  ✓${NC} Sealed Secrets cleanup complete"
 }
 
+# Function to cleanup RDS databases (drop and recreate)
+cleanup_rds_databases() {
+    echo -e "${BLUE}→ Cleaning up RDS databases...${NC}"
+
+    # Check if fineract-db-credentials secret exists (needed for DB access)
+    if ! kubectl get secret -n fineract-dev fineract-db-credentials &>/dev/null; then
+        echo -e "${YELLOW}  ⚠ fineract-db-credentials secret not found${NC}"
+        echo -e "${YELLOW}  → Skipping database cleanup (cluster may not be fully deployed)${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}  This will drop and recreate the following databases:${NC}"
+    echo "    - keycloak (Keycloak identity management)"
+    echo "    - fineract_default (Fineract core banking)"
+    echo ""
+    echo -e "${YELLOW}  This ensures a clean state for the next deployment.${NC}"
+    echo ""
+
+    read -p "  Drop and recreate RDS databases? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}  → Skipping database cleanup${NC}"
+        return 0
+    fi
+
+    # Create a temporary job to drop and recreate databases
+    echo -e "${BLUE}  → Creating database cleanup job...${NC}"
+
+    cat <<EOF | kubectl apply -f - 2>/dev/null || true
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-rds-databases
+  namespace: fineract-dev
+  labels:
+    app: database-cleanup
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      name: cleanup-databases
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: cleanup-db
+        image: postgres:15-alpine
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "========================================="
+          echo "RDS Database Cleanup"
+          echo "========================================="
+
+          export PGHOST="\${RDS_HOST}"
+          export PGPORT="5432"
+          export PGUSER="\${FINERACT_USER}"
+          export PGPASSWORD="\${FINERACT_PASSWORD}"
+          export PGDATABASE="postgres"
+
+          echo "Connecting to RDS: \${PGHOST}"
+          echo ""
+
+          # Terminate connections to keycloak database
+          echo "1/4: Terminating connections to keycloak database..."
+          psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'keycloak' AND pid <> pg_backend_pid();" || true
+
+          # Drop keycloak database
+          echo "2/4: Dropping keycloak database..."
+          psql -c "DROP DATABASE IF EXISTS keycloak;" || echo "  (database may not exist)"
+
+          # Terminate connections to fineract_default database
+          echo "3/4: Terminating connections to fineract_default database..."
+          psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fineract_default' AND pid <> pg_backend_pid();" || true
+
+          # Drop fineract_default database
+          echo "4/4: Dropping fineract_default database..."
+          psql -c "DROP DATABASE IF EXISTS fineract_default;" || echo "  (database may not exist)"
+
+          echo ""
+          echo "========================================="
+          echo "✅ RDS databases dropped successfully"
+          echo "   Databases will be recreated on next deployment"
+          echo "========================================="
+        env:
+        - name: RDS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: FINERACT_USER
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: FINERACT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 999
+          capabilities:
+            drop:
+            - ALL
+EOF
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}  ✓${NC} Database cleanup job created"
+
+        # Wait for job to complete
+        echo -e "${BLUE}  → Waiting for database cleanup to complete...${NC}"
+        if kubectl wait --for=condition=complete --timeout=60s job/cleanup-rds-databases -n fineract-dev 2>/dev/null; then
+            echo -e "${GREEN}  ✓${NC} Databases cleaned successfully"
+
+            # Show job logs
+            echo -e "${BLUE}  → Cleanup job output:${NC}"
+            kubectl logs job/cleanup-rds-databases -n fineract-dev 2>/dev/null | sed 's/^/    /'
+        else
+            echo -e "${YELLOW}  ⚠ Database cleanup job did not complete within 60s${NC}"
+            echo -e "${YELLOW}  → Checking job logs...${NC}"
+            kubectl logs job/cleanup-rds-databases -n fineract-dev 2>/dev/null | sed 's/^/    /' || echo "    (no logs available)"
+        fi
+
+        # Clean up the job
+        kubectl delete job cleanup-rds-databases -n fineract-dev --force --grace-period=0 2>/dev/null || true
+    else
+        echo -e "${YELLOW}  ⚠ Failed to create database cleanup job${NC}"
+        echo -e "${YELLOW}  → Continuing with namespace cleanup...${NC}"
+    fi
+
+    echo -e "${GREEN}  ✓${NC} Database cleanup complete"
+}
+
 # Main cleanup process
 if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     echo -e "${YELLOW}This will remove all ArgoCD applications and force-delete stuck namespaces:${NC}"
@@ -673,6 +817,10 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     echo "  - Sealed Secrets Controller"
     echo "  - Sealed Secrets encryption keys"
     echo ""
+    echo -e "${YELLOW}Optional: Clean RDS databases for fresh deployment${NC}"
+    echo "  - keycloak database (if prompted)"
+    echo "  - fineract_default database (if prompted)"
+    echo ""
 
     read -p "Continue? [y/N] " -n 1 -r
     echo
@@ -681,6 +829,10 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
         exit 0
     fi
 
+    echo ""
+
+    # Step 0.5: Cleanup RDS databases (optional, before deleting namespaces)
+    cleanup_rds_databases
     echo ""
 
     # Step 1: Delete ArgoCD Applications first (removes finalizers)
