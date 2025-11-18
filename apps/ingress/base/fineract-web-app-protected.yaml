@@ -46,9 +46,8 @@ metadata:
     nginx.ingress.kubernetes.io/limit-connections: "50"
 
     # ============================================================================
-    # URL Rewriting and Snippets
+    # Configuration Snippet
     # ============================================================================
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/configuration-snippet: |
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
       proxy_set_header Authorization "Bearer $access_token";
