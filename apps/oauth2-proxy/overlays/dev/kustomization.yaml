@@ -67,7 +67,7 @@ patches:
                   export OIDC_ISSUER_URL="http://keycloak-service:8080/auth/realms/${REALM_NAME}"
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
-                  export COOKIE_DOMAINS=""
+                  export COOKIE_DOMAINS="${APPS_DOMAIN}"
 
                   echo "Domain configuration:"
                   echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
