@@ -65,22 +65,22 @@ spec:
   - host: $(APPS_HOSTNAME)
     http:
       paths:
-      - path: /reporting(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /reporting
+        pathType: Prefix
         backend:
           service:
             name: reporting-app
             port:
               number: 80
-      - path: /accounting(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /accounting
+        pathType: Prefix
         backend:
           service:
             name: accounting-app
             port:
               number: 80
-      - path: /mifosweb(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /mifosweb
+        pathType: Prefix
         backend:
           service:
             name: web-app
