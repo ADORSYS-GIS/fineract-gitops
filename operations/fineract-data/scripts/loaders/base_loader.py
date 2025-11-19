@@ -7,17 +7,57 @@ import sys
 import yaml
 import requests
 import logging
+import structlog
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+def configure_logging():
+    """Configure structured logging with JSON output"""
+    # Determine log format based on environment
+    log_format = os.getenv('FINERACT_LOG_FORMAT', 'json').lower()
+    log_level = os.getenv('FINERACT_LOG_LEVEL', 'INFO').upper()
+
+    # Configure standard library logging
+    logging.basicConfig(
+        format="%(message)s",
+        level=getattr(logging, log_level, logging.INFO)
+    )
+
+    # Choose processors based on format
+    if log_format == 'json':
+        # JSON format for production/Kubernetes
+        processors = [
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.JSONRenderer()
+        ]
+    else:
+        # Human-readable format for local development
+        processors = [
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.dev.ConsoleRenderer()
+        ]
+
+    structlog.configure(
+        processors=processors,
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level, logging.INFO)),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+
+# Initialize logging
+configure_logging()
+logger = structlog.get_logger(__name__)
 
 
 class BaseLoader:
@@ -37,6 +77,16 @@ class BaseLoader:
         self.fineract_url = fineract_url.rstrip('/')
         self.tenant = tenant
         self.dry_run = dry_run
+
+        # Generate unique request ID for this loader instance
+        self.request_id = str(uuid.uuid4())[:8]
+
+        # Create bound logger with context
+        self.logger = logger.bind(
+            request_id=self.request_id,
+            tenant=tenant,
+            loader_class=self.__class__.__name__
+        )
 
         # ====================================================================
         # SENSITIVE DATA IN ENVIRONMENT VARIABLES
@@ -184,7 +234,8 @@ class BaseLoader:
             # Suppress InsecureRequestWarning when SSL verification is disabled
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            logger.warning("SSL certificate verification is DISABLED - not recommended for production")
+            self.logger.warning("ssl_verification_disabled",
+                               message="SSL certificate verification is DISABLED - not recommended for production")
 
         self.session.headers.update({
             'Fineract-Platform-TenantId': self.tenant,
@@ -194,10 +245,10 @@ class BaseLoader:
 
         # Set up authentication
         if self.client_id and self.client_secret and self.token_url:
-            logger.info("Using OAuth2 client credentials authentication")
+            self.logger.info("authentication_method", method="oauth2", message="Using OAuth2 client credentials authentication")
             self._obtain_oauth2_token()
         else:
-            logger.info("Using Basic Authentication (consider upgrading to OAuth2)")
+            self.logger.info("authentication_method", method="basic", message="Using Basic Authentication (consider upgrading to OAuth2)")
             self.session.auth = (self.username, self.password)
 
         # Configure retry strategy for transient failures
@@ -210,7 +261,7 @@ class BaseLoader:
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-        logger.info("HTTP retry strategy configured: 3 retries with exponential backoff")
+        self.logger.info("HTTP retry strategy configured: 3 retries with exponential backoff")
 
         # Track loaded entities
         self.loaded_entities = {}
@@ -245,9 +296,9 @@ class BaseLoader:
                 'Authorization': f'Bearer {self.access_token}'
             })
 
-            logger.info("Successfully obtained OAuth2 access token")
+            self.logger.info("Successfully obtained OAuth2 access token")
         except Exception as e:
-            logger.error(f"Failed to obtain OAuth2 token: {e}")
+            self.logger.error(f"Failed to obtain OAuth2 token: {e}")
             raise
 
     def _ensure_valid_token(self):
@@ -257,7 +308,7 @@ class BaseLoader:
         import time
         if self.access_token and self.token_expiry:
             if time.time() >= self.token_expiry:
-                logger.info("OAuth2 token expired, refreshing...")
+                self.logger.info("OAuth2 token expired, refreshing...")
                 self._obtain_oauth2_token()
 
     def load_yaml(self, filepath: Path) -> Optional[Dict[str, Any]]:
@@ -427,12 +478,27 @@ class BaseLoader:
         - Risk: Late failures, poor UX, debugging difficulty
         - Mitigation: Document expected YAML structure, example files
         """
+        # Bind file context to logger for this operation
+        file_logger = self.logger.bind(yaml_file=str(filepath))
+
         try:
             with open(filepath, 'r') as f:
                 data = yaml.safe_load(f)
+            file_logger.debug("yaml_loaded", keys=list(data.keys()) if isinstance(data, dict) else "non-dict")
             return data
+        except FileNotFoundError:
+            file_logger.error("yaml_file_not_found", error="File does not exist")
+            return None
+        except yaml.YAMLError as e:
+            file_logger.error("yaml_parse_error",
+                            error_type="syntax_error",
+                            error_message=str(e),
+                            line_number=getattr(e, 'problem_mark', None))
+            return None
         except Exception as e:
-            logger.error(f"Failed to load YAML file {filepath}: {e}")
+            file_logger.error("yaml_load_failed",
+                            error_type="unknown_error",
+                            error_message=str(e))
             return None
 
     def get(self, endpoint: str) -> Optional[Dict[str, Any]]:
@@ -455,11 +521,27 @@ class BaseLoader:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP Error on GET {endpoint}: {e}")
-            logger.error(f"Response: {e.response.text if e.response else 'No response'}")
+            # GET errors are usually less critical, log at warning level unless 500
+            log_level = "error" if e.response and e.response.status_code >= 500 else "warning"
+            error_message = str(e)
+            if e.response is not None:
+                try:
+                    error_resp = e.response.json()
+                    if 'errors' in error_resp and error_resp['errors']:
+                        error_message = error_resp['errors'][0].get('developerMessage', str(e))
+                except:
+                    pass
+
+            log_method = self.logger.error if log_level == "error" else self.logger.warning
+            log_method("api_get_failed",
+                      endpoint=endpoint,
+                      http_status=e.response.status_code if e.response else None,
+                      error_message=error_message)
             return None
         except Exception as e:
-            logger.error(f"Error on GET {endpoint}: {e}")
+            self.logger.error("api_get_exception",
+                            endpoint=endpoint,
+                            error_message=str(e))
             return None
 
     def post(self, endpoint: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -475,8 +557,8 @@ class BaseLoader:
         """
         # Dry-run mode: Log the action without executing
         if self.dry_run:
-            logger.info(f"[DRY-RUN] Would POST to {endpoint}")
-            logger.debug(f"[DRY-RUN] Payload: {data}")
+            self.logger.info("dry_run_post", endpoint=endpoint, action="create", message="Would POST to endpoint")
+            self.logger.debug("dry_run_payload", endpoint=endpoint, payload=data)
             return {"dryRun": True, "resourceId": 0}
 
         # Ensure OAuth2 token is valid if using OAuth2
@@ -489,12 +571,42 @@ class BaseLoader:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP Error on POST {endpoint}: {e}")
-            logger.error(f"Request data: {data}")
-            logger.error(f"Response: {e.response.text if e.response else 'No response'}")
+            # Extract error details from Fineract response
+            error_response = {}
+            error_type = "http_error"
+            error_message = str(e)
+
+            if e.response is not None:
+                try:
+                    error_response = e.response.json()
+                    if 'errors' in error_response and error_response['errors']:
+                        error_message = error_response['errors'][0].get('developerMessage', str(e))
+                        # Categorize error type
+                        if 'validation' in error_message.lower() or 'required' in error_message.lower():
+                            error_type = "validation_error"
+                        elif 'already exists' in error_message.lower() or 'duplicate' in error_message.lower():
+                            error_type = "duplicate_error"
+                        elif 'not found' in error_message.lower():
+                            error_type = "not_found_error"
+                        elif 'forbidden' in error_message.lower() or 'not authorized' in error_message.lower():
+                            error_type = "auth_error"
+                except:
+                    error_response = {"raw_text": e.response.text if e.response else "No response"}
+
+            self.logger.error("api_post_failed",
+                            error_type=error_type,
+                            endpoint=endpoint,
+                            http_status=e.response.status_code if e.response else None,
+                            error_message=error_message,
+                            request_payload=data,
+                            fineract_response=error_response)
             return None
         except Exception as e:
-            logger.error(f"Error on POST {endpoint}: {e}")
+            self.logger.error("api_post_exception",
+                            error_type="unknown_error",
+                            endpoint=endpoint,
+                            error_message=str(e),
+                            request_payload=data)
             return None
 
     def put(self, endpoint: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -510,8 +622,8 @@ class BaseLoader:
         """
         # Dry-run mode: Log the action without executing
         if self.dry_run:
-            logger.info(f"[DRY-RUN] Would PUT to {endpoint}")
-            logger.debug(f"[DRY-RUN] Payload: {data}")
+            self.logger.info("dry_run_put", endpoint=endpoint, action="update", message="Would PUT to endpoint")
+            self.logger.debug("dry_run_payload", endpoint=endpoint, payload=data)
             return {"dryRun": True, "changes": {}}
 
         # Ensure OAuth2 token is valid if using OAuth2
@@ -524,11 +636,40 @@ class BaseLoader:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP Error on PUT {endpoint}: {e}")
-            logger.error(f"Response: {e.response.text if e.response else 'No response'}")
+            # Extract error details from Fineract response
+            error_response = {}
+            error_type = "http_error"
+            error_message = str(e)
+
+            if e.response is not None:
+                try:
+                    error_response = e.response.json()
+                    if 'errors' in error_response and error_response['errors']:
+                        error_message = error_response['errors'][0].get('developerMessage', str(e))
+                        # Categorize error type
+                        if 'validation' in error_message.lower() or 'required' in error_message.lower():
+                            error_type = "validation_error"
+                        elif 'not found' in error_message.lower():
+                            error_type = "not_found_error"
+                        elif 'forbidden' in error_message.lower() or 'not authorized' in error_message.lower():
+                            error_type = "auth_error"
+                except:
+                    error_response = {"raw_text": e.response.text if e.response else "No response"}
+
+            self.logger.error("api_put_failed",
+                            error_type=error_type,
+                            endpoint=endpoint,
+                            http_status=e.response.status_code if e.response else None,
+                            error_message=error_message,
+                            request_payload=data,
+                            fineract_response=error_response)
             return None
         except Exception as e:
-            logger.error(f"Error on PUT {endpoint}: {e}")
+            self.logger.error("api_put_exception",
+                            error_type="unknown_error",
+                            endpoint=endpoint,
+                            error_message=str(e),
+                            request_payload=data)
             return None
 
     def get_entity_by_id(self, endpoint: str, entity_id: int) -> Optional[Dict[str, Any]]:

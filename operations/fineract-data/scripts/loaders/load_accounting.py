@@ -5,12 +5,14 @@ Loads all accounting entities (Waves 21-29) in sequence
 """
 import sys
 import argparse
-import logging
+import structlog
 from pathlib import Path
 import importlib.util
+from base_loader import configure_logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Configure structured logging
+configure_logging()
+logger = structlog.get_logger(__name__)
 
 ENTITY_LOADERS = [
     ('chart_of_accounts', 'ChartOfAccountsLoader'),

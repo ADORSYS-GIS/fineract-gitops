@@ -48,6 +48,10 @@ spec:
               key: fineract-data-loader-client-secret
         - name: FINERACT_TOKEN_URL
           value: "http://keycloak-service.fineract-dev.svc.cluster.local:8080/auth/realms/fineract/protocol/openid-connect/token"
+        - name: FINERACT_LOG_FORMAT
+          value: "json"
+        - name: FINERACT_LOG_LEVEL
+          value: "INFO"
         volumeMounts:
         - name: data
           mountPath: /data

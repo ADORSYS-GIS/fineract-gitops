@@ -5,16 +5,16 @@ Loads all system foundation entities (Waves 1-9) in sequence
 """
 import sys
 import argparse
-import logging
+import structlog
 from pathlib import Path
 import importlib.util
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Import structured logging configuration from base_loader
+from base_loader import configure_logging
+
+# Configure structured logging
+configure_logging()
+logger = structlog.get_logger(__name__)
 
 # Entity loaders to run in order (matching wave sequence)
 ENTITY_LOADERS = [
@@ -93,14 +93,20 @@ def main():
 
     for module_name, class_name in ENTITY_LOADERS:
         entity_name = module_name.replace('_', ' ').title()
-        logger.info(f"\n{'=' * 80}")
-        logger.info(f"LOADING: {entity_name}")
-        logger.info(f"{'=' * 80}")
+
+        # Bind entity context to logger
+        entity_logger = logger.bind(entity_type=entity_name, module_name=module_name)
+
+        entity_logger.info("loading_entity_type_start",
+                          message=f"Loading {entity_name}",
+                          separator="=" * 80)
 
         # Load the entity loader class
         loader_class = load_entity_loader(module_name, class_name)
         if not loader_class:
-            logger.error(f"Failed to load {class_name}")
+            entity_logger.error("loader_class_not_found",
+                               class_name=class_name,
+                               message=f"Failed to load {class_name}")
             failed_entities.append(entity_name)
             total_failed += 1
             continue
@@ -108,7 +114,6 @@ def main():
         try:
             # All loaders now use the same flat directory
             # They filter files by 'kind' field internally
-            # All loaders now use the same flat directory
             loader = loader_class(str(data_dir), args.fineract_url, args.tenant)
             summary = loader.load_all()
 
@@ -120,12 +125,22 @@ def main():
 
             if summary.get('total_failed', 0) > 0:
                 failed_entities.append(entity_name)
-                logger.error(f"✗ {entity_name}: {summary['total_failed']} failures")
+                entity_logger.error("entity_type_completed_with_failures",
+                                   failures=summary['total_failed'],
+                                   created=summary.get('total_loaded', 0),
+                                   updated=summary.get('total_updated', 0),
+                                   skipped=summary.get('total_skipped', 0))
             else:
-                logger.info(f"✓ {entity_name}: Completed successfully")
+                entity_logger.info("entity_type_completed_successfully",
+                                  created=summary.get('total_loaded', 0),
+                                  updated=summary.get('total_updated', 0),
+                                  skipped=summary.get('total_skipped', 0))
 
         except Exception as e:
-            logger.error(f"✗ Error loading {entity_name}: {e}", exc_info=True)
+            entity_logger.error("entity_type_exception",
+                               error_message=str(e),
+                               error_type=type(e).__name__,
+                               exc_info=True)
             failed_entities.append(entity_name)
             total_failed += 1
 
