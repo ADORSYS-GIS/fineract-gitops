@@ -9,6 +9,7 @@ spec:
   lastName: Kamga
   officeId: Bafoussam Branch
   isLoanOfficer: true
+  joiningDate: '01 January 2024'
   externalId: STF-007
   mobileNo: +237 677 78 90 12
   emailAddress: b.kamga@mfi.cm

@@ -9,6 +9,7 @@ spec:
   lastName: Ewondo
   officeId: Douala Branch
   isLoanOfficer: true
+  joiningDate: '01 January 2024'
   externalId: STF-005
   mobileNo: +237 677 56 78 90
   emailAddress: e.ewondo@mfi.cm

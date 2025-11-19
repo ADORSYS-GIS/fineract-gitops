@@ -9,6 +9,7 @@ spec:
   lastName: Ngo Balla
   officeId: Yaounde Branch
   isLoanOfficer: true
+  joiningDate: '01 January 2024'
   externalId: STF-002
   mobileNo: +237 677 23 45 67
   emailAddress: m.ngoballa@mfi.cm
