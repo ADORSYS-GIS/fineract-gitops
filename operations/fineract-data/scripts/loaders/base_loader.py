@@ -692,12 +692,22 @@ class BaseLoader:
 
             # Handle different response formats
             if isinstance(entities, list) and entities:
-                return entities[0].get('id')
+                # Search for entity with matching identifier field
+                for entity in entities:
+                    if entity.get(identifier_field) == identifier:
+                        return entity.get('id')
+                return None  # No match found
             elif isinstance(entities, dict):
                 if 'pageItems' in entities and entities['pageItems']:
-                    return entities['pageItems'][0].get('id')
+                    # Search for entity with matching identifier field in paginated results
+                    for entity in entities['pageItems']:
+                        if entity.get(identifier_field) == identifier:
+                            return entity.get('id')
+                    return None  # No match found
                 elif 'id' in entities:
-                    return entities.get('id')
+                    # Single entity response - check if it matches
+                    if entities.get(identifier_field) == identifier:
+                        return entities.get('id')
 
             return None
         except Exception as e:

@@ -256,8 +256,9 @@ class StaffLoader(BaseLoader):
                         self.updated_entities[staff_name] = existing_id
 
                         # Sync to Keycloak after update
-                        if spec.get('username'):
-                            self.sync_to_keycloak(existing_id, yaml_data)
+                        # COMMENTED OUT: user-sync-service is optional and not available in this environment
+                        # if spec.get('username'):
+                        #     self.sync_to_keycloak(existing_id, yaml_data)
                     else:
                         logger.error(f"  ✗ Failed to update: {staff_name}")
                         self.failed_entities.append(yaml_file.name)
@@ -267,8 +268,9 @@ class StaffLoader(BaseLoader):
                     self.skipped_entities[staff_name] = existing_id
 
                     # Still try to sync to Keycloak if username provided
-                    if spec.get('username'):
-                        self.sync_to_keycloak(existing_id, yaml_data)
+                    # COMMENTED OUT: user-sync-service is optional and not available in this environment
+                    # if spec.get('username'):
+                    #     self.sync_to_keycloak(existing_id, yaml_data)
 
                 continue
 
@@ -281,7 +283,8 @@ class StaffLoader(BaseLoader):
                 self.loaded_entities[staff_name] = staff_id
 
                 # Sync to Keycloak
-                self.sync_to_keycloak(staff_id, yaml_data)
+                # COMMENTED OUT: user-sync-service is optional and not available in this environment
+                # self.sync_to_keycloak(staff_id, yaml_data)
             else:
                 logger.error(f"  ✗ Failed to create staff: {staff_name}")
                 self.failed_entities.append(yaml_file.name)
