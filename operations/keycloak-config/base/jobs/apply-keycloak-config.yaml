@@ -187,11 +187,23 @@ spec:
           value: "false"
         - name: SMTP_AUTH
           value: "true"
+        - name: OAUTH2_PROXY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: oauth2-proxy-client-id
+              optional: true
         - name: OAUTH2_PROXY_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
               key: oauth2-proxy-client-secret
+              optional: true
+        - name: ADMIN_CLI_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: admin-cli-client-id
               optional: true
         - name: ADMIN_CLI_SECRET
           valueFrom:
@@ -199,11 +211,23 @@ spec:
               name: keycloak-client-secrets
               key: admin-cli-client-secret
               optional: true
+        - name: FINERACT_API_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-api-client-id
+              optional: true
         - name: FINERACT_API_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
               key: fineract-api-client-secret
+              optional: true
+        - name: FINERACT_DATA_LOADER_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-id
               optional: true
         - name: FINERACT_DATA_LOADER_SECRET
           valueFrom:
