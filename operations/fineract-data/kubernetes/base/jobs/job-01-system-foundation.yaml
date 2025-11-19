@@ -75,7 +75,7 @@ spec:
           mountPath: /data
 
       - name: validate-yaml
-        image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-ca352f5
+        image: ghcr.io/adorsys-gis/fineract-loader:v1.0.0
         command: ["python3", "/app/validate_yaml_data.py", "/data"]
         volumeMounts:
         - name: data
@@ -84,7 +84,7 @@ spec:
 
       containers:
       - name: loader
-        image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-ca352f5
+        image: ghcr.io/adorsys-gis/fineract-loader:v1.0.0
         command:
         - python3
         - /app/loaders/load_system_foundation.py
