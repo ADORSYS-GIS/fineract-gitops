@@ -76,10 +76,11 @@ class StaffLoader(BaseLoader):
         # Optional fields
         if spec.get('externalId'):
             api_data['externalId'] = spec['externalId']
+        # Fineract expects 'mobileNo', not 'mobileNumber'
         if spec.get('mobileNo'):
-            api_data['mobileNumber'] = spec['mobileNo']
-        if spec.get('emailAddress'):
-            api_data['emailAddress'] = spec['emailAddress']
+            api_data['mobileNo'] = spec['mobileNo']
+        # Note: emailAddress is NOT a supported parameter for staff creation API
+        # Email is typically stored in user accounts, not staff records
 
         # Joining date (if provided)
         if spec.get('joiningDate'):

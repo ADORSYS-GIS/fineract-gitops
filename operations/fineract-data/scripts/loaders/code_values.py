@@ -24,9 +24,10 @@ class CodeValuesLoader(BaseLoader):
         """
         spec = yaml_data.get('spec', {})
 
+        # Fineract API only supports 'name' parameter for code creation
+        # 'systemDefined' is not a supported parameter (causes UnsupportedParameterException)
         return {
-            'name': spec['codeName'],
-            'systemDefined': False
+            'name': spec['codeName']
         }
 
     def create_code_values(self, code_id: int, values: list) -> bool:
