@@ -16,20 +16,7 @@ spec:
       restartPolicy: OnFailure
       serviceAccountName: fineract-data-loader
       initContainers:
-      - name: organize-files
-        image: python:3.11-slim
-        command:
-        - /bin/sh
-        - -c
-        args:
-        - "pip install --quiet --no-cache-dir pyyaml && python3 <<'EOF'\nimport os\nimport yaml\nfrom pathlib import Path\n\n# Mapping of YAML kind to target subdirectory\nKIND_TO_DIR = {\n    'InterBranchTransfer': 'transactions/inter-branch-transfers',\n    'LoanRepayment': 'transactions/loan-repayments',\n    'SavingsDeposit': 'transactions/savings-deposits',\n    'SavingsWithdrawal': 'transactions/savings-withdrawals',\n}\n\nsource_dir = Path('/configmap-data')\ntarget_dir = Path('/data')\n\n# Process each YAML file\nfor yaml_file in source_dir.glob('*.yaml'):\n    try:\n        with open(yaml_file, 'r') as f:\n            doc = yaml.safe_load(f)\n\n        kind = doc.get('kind')\n        if kind in KIND_TO_DIR:\n            subdir = target_dir / KIND_TO_DIR[kind]\n            subdir.mkdir(parents=True, exist_ok=True)\n\n            # Copy file to subdirectory\n            target_file = subdir / yaml_file.name\n            with open(yaml_file, 'r') as src, open(target_file, 'w') as dst:\n                dst.write(src.read())\n\
-          \            print(f\"Copied {yaml_file.name} -> {KIND_TO_DIR[kind]}/{yaml_file.name}\")\n        else:\n            print(f\"Warning: Unknown kind '{kind}' in {yaml_file.name}\")\n    except Exception as e:\n        print(f\"Error processing {yaml_file.name}: {e}\")\n\nprint(\"\\nDirectory structure created:\")\nos.system('find /data -type f | sort')\nEOF"
-        volumeMounts:
-        - name: configmap-data
-          mountPath: /configmap-data
-          readOnly: true
-        - name: data
-          mountPath: /data
+      # Validate YAML syntax before loading
       - name: validate-yaml
         image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-ca352f5
         command:
@@ -82,8 +69,7 @@ spec:
             memory: 512Mi
             cpu: 500m
       volumes:
-      - name: configmap-data
+      # ConfigMap mounted directly to /data (flat structure, loaders filter by 'kind')
+      - name: data
         configMap:
           name: fineract-data-transactions
-      - name: data
-        emptyDir: {}
