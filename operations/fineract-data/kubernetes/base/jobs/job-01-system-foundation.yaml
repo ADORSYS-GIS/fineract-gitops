@@ -16,7 +16,64 @@ spec:
       serviceAccountName: fineract-data-loader
 
       initContainers:
-      # Validate YAML syntax before loading
+      # Reorganize flat ConfigMap files into subdirectories based on kind field
+      - name: organize-files
+        image: python:3.11-slim
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            pip install --quiet --no-cache-dir pyyaml && python3 <<'EOF'
+            import os
+            import yaml
+            from pathlib import Path
+
+            # Mapping of YAML kind to target subdirectory
+            KIND_TO_DIR = {
+                'CodeValue': 'codes-and-values',
+                'Office': 'offices',
+                'Staff': 'staff',
+                'Role': 'roles',
+                'CurrencyConfig': 'system-config',
+                'WorkingDays': 'system-config',
+                'AccountNumberFormat': 'system-config',
+                'MakerChecker': 'system-config',
+                'SchedulerJob': 'system-config',
+            }
+
+            source_dir = Path('/configmap-data')
+            target_dir = Path('/data')
+
+            # Process each YAML file
+            for yaml_file in source_dir.glob('*.yaml'):
+                try:
+                    with open(yaml_file, 'r') as f:
+                        doc = yaml.safe_load(f)
+
+                    kind = doc.get('kind')
+                    if kind in KIND_TO_DIR:
+                        subdir = target_dir / KIND_TO_DIR[kind]
+                        subdir.mkdir(parents=True, exist_ok=True)
+
+                        # Copy file to subdirectory
+                        target_file = subdir / yaml_file.name
+                        with open(yaml_file, 'r') as src, open(target_file, 'w') as dst:
+                            dst.write(src.read())
+                        print(f"Copied {yaml_file.name} -> {KIND_TO_DIR[kind]}/{yaml_file.name}")
+                    else:
+                        print(f"Warning: Unknown kind '{kind}' in {yaml_file.name}")
+                except Exception as e:
+                    print(f"Error processing {yaml_file.name}: {e}")
+
+            print("\nDirectory structure created:")
+            os.system('find /data -type f | sort')
+            EOF
+        volumeMounts:
+        - name: configmap-data
+          mountPath: /configmap-data
+          readOnly: true
+        - name: data
+          mountPath: /data
+
       - name: validate-yaml
         image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-ca352f5
         command: ["python3", "/app/validate_yaml_data.py", "/data"]
@@ -68,7 +125,10 @@ spec:
             cpu: "500m"
 
       volumes:
-      # ConfigMap mounted directly to /data (flat structure, loaders filter by 'kind')
-      - name: data
+      # ConfigMap with flat file structure (Kubernetes doesn't allow '/' in keys)
+      - name: configmap-data
         configMap:
           name: fineract-data-system-foundation
+      # emptyDir for reorganized files with proper directory structure
+      - name: data
+        emptyDir: {}
