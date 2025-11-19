@@ -70,6 +70,15 @@ spec:
   - host: $(APPS_HOSTNAME)
     http:
       paths:
+      # Asset path for translation files and other static assets
+      # Angular TranslateHttpLoader uses absolute path /assets/translations/
+      - path: /assets(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: web-app
+            port:
+              number: 80
       - path: /reporting(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
