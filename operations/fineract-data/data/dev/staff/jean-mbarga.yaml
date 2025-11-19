@@ -9,6 +9,7 @@ spec:
   lastName: Mbarga
   officeId: Yaounde Branch
   isLoanOfficer: true
+  joiningDate: '01 January 2024'
   externalId: STF-001
   mobileNo: +237 677 12 34 56
   emailAddress: j.mbarga@mfi.cm

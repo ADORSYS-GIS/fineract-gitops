@@ -9,6 +9,7 @@ spec:
   lastName: Tchuente
   officeId: Bafoussam Branch
   isLoanOfficer: true
+  joiningDate: '01 January 2024'
   externalId: STF-008
   mobileNo: +237 677 89 01 23
   emailAddress: j.tchuente@mfi.cm
