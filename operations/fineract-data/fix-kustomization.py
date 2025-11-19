@@ -74,8 +74,10 @@ def generate_kustomization():
                         continue
 
                     # Create the file mapping in format: key=path
-                    # Key is just the filename (must be unique across all files in ConfigMap)
-                    key = yaml_file.name
+                    # Key includes relative path from top-level dir to ensure uniqueness
+                    # e.g., "notification-templates/client-activation.yaml" vs "system-config/client-activation.yaml"
+                    relative_path = yaml_file.relative_to(dir_path.parent)
+                    key = str(relative_path).replace('/', '__')  # Replace / with __ for valid ConfigMap key
                     path = str(yaml_file)
                     files.append(f"{key}={path}")
 
