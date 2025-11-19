@@ -174,6 +174,18 @@ class BaseLoader:
 
         # Create session with authentication
         self.session = requests.Session()
+
+        # SSL Verification Configuration
+        # Allow disabling SSL verification for development/testing environments with self-signed certificates
+        verify_ssl = os.getenv('FINERACT_VERIFY_SSL', 'true').lower() in ('true', '1', 'yes')
+        self.session.verify = verify_ssl
+
+        if not verify_ssl:
+            # Suppress InsecureRequestWarning when SSL verification is disabled
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            logger.warning("SSL certificate verification is DISABLED - not recommended for production")
+
         self.session.headers.update({
             'Fineract-Platform-TenantId': self.tenant,
             'Content-Type': 'application/json',
