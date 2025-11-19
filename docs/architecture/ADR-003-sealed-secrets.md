@@ -253,4 +253,13 @@ gpg --encrypt sealing-key-backup.yaml
 
 - [Sealed Secrets GitHub](https://github.com/bitnami-labs/sealed-secrets)
 - [Secrets Management Guide](../SECRETS_MANAGEMENT.md)
-- [Migration to Sealed Secrets](../MIGRATION_TO_SEALED_SECRETS.md)
+- [Migration to Sealed Secrets](../migrations/MIGRATION_TO_SEALED_SECRETS.md)
+
+## Operational Documentation
+
+For day-to-day operations and emergency procedures:
+- **[Sealed Secrets DR Runbook](../SEALED_SECRETS_DR_RUNBOOK.md)** - Emergency recovery procedures
+- **[Sealed Secrets Deployment Guide](../SEALED_SECRETS_DEPLOYMENT_GUIDE.md)** - Initial deployment instructions
+- **[Disaster Recovery Guide](../DISASTER_RECOVERY.md)** - Comprehensive DR procedures
+- **[Multi-Region DR Strategy](../MULTI_REGION_DR_STRATEGY.md)** - Cross-region failover strategy
+- **[Key Rotation Audit Log](../../operations/sealed-secrets-key-audit.yaml)** - Track all key operations

@@ -284,6 +284,11 @@ OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
 # This value must match what's configured in Keycloak realm-fineract.yaml
 FINERACT_DATA_LOADER_SECRET="6IJ25BUdxHKpFJKaz8bg0emeElXbp23A"
 
+# Generate random secrets for service account clients (admin-cli and fineract-api)
+# These are used by backend services for machine-to-machine authentication
+ADMIN_CLI_SECRET=$(openssl rand -base64 32)
+FINERACT_API_SECRET=$(openssl rand -base64 32)
+
 # Create consolidated keycloak-client-secrets with:
 # - Both client-id AND client-secret for all OAuth clients
 # - Renamed keys with -client-id and -client-secret suffixes for clarity
@@ -294,9 +299,9 @@ create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "oauth2-proxy-client-secret=${OAUTH2_CLIENT_SECRET}" \
     "oauth2-proxy-cookie-secret=${OAUTH2_COOKIE_SECRET}" \
     "admin-cli-client-id=admin-cli" \
-    "admin-cli-client-secret=" \
+    "admin-cli-client-secret=${ADMIN_CLI_SECRET}" \
     "fineract-api-client-id=fineract-api" \
-    "fineract-api-client-secret=" \
+    "fineract-api-client-secret=${FINERACT_API_SECRET}" \
     "fineract-data-loader-client-id=fineract-data-loader" \
     "fineract-data-loader-client-secret=${FINERACT_DATA_LOADER_SECRET}"
 

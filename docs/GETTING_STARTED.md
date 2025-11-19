@@ -16,37 +16,15 @@ Before you begin, ensure you have:
 
 ---
 
-## 🚀 Step 1: Initialize Git Repository
-
-Since the repository structure is created but not yet initialized with Git:
+## 🚀 Step 1: Clone the Repository
 
 ```bash
-# Navigate to the repository
+# Clone the repository
+git clone <your-repo-url>
 cd fineract-gitops
 
-# Initialize Git repository
-git init
-
-# Add all files
-git add .
-
-# Create initial commit
-git commit -m "feat: initial Fineract GitOps foundation
-
-- Complete repository structure
-- Multi-instance Fineract deployment manifests
-- Keycloak SSO configuration with keycloak-config-cli
-- Data operations infrastructure (jobs, loaders, schemas)
-- Comprehensive documentation (130KB+)
-- Context files for Claude (.claude.md, .clinerules)
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>"
-
-# Optional: Add remote repository
-# git remote add origin <your-repo-url>
-# git branch -M main
-# git push -u origin main
+# Checkout the branch you want to work with
+git checkout main  # or dev, deploy-key, etc.
 ```
 
 ---
@@ -55,22 +33,40 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 **Start here** - read these files in order:
 
-```bash
-# 1. Project context (helps you and Claude understand the project)
-cat .claude.md
+1. **Main README** - Project overview and quick start
+   ```bash
+   cat README.md
+   ```
 
-# 2. Project rules
-cat .clinerules
+2. **Deployment Guide** - Step-by-step deployment instructions
+   ```bash
+   cat DEPLOYMENT.md
+   ```
 
-# 3. This summary
-cat FINAL_SUMMARY.md
+3. **Architecture Documentation** - System architecture and design decisions
+   ```bash
+   cat docs/ARCHITECTURE.md
+   cat docs/architecture/README.md
+   ```
 
-# 4. Main documentation
-cat README.md
+4. **App-Specific Documentation** - Deep dive into each component
+   ```bash
+   # Core applications
+   cat apps/fineract/README.md      # Fineract banking platform
+   cat apps/keycloak/README.md      # Keycloak SSO/IAM
 
-# 5. Implementation guide (for extending the foundation)
-cat IMPLEMENTATION_GUIDE.md
-```
+   # Supporting services
+   cat apps/oauth2-proxy/base/README.md
+   cat apps/fineract-redis/base/README.md
+   ```
+
+5. **Operations Documentation**
+   ```bash
+   cat docs/OPERATIONS_GUIDE.md
+   cat docs/SECRETS_MANAGEMENT.md
+   cat operations/keycloak-config/README.md
+   cat operations/fineract-data/README.md
+   ```
 
 ---
 
