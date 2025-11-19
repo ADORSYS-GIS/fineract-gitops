@@ -107,13 +107,14 @@ def find_yaml_files(data_dir: Path, entity_dir: str) -> List[Tuple[str, str]]:
     yaml_files = [f for f in yaml_files if f.name != 'kustomization.yaml']
 
     # Return tuples of (key_in_configmap, actual_file_path)
-    # Key uses only the filename (no directories) since loaders now filter by 'kind' field
+    # Note: ConfigMap keys cannot contain '/' (Kubernetes validation requirement)
+    # Solution: Use flat keys + init container to reorganize files by kind field
     result = []
     for f in yaml_files:
-        # Key: just the filename (Kubernetes ConfigMap keys cannot contain '/')
+        rel_from_entity = f.relative_to(full_path)
+        # Key: Just the filename (flat structure)
         configmap_key = f.name
         # Actual path: relative to kustomization.yaml location
-        rel_from_entity = f.relative_to(full_path)
         actual_path = f"data/dev/{entity_dir}/{rel_from_entity}"
 
         result.append((configmap_key, actual_path))
