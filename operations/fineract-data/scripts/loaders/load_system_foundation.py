@@ -24,9 +24,10 @@ ENTITY_LOADERS = [
     ('roles', 'RolesLoader'),
     ('currency_config', 'CurrencyConfigLoader'),
     ('working_days', 'WorkingDaysLoader'),
-    ('account_number_formats', 'AccountNumberFormatsLoader'),
-    ('maker_checker', 'MakerCheckerLoader'),
-    ('scheduler_jobs', 'SchedulerJobsLoader'),
+    # TODO: These loaders need proper implementation - temporarily disabled
+    # ('account_number_formats', 'AccountNumberFormatsLoader'),
+    # ('maker_checker', 'MakerCheckerLoader'),
+    # ('scheduler_jobs', 'SchedulerJobsLoader'),
 ]
 
 
