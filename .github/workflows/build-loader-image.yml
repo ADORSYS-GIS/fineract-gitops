@@ -6,6 +6,7 @@ on:
       - main
       - eks
       - deploy-key
+      - fin-data-refactor
     paths:
       - 'operations/fineract-data/scripts/**'
       - '.github/workflows/build-loader-image.yml'
