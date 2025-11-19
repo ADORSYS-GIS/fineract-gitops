@@ -67,10 +67,10 @@ class MakerCheckerLoader(BaseLoader):
                 continue
 
             spec = yaml_data.get('spec', {})
-            entity_name = spec.get('name')
+            entity_name = spec.get('taskName')  # MakerChecker uses 'taskName' not 'name'
 
             if not entity_name:
-                logger.error(f"  Missing name in spec")
+                logger.error(f"  Missing taskName in spec")
                 self.failed_entities.append(yaml_file.name)
                 continue
 

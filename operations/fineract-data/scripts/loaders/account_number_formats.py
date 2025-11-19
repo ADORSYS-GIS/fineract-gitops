@@ -87,10 +87,11 @@ class AccountNumberFormatsLoader(BaseLoader):
                 continue
 
             spec = yaml_data.get('spec', {})
-            entity_name = spec.get('name')
+            # Use accountType as identifier since there's no 'name' field
+            entity_name = spec.get('accountType')
 
             if not entity_name:
-                logger.error(f"  Missing name in spec")
+                logger.error(f"  Missing accountType in spec")
                 self.failed_entities.append(yaml_file.name)
                 continue
 
