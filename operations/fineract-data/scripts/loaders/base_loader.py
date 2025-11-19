@@ -204,8 +204,8 @@ class BaseLoader:
         retry_strategy = Retry(
             total=3,  # Maximum number of retries
             backoff_factor=1,  # Wait 1s, 2s, 4s between retries
-            status_forcelist=[429, 500, 502, 503, 504],  # Retry on these HTTP status codes
-            allowed_methods=["GET", "POST", "PUT", "DELETE"]  # Retry all methods (idempotent operations)
+            status_forcelist=[429, 502, 503, 504],  # Retry on transient errors (removed 500 - it's usually a validation error)
+            allowed_methods=["GET"]  # Only retry GET requests (POST/PUT/DELETE may not be idempotent)
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
