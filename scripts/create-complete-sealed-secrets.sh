@@ -134,16 +134,11 @@ create_sealed_secret "keycloak-admin-credentials" "${NAMESPACE}" \
 
 echo
 
-# 3. Fineract Admin Credentials (OAuth2 client for data loaders and jobs)
-echo "3. Fineract Admin Credentials (for data loader jobs)..."
-FINERACT_ADMIN_CLIENT_ID="fineract-data-loader"
-FINERACT_ADMIN_CLIENT_SECRET="6IJ25BUdxHKpFJKaz8bg0emeElXbp23A"
-FINERACT_ADMIN_TOKEN_URL="http://keycloak.${NAMESPACE}.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token"
-
-create_sealed_secret "fineract-admin-credentials" "${NAMESPACE}" \
-    "client-id=${FINERACT_ADMIN_CLIENT_ID}" \
-    "client-secret=${FINERACT_ADMIN_CLIENT_SECRET}" \
-    "token-url=${FINERACT_ADMIN_TOKEN_URL}"
+# 3. Fineract Admin Credentials - DEPRECATED (moved to keycloak-client-secrets)
+echo "3. Fineract Admin Credentials..."
+echo -e "${YELLOW}  SKIPPED: This secret is now part of keycloak-client-secrets${NC}"
+echo -e "${YELLOW}  OAuth client credentials for data loaders are managed by seal-terraform-secrets.sh${NC}"
+echo -e "${YELLOW}  Key: fineract-data-loader-client-id and fineract-data-loader-client-secret${NC}"
 
 echo
 
@@ -197,7 +192,6 @@ echo
 echo "Application secrets created:"
 echo "  ✓ fineract-redis-secret (namespace: ${NAMESPACE})"
 echo "  ✓ keycloak-admin-credentials (namespace: ${NAMESPACE})"
-echo "  ✓ fineract-admin-credentials (namespace: ${NAMESPACE})"
 echo "  ✓ grafana-admin-credentials (namespace: monitoring)"
 echo "  ✓ keycloak-default-users (namespace: ${NAMESPACE})"
 echo

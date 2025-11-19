@@ -263,37 +263,42 @@ fi
 
 echo
 
-# 3. OAuth2 Proxy Secrets
+# 3. OAuth2 Proxy Secrets (cookie-secret only - OAuth credentials moved to keycloak-client-secrets)
 echo "3. OAuth2 Proxy Secrets..."
-OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
-# OAUTH2_CLIENT_SECRET and OAUTH2_COOKIE_SECRET already fetched from Terraform above (before cd ..)
-
-# Note: Redis password must be provided separately via fineract-redis-secret
-# This secret references in-cluster Redis which uses password from fineract-redis-secret
-# OAuth2 Proxy ConfigMap references redis://fineract-redis:6379 and reads password from OAUTH2_PROXY_REDIS_PASSWORD env var
+# Note: OAuth client credentials (client-id, client-secret) are now in keycloak-client-secrets
+# This secret only contains the cookie-secret for session encryption
 create_sealed_secret "oauth2-proxy-secrets" "${NAMESPACE}" \
-    "client-id=${OAUTH2_CLIENT_ID}" \
-    "client-secret=${OAUTH2_CLIENT_SECRET}" \
     "cookie-secret=${OAUTH2_COOKIE_SECRET}"
 
 echo
 
-# 4. Keycloak Client Secrets (CRITICAL: Must match OAuth2 Proxy client secret)
+# 4. Keycloak Client Secrets (SINGLE SOURCE OF TRUTH for all OAuth client credentials)
 echo "4. Keycloak Client Secrets..."
-echo -e "${YELLOW}  IMPORTANT: Using same OAuth2 client secret to ensure authentication works${NC}"
-echo -e "${YELLOW}  This secret is used by Keycloak realm configuration job${NC}"
+echo -e "${YELLOW}  IMPORTANT: This is the single source of truth for ALL OAuth client credentials${NC}"
+echo -e "${YELLOW}  Used by: oauth2-proxy, user-sync-service, data loader jobs, keycloak realm config${NC}"
 
-# Create keycloak-client-secrets with the SAME OAuth2 client secret
-# The oauth2-proxy key MUST match the client-secret in oauth2-proxy-secrets
-# Otherwise OAuth2 token exchange will fail with 401 Unauthorized
+OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
+# OAUTH2_CLIENT_SECRET and OAUTH2_COOKIE_SECRET already fetched from Terraform above (before cd ..)
+
+# Hardcoded secret for fineract-data-loader (same as in create-complete-sealed-secrets.sh)
+# This value must match what's configured in Keycloak realm-fineract.yaml
+FINERACT_DATA_LOADER_SECRET="6IJ25BUdxHKpFJKaz8bg0emeElXbp23A"
+
+# Create consolidated keycloak-client-secrets with:
+# - Both client-id AND client-secret for all OAuth clients
+# - Renamed keys with -client-id and -client-secret suffixes for clarity
+# - Removed deprecated clients (message-gateway, payment-gateway, data-loader)
+# - Added oauth2-proxy-cookie-secret for completeness (also in oauth2-proxy-secrets for backward compatibility)
 create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
-    "oauth2-proxy=${OAUTH2_CLIENT_SECRET}" \
-    "admin-cli=" \
-    "fineract-api=" \
-    "message-gateway=" \
-    "payment-gateway=" \
-    "data-loader=" \
-    "fineract-data-loader="
+    "oauth2-proxy-client-id=${OAUTH2_CLIENT_ID}" \
+    "oauth2-proxy-client-secret=${OAUTH2_CLIENT_SECRET}" \
+    "oauth2-proxy-cookie-secret=${OAUTH2_COOKIE_SECRET}" \
+    "admin-cli-client-id=admin-cli" \
+    "admin-cli-client-secret=" \
+    "fineract-api-client-id=fineract-api" \
+    "fineract-api-client-secret=" \
+    "fineract-data-loader-client-id=fineract-data-loader" \
+    "fineract-data-loader-client-secret=${FINERACT_DATA_LOADER_SECRET}"
 
 echo
 

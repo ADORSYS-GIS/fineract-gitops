@@ -191,43 +191,25 @@ spec:
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: oauth2-proxy
+              key: oauth2-proxy-client-secret
               optional: true
         - name: ADMIN_CLI_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: admin-cli
+              key: admin-cli-client-secret
               optional: true
         - name: FINERACT_API_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: fineract-api
-              optional: true
-        - name: MESSAGE_GATEWAY_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: message-gateway
-              optional: true
-        - name: PAYMENT_GATEWAY_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: payment-gateway
-              optional: true
-        - name: DATA_LOADER_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: data-loader
+              key: fineract-api-client-secret
               optional: true
         - name: FINERACT_DATA_LOADER_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: fineract-data-loader
+              key: fineract-data-loader-client-secret
               optional: true
         - name: ADMIN_PASSWORD
           valueFrom:

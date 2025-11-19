@@ -103,18 +103,15 @@ spec:
         - name: FINERACT_CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: fineract-admin-credentials
-              key: client-id
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-id
         - name: FINERACT_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: fineract-admin-credentials
-              key: client-secret
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-secret
         - name: FINERACT_TOKEN_URL
-          valueFrom:
-            secretKeyRef:
-              name: fineract-admin-credentials
-              key: token-url
+          value: "http://keycloak-service.fineract-dev.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token"
         volumeMounts:
         - name: data
           mountPath: /data
