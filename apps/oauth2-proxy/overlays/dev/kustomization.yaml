@@ -184,6 +184,7 @@ patches:
           skip_auth_routes = [
             "^/ping$",
             "^/ready$",
+            "^/.*\\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$",
           ]
 
           # ============================================================================
