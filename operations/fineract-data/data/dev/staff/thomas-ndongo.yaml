@@ -9,7 +9,7 @@ spec:
   lastName: Ndongo
   officeId: Head Office
   isLoanOfficer: true
-  joiningDate: '01 January 2024'
+  joiningDate: '2024-01-01'
   externalId: STF-101
   mobileNo: +237 677 11 11 11
   emailAddress: t.ndongo@mfi.cm

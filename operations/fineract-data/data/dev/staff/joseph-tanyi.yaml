@@ -9,7 +9,7 @@ spec:
   lastName: Tanyi
   officeId: Bamenda Branch
   isLoanOfficer: true
-  joiningDate: '01 January 2024'
+  joiningDate: '2024-01-01'
   externalId: STF-012
   mobileNo: +237 677 24 46 68
   emailAddress: j.tanyi@mfi.cm
