@@ -140,7 +140,7 @@ class OfficesLoader(BaseLoader):
         return None
 
     def discover_yaml_files(self) -> List[Path]:
-        """Find all YAML files in the configured directory"""
+        """Find all YAML files with kind: Office in the configured directory"""
         import logging
         logger = logging.getLogger(__name__)
 
@@ -148,8 +148,21 @@ class OfficesLoader(BaseLoader):
             logger.warning(f"YAML directory does not exist: {self.yaml_dir}")
             return []
 
-        yaml_files = list(self.yaml_dir.glob('*.yaml')) + list(self.yaml_dir.glob('*.yml'))
-        return sorted(yaml_files)
+        # Get all YAML files
+        all_yaml_files = list(self.yaml_dir.glob('*.yaml')) + list(self.yaml_dir.glob('*.yml'))
+
+        # Filter by kind: Office
+        filtered_files = []
+        for yaml_file in all_yaml_files:
+            try:
+                yaml_data = self.load_yaml(yaml_file)
+                if yaml_data and yaml_data.get('kind') == 'Office':
+                    filtered_files.append(yaml_file)
+            except Exception as e:
+                logger.debug(f"Skipping {yaml_file.name}: {e}")
+
+        logger.info(f"Found {len(filtered_files)} Office YAML files (filtered from {len(all_yaml_files)} total)")
+        return sorted(filtered_files)
 
     def load_single(self, file_path: Path) -> str:
         """
