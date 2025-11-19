@@ -15,8 +15,8 @@ spec:
   project: fineract-dev
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
-    targetRevision: eks
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: deploy-key
     path: operations/keycloak-database-setup
 
   destination:

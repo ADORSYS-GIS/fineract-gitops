@@ -6,16 +6,17 @@ namespace: fineract-dev
 # Base configuration
 resources:
 - ../../base
-- sealed-keycloak-default-users.yaml
-- keycloak-client-secrets-sealed.yaml
+# Note: Sealed secrets (keycloak-default-users, keycloak-client-secrets) are deployed
+# separately via secrets/dev/ and do not need to be included here.
+# The apply-keycloak-config job references these secrets from the cluster.
 
 # Environment-specific ConfigMap for variables
 configMapGenerator:
 - name: keycloak-config-vars
   literals:
   - domain=dev.fineract.com
-  - auth-hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
-  - apps-hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+  - auth-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
+  - apps-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
   - keycloak-url=http://keycloak-service:8080/auth  # Internal service URL with /auth path
   - smtp-host=email-smtp.us-east-2.amazonaws.com
   - smtp-port=587

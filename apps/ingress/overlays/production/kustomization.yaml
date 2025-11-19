@@ -9,7 +9,7 @@ resources:
 # Override hostname and certificate configuration for production environment
 configMapGenerator:
   - name: ingress-config
-    behavior: replace
+    namespace: fineract-production
     literals:
       - apps-hostname=apps.fineract.com
       - auth-hostname=auth.fineract.com

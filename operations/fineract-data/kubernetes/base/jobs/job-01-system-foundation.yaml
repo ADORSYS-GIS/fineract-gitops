@@ -6,6 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
     argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: 300
   backoffLimit: 3
@@ -14,18 +15,10 @@ spec:
       restartPolicy: OnFailure
       serviceAccountName: fineract-data-loader
 
-      initContainers:
-      - name: validate-yaml
-        image: ghcr.io/adorsys-gis/fineract-loader:v1.0.0
-        command: ["python3", "/app/validate_yaml_data.py", "/data"]
-        volumeMounts:
-        - name: data
-          mountPath: /data
-          readOnly: true
 
       containers:
       - name: loader
-        image: ghcr.io/adorsys-gis/fineract-loader:v1.0.0
+        image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-67c1b91
         command:
         - python3
         - /app/loaders/load_system_foundation.py
@@ -38,24 +31,23 @@ spec:
         - $(TENANT)
         env:
         - name: FINERACT_URL
-          value: "https://api.dev.fineract.com"
+          value: "https://fineract-write-service.fineract-dev.svc.cluster.local:8443/fineract-provider/api/v1"
+        - name: FINERACT_VERIFY_SSL
+          value: "false"
         - name: TENANT
           value: "default"
         - name: FINERACT_CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: fineract-admin-credentials
-              key: client-id
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-id
         - name: FINERACT_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: fineract-admin-credentials
-              key: client-secret
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-secret
         - name: FINERACT_TOKEN_URL
-          valueFrom:
-            secretKeyRef:
-              name: fineract-admin-credentials
-              key: token-url
+          value: "http://keycloak-service.fineract-dev.svc.cluster.local:8080/auth/realms/fineract/protocol/openid-connect/token"
         volumeMounts:
         - name: data
           mountPath: /data
@@ -69,6 +61,7 @@ spec:
             cpu: "500m"
 
       volumes:
+      # ConfigMap mounted directly - new loader supports flat structure with __ separators
       - name: data
         configMap:
           name: fineract-data-system-foundation

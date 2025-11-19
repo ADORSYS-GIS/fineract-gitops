@@ -105,17 +105,17 @@ spec:
           protocol: TCP
 
         env:
-        # OIDC Client credentials
+        # OIDC Client credentials (from consolidated keycloak-client-secrets)
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: oauth2-proxy-secrets
-              key: client-id
+              name: keycloak-client-secrets
+              key: oauth2-proxy-client-id
         - name: OAUTH2_PROXY_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: oauth2-proxy-secrets
-              key: client-secret
+              name: keycloak-client-secrets
+              key: oauth2-proxy-client-secret
 
         # Cookie secret for session encryption
         - name: OAUTH2_PROXY_COOKIE_SECRET

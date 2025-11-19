@@ -9,8 +9,9 @@ metadata:
     app.kubernetes.io/managed-by: gitops
 data:
   # Git repository configuration
+  # Using SSH for deploy key authentication
   repositories: |
-    - url: https://github.com/ADORSYS-GIS/fineract-gitops.git
+    - url: git@github.com:ADORSYS-GIS/fineract-gitops.git
       name: fineract-gitops
       type: git
 

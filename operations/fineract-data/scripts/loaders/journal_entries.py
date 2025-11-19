@@ -45,7 +45,7 @@ class JournalEntrysLoader(BaseLoader):
         logger.info("=" * 80)
         logger.info(f"LOADING {self.entity_type.upper()}S")
         logger.info("=" * 80)
-        yaml_files = sorted(self.yaml_dir.glob('**/*.yaml'))
+        yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.yaml_dir}")
             return self.get_summary()
@@ -56,7 +56,7 @@ class JournalEntrysLoader(BaseLoader):
                 self.failed_entities.append(yaml_file.name)
                 continue
             if yaml_data.get('kind') != self.entity_type:
-                logger.warning(f"  Skipping (not {self.entity_type}): {yaml_file.name}")
+                logger.debug(f"  Skipping (not {self.entity_type}): {yaml_file.name}")
                 continue
             spec = yaml_data.get('spec', {})
             entity_name = spec.get('name', spec.get('externalId', yaml_file.stem))

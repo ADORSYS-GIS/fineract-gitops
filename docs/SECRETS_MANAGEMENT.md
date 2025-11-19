@@ -20,6 +20,14 @@ This document outlines the secrets management strategy for the Fineract GitOps r
 - [Migration from Plaintext Secrets](#migration-from-plaintext-secrets)
 - [FAQ](#faq)
 
+## Related Documentation
+
+For emergency recovery and operational procedures:
+- **[Sealed Secrets DR Runbook](./SEALED_SECRETS_DR_RUNBOOK.md)** - Emergency recovery procedures with quick commands
+- **[Disaster Recovery Guide](./DISASTER_RECOVERY.md)** - Comprehensive DR procedures for all components
+- **[Multi-Region DR Strategy](./MULTI_REGION_DR_STRATEGY.md)** - Cross-region failover strategy
+- **[Key Rotation Audit Log](../operations/sealed-secrets-key-audit.yaml)** - Track all key operations
+
 ## Overview
 
 **Problem:** GitOps requires storing all configuration in Git, but secrets contain sensitive data that cannot be stored in plaintext.

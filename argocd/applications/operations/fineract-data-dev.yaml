@@ -15,7 +15,7 @@ spec:
   source:
     repoURL: "https://github.com/guymoyo/fineract-gitops.git"
     targetRevision: main
-    path: operations/fineract-data/jobs/overlays/dev
+    path: operations/fineract-data
 
   destination:
     server: https://kubernetes.default.svc
@@ -23,8 +23,8 @@ spec:
 
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
+      prune: false
+      selfHeal: false
       allowEmpty: false
 
     syncOptions:

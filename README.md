@@ -102,7 +102,8 @@ Deploy Fineract on any cloud or on-premise with flexible provider abstraction:
 
 ### Supporting Services
 - **User Sync Service** - Password reset and Keycloak synchronization
-- **Pentaho Reports** - Financial reporting engine
+- **Frontend Applications** - Web App, Reporting App, Accounting App
+- **Logging & Monitoring** - Loki/Promtail for logs, Prometheus/Grafana for metrics
 
 ### Infrastructure
 - **ArgoCD** - GitOps continuous deployment
@@ -119,16 +120,20 @@ Deploy Fineract on any cloud or on-premise with flexible provider abstraction:
 fineract-gitops/
 ├── apps/                      # Application manifests
 │   ├── fineract/              # Fineract deployments (read/write/batch)
-│   ├── oauth2-proxy/          # Reverse proxy with OIDC
 │   ├── keycloak/              # SSO/identity provider
+│   ├── oauth2-proxy/          # Reverse proxy with OIDC
 │   ├── fineract-redis/        # Redis StatefulSet for caching
-│   ├── web-app/               # Frontend applications
+│   ├── web-app/               # Main frontend application
+│   ├── accounting-app/        # Accounting module frontend
+│   ├── reporting-app/         # Reporting module frontend
 │   ├── user-sync-service/     # Keycloak user synchronization
 │   ├── ingress/               # Ingress resources
 │   ├── ingress-nginx/         # NGINX ingress controller
 │   ├── network-policies/      # Network security policies
 │   ├── cert-manager/          # TLS certificate management
-│   └── sealed-secrets-controller/  # Secrets management
+│   ├── sealed-secrets-controller/  # Secrets management
+│   ├── logging/               # Loki/Promtail log aggregation
+│   └── monitoring/            # Prometheus/Grafana observability
 │
 ├── terraform/                 # Infrastructure as Code
 │   └── aws/                   # AWS Terraform modules
@@ -375,18 +380,20 @@ kubectl apply -k environments/dev-gcp
 | Component | Status | Version | Notes |
 |-----------|--------|---------|-------|
 | Fineract | ✅ Ready | 1.12.1+ | Multi-instance deployment |
-| PostgreSQL | ✅ Ready | 15 | Self-hosted or managed |
+| PostgreSQL | ✅ Ready | 15 | RDS or self-hosted (Terraform modules) |
 | Redis | ✅ Ready | 7 | In-cluster StatefulSet |
-| Object Storage | ✅ Ready | Latest | AWS S3 or cloud-native object storage |
-| Keycloak | ✅ Ready | 23+ | SSO/IAM |
+| Object Storage | ✅ Ready | Latest | AWS S3, Azure Blob, GCS (Terraform) |
+| Keycloak | ✅ Ready | 24+ | SSO/IAM with WebAuthn 2FA |
 | OAuth2 Proxy | ✅ Ready | Latest | OIDC integration |
-| Frontend Apps | ✅ Ready | Latest | 4 apps deployed |
-| Sealed Secrets | ✅ Ready | v0.26.3 | Secrets management |
+| Frontend Apps | ✅ Ready | Latest | Web, Accounting, Reporting apps |
+| Logging | ✅ Ready | Latest | Loki/Promtail stack |
+| Monitoring | ✅ Ready | Latest | Prometheus/Grafana stack |
+| Sealed Secrets | ✅ Ready | v0.26.3 | GitOps secrets management |
 | ArgoCD | ✅ Ready | 2.9+ | GitOps CD |
-| **Providers** | ✅ Ready | - | **Multi-cloud support** |
+| **Providers** | ✅ Ready | - | **Multi-cloud support (AWS/Azure/GCP)** |
 | **Terraform** | ✅ Ready | 1.5+ | **AWS modules complete** |
-| Kafka | 🔶 Optional | 3.6 | For event streaming |
-| Pentaho | 🔶 Optional | 9.x | For reporting |
+| Kafka | 🔶 Optional | 3.6 | Future: Event streaming (not in /apps/) |
+| Pentaho | 🔶 Optional | 9.x | Future: Advanced reporting (not in /apps/) |
 
 ---
 
@@ -484,9 +491,22 @@ Apache License 2.0 - See [LICENSE](LICENSE) for details.
 ## 🆘 Support
 
 ### Documentation
+
+**Getting Started:**
 - [Getting Started](docs/GETTING_STARTED.md) - Setup guide
 - [Quick Reference](docs/QUICK_REFERENCE.md) - Common commands
-- [Secrets Management](docs/SECRETS_MANAGEMENT.md) - Secrets guide
+- [Deployment Guide](DEPLOYMENT.md) - Complete deployment guide
+
+**Secrets & Security:**
+- [Secrets Management](docs/SECRETS_MANAGEMENT.md) - Complete secrets strategy
+- [Sealed Secrets DR Runbook](docs/SEALED_SECRETS_DR_RUNBOOK.md) - ⚡ Emergency recovery quick reference
+- [Sealed Secrets Deployment Guide](docs/SEALED_SECRETS_DEPLOYMENT_GUIDE.md) - Initial deployment
+
+**Disaster Recovery:**
+- [Disaster Recovery Guide](docs/DISASTER_RECOVERY.md) - Comprehensive DR procedures
+- [Multi-Region DR Strategy](docs/MULTI_REGION_DR_STRATEGY.md) - Cross-region failover
+
+**Multi-Cloud:**
 - [Multi-Provider Implementation](docs/MULTI_PROVIDER_IMPLEMENTATION_PLAN.md) - Multi-cloud deployment
 - [Operations Runbooks](docs/operations/) - Operational procedures
 
@@ -513,7 +533,6 @@ Apache License 2.0 - See [LICENSE](LICENSE) for details.
 - [x] AWS Terraform modules (RDS, S3, IRSA)
 - [x] Cost optimization (60-78% savings in dev)
 - [x] Provider selection guide
-- [x] IRSA/Workload Identity support
 
 ### In Progress 🚧
 - [ ] Azure Terraform modules

@@ -26,6 +26,14 @@
 
 This document provides comprehensive disaster recovery (DR) procedures for the Fineract GitOps platform. It covers various disaster scenarios and step-by-step recovery instructions to restore services with minimal data loss and downtime.
 
+### Quick Reference Documentation
+
+For time-critical Sealed Secrets recovery scenarios, refer to:
+- **[Sealed Secrets DR Runbook](./SEALED_SECRETS_DR_RUNBOOK.md)** - Quick-reference emergency procedures with copy-paste commands
+- **[Multi-Region DR Strategy](./MULTI_REGION_DR_STRATEGY.md)** - Cross-region failover and replication strategy
+
+This document provides comprehensive procedures, while the runbook provides quick decision trees and commands for emergencies.
+
 ### Recovery Objectives
 
 | Metric | Development | UAT | Production |

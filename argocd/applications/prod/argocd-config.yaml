@@ -9,7 +9,7 @@ metadata:
   namespace: argocd
 data:
   # Git repository configuration
-  repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+  repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
   targetRevision: "main"  # Production deploys from main branch (stable releases)
 
   # Environment configuration

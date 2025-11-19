@@ -76,10 +76,11 @@ class StaffLoader(BaseLoader):
         # Optional fields
         if spec.get('externalId'):
             api_data['externalId'] = spec['externalId']
+        # Fineract expects 'mobileNo', not 'mobileNumber'
         if spec.get('mobileNo'):
-            api_data['mobileNumber'] = spec['mobileNo']
-        if spec.get('emailAddress'):
-            api_data['emailAddress'] = spec['emailAddress']
+            api_data['mobileNo'] = spec['mobileNo']
+        # Note: emailAddress is NOT a supported parameter for staff creation API
+        # Email is typically stored in user accounts, not staff records
 
         # Joining date (if provided)
         if spec.get('joiningDate'):
@@ -211,7 +212,7 @@ class StaffLoader(BaseLoader):
         logger.info("LOADING STAFF (with Keycloak user sync)")
         logger.info("=" * 80)
 
-        yaml_files = sorted(self.yaml_dir.glob('**/*.yaml'))
+        yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
 
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.yaml_dir}")
@@ -227,7 +228,7 @@ class StaffLoader(BaseLoader):
 
             # Check if it's the correct kind
             if yaml_data.get('kind') != 'Staff':
-                logger.warning(f"  Skipping (not Staff): {yaml_file.name}")
+                logger.debug(f"  Skipping (not Staff): {yaml_file.name}")
                 continue
 
             spec = yaml_data.get('spec', {})

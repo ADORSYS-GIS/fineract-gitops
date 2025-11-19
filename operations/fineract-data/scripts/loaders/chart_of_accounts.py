@@ -78,7 +78,7 @@ class ChartOfAccountsLoader(BaseLoader):
         logger.info("LOADING CHART OF ACCOUNTS")
         logger.info("=" * 80)
 
-        yaml_files = sorted(self.yaml_dir.glob('**/*.yaml'))
+        yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
 
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.yaml_dir}")

@@ -9,7 +9,7 @@ metadata:
   namespace: argocd
 data:
   # Git repository configuration
-  repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+  repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
   targetRevision: "eks"  # System resources track development branch
 
   # System resources (Sealed Secrets, etc.) are cluster-wide

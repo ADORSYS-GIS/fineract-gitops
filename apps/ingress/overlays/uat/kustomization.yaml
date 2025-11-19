@@ -9,7 +9,7 @@ resources:
 # Override hostname and certificate configuration for UAT environment
 configMapGenerator:
   - name: ingress-config
-    behavior: replace
+    namespace: fineract-uat
     literals:
       - apps-hostname=apps.uat.fineract.com
       - auth-hostname=auth.uat.fineract.com

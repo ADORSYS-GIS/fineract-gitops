@@ -1,0 +1,63 @@
+---
+# Ingress for Keycloak (authentication server)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  labels:
+    app: keycloak
+    component: ingress
+    purpose: authentication
+  annotations:
+    # SSL/TLS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # cert-manager - automatic certificate management
+    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # Proxy settings for Keycloak
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # Timeouts (important for Keycloak admin operations and realm import)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+
+    # Proxy headers for Keycloak (standardized with other ingresses)
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - $(AUTH_HOSTNAME)
+    secretName: keycloak-tls
+
+  rules:
+  - host: $(AUTH_HOSTNAME)
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak-service
+            port:
+              number: 8080

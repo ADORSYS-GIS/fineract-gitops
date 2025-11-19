@@ -9,8 +9,8 @@ spec:
   project: fineract-dev
 
   source:
-    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: eks  # Auto-sync from eks branch
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: deploy-key  # Auto-sync from mifosweb branch
     path: argocd/applications/dev
     directory:
       recurse: false

@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: keycloak-config-cli
-        image: adorsys/keycloak-config-cli
+        image: adorsys/keycloak-config-cli:latest-24.0.5
         env:
         # Keycloak Connection
         # KEYCLOAK_URL should be set via ConfigMap in environment overlays
@@ -46,22 +46,30 @@ spec:
         - name: IMPORT_FILES_LOCATIONS
           value: "/config-processed/*"  # Use processed config with substituted variables
         # IMPORT_FORCE Design Decision:
-        # Set to "false" to allow manual Keycloak admin changes while maintaining GitOps
-        # RATIONALE:
-        # - frontendUrl now uses dynamic ${AUTH_HOSTNAME} variable (environment-specific)
-        # - Configuration will be correct on first deployment in each environment
-        # - No need to force overwrite manual changes made via Keycloak admin UI
-        # - Supports semi-GitOps approach: Git controls structure, admins can customize
+        # Set to "true" for dev to enable true GitOps (Git as source of truth)
+        # Set to "false" for production to preserve manual admin changes
         #
-        # BEHAVIOR with IMPORT_FORCE=false:
+        # RATIONALE for dev=true:
+        # - Development environment where consistency matters more than manual tweaks
+        # - Allows realm configuration updates via Git to automatically apply
+        # - Prevents job failures when realm already exists
+        # - Easier to maintain and test configuration changes
+        #
+        # BEHAVIOR with IMPORT_FORCE=true:
+        # - Realms/clients/roles from Git will be created OR updated
+        # - Existing items WILL be overwritten to match Git configuration
+        # - Users are created if missing, updated if changed
+        # - Client secrets will be updated (ensure they're in sync with sealed secrets)
+        #
+        # BEHAVIOR with IMPORT_FORCE=false (recommended for production):
         # - New realms/clients/roles from Git will be created
         # - Existing items will NOT be overwritten (manual changes preserved)
         # - Users are never overwritten (only created if missing)
-        # - Role assignments and client secrets persist
+        # - Allows admins to customize via Keycloak UI
         #
-        # NOTE: Set to "true" temporarily if you need to force a configuration reset
+        # NOTE: Override per environment via kustomization.yaml patches
         - name: IMPORT_FORCE
-          value: "false"
+          value: "true"
         - name: IMPORT_VALIDATE
           value: "true"
         # IMPORT_VAR_SUBSTITUTION_ENABLED Design Decision:
@@ -146,6 +154,11 @@ spec:
             configMapKeyRef:
               name: keycloak-config-vars
               key: apps-hostname
+        - name: AUTH_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config-vars
+              key: auth-hostname
         - name: SMTP_HOST
           valueFrom:
             configMapKeyRef:
@@ -174,47 +187,53 @@ spec:
           value: "false"
         - name: SMTP_AUTH
           value: "true"
+        - name: OAUTH2_PROXY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: oauth2-proxy-client-id
+              optional: true
         - name: OAUTH2_PROXY_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: oauth2-proxy
+              key: oauth2-proxy-client-secret
+              optional: true
+        - name: ADMIN_CLI_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: admin-cli-client-id
               optional: true
         - name: ADMIN_CLI_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: admin-cli
+              key: admin-cli-client-secret
+              optional: true
+        - name: FINERACT_API_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-api-client-id
               optional: true
         - name: FINERACT_API_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: fineract-api
+              key: fineract-api-client-secret
               optional: true
-        - name: MESSAGE_GATEWAY_SECRET
+        - name: FINERACT_DATA_LOADER_CLIENT_ID
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: message-gateway
-              optional: true
-        - name: PAYMENT_GATEWAY_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: payment-gateway
-              optional: true
-        - name: DATA_LOADER_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: data-loader
+              key: fineract-data-loader-client-id
               optional: true
         - name: FINERACT_DATA_LOADER_SECRET
           valueFrom:
             secretKeyRef:
               name: keycloak-client-secrets
-              key: fineract-data-loader
+              key: fineract-data-loader-client-secret
               optional: true
         - name: ADMIN_PASSWORD
           valueFrom:

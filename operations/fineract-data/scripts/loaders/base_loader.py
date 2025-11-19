@@ -174,6 +174,18 @@ class BaseLoader:
 
         # Create session with authentication
         self.session = requests.Session()
+
+        # SSL Verification Configuration
+        # Allow disabling SSL verification for development/testing environments with self-signed certificates
+        verify_ssl = os.getenv('FINERACT_VERIFY_SSL', 'true').lower() in ('true', '1', 'yes')
+        self.session.verify = verify_ssl
+
+        if not verify_ssl:
+            # Suppress InsecureRequestWarning when SSL verification is disabled
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            logger.warning("SSL certificate verification is DISABLED - not recommended for production")
+
         self.session.headers.update({
             'Fineract-Platform-TenantId': self.tenant,
             'Content-Type': 'application/json',
@@ -192,8 +204,8 @@ class BaseLoader:
         retry_strategy = Retry(
             total=3,  # Maximum number of retries
             backoff_factor=1,  # Wait 1s, 2s, 4s between retries
-            status_forcelist=[429, 500, 502, 503, 504],  # Retry on these HTTP status codes
-            allowed_methods=["GET", "POST", "PUT", "DELETE"]  # Retry all methods (idempotent operations)
+            status_forcelist=[429, 502, 503, 504],  # Retry on transient errors (removed 500 - it's usually a validation error)
+            allowed_methods=["GET"]  # Only retry GET requests (POST/PUT/DELETE may not be idempotent)
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)

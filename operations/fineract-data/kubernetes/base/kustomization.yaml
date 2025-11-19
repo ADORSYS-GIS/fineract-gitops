@@ -19,11 +19,3 @@ commonLabels:
   app.kubernetes.io/name: fineract-data-loader
   app.kubernetes.io/component: data-initialization
   app.kubernetes.io/part-of: fineract
-
-# Wave-based job execution order (consolidated from 39 to 6 jobs):
-# Wave 5:  System Foundation (code values, offices, staff, roles, currency, working days, account formats, maker-checker, scheduler jobs)
-# Wave 10: Products (loan/savings products, charges, collateral, guarantor types, floating rates, delinquency buckets, notifications, data tables, tellers, reports)
-# Wave 21: Accounting (chart of accounts, fund sources, payment types, tax groups, loan provisioning, financial activity mappings, product accounting)
-# Wave 30: Entities (demo clients, savings accounts, loan accounts, loan collateral, loan guarantors)
-# Wave 35: Transactions (savings deposits/withdrawals, loan repayments, inter-branch transfers)
-# Wave 40: Calendar (holidays)

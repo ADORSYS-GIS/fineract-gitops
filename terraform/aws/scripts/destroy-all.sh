@@ -568,8 +568,8 @@ else
 
     # Wait for NAT Gateways to fully delete (can take 5-10 minutes)
     echo -e "${BLUE}    Waiting for NAT Gateways to delete (up to 10 minutes)...${NC}"
-    local elapsed=0
-    local max_wait=600
+    elapsed=0
+    max_wait=600
     while [ $elapsed -lt $max_wait ]; do
       remaining=$(aws ec2 describe-nat-gateways --region "$AWS_REGION" \
         --filter "Name=vpc-id,Values=$VPC_ID" "Name=state,Values=pending,deleting,available" \

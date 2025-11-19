@@ -61,7 +61,7 @@ oauth2DevicePollingInterval: 5
 # Clients (4 total - OAuth2 Proxy + Service Accounts)
 clients:
   # 1. OAuth2 Proxy Client (Server-side for ALL web frontends)
-  - clientId: fineract-oauth2-proxy
+  - clientId: "${OAUTH2_PROXY_CLIENT_ID}"
     name: Fineract OAuth2 Proxy
     description: OAuth2 Proxy - protects all web frontends with OIDC authentication
     enabled: true
@@ -156,7 +156,7 @@ clients:
         protocolMapper: oidc-audience-mapper
         consentRequired: false
         config:
-          included.client.audience: "fineract-oauth2-proxy"
+          included.client.audience: "${OAUTH2_PROXY_CLIENT_ID}"
           id.token.claim: "false"
           access.token.claim: "true"
 
@@ -175,7 +175,7 @@ clients:
 
 
   # 2. Admin CLI (Keycloak Config CLI + User Sync)
-  - clientId: admin-cli
+  - clientId: "${ADMIN_CLI_CLIENT_ID}"
     name: Webank Admin CLI
     description: Keycloak configuration management and user synchronization
     enabled: true
@@ -200,7 +200,7 @@ clients:
       - email
 
   # 3. Fineract API (Generic backend service account)
-  - clientId: fineract-api
+  - clientId: "${FINERACT_API_CLIENT_ID}"
     name: Fineract API Service Account
     description: Generic service account for backend integrations with Fineract
     enabled: true
@@ -237,7 +237,7 @@ clients:
           jsonType.label: "String"
 
   # 4. Fineract Data Loader (Automated data loading operations)
-  - clientId: fineract-data-loader
+  - clientId: "${FINERACT_DATA_LOADER_CLIENT_ID}"
     name: Fineract Data Loader Service
     description: Service account for automated data loading jobs (system config, demo data)
     enabled: true
@@ -515,7 +515,7 @@ attributes:
   # - The value MUST include the /auth path to match KC_HTTP_RELATIVE_PATH
   #
   # Environment-specific values (from overlays/*/kustomization.yaml):
-  # - dev: ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+  # - dev: Uses AUTH_HOSTNAME from environment (LoadBalancer DNS)
   # - uat: auth.uat.fineract.com
   # - production: auth.fineract.com
   frontendUrl: "https://${AUTH_HOSTNAME}/auth"

@@ -10,6 +10,15 @@ This guide explains how to deploy Fineract using Sealed Secrets for secret manag
 4. [Troubleshooting](#troubleshooting)
 5. [Secret Inventory](#secret-inventory)
 
+## Related Documentation
+
+For operational procedures and emergency recovery:
+- **[Sealed Secrets DR Runbook](./SEALED_SECRETS_DR_RUNBOOK.md)** - Emergency recovery quick reference
+- **[Secrets Management Strategy](./SECRETS_MANAGEMENT.md)** - Complete secrets strategy and best practices
+- **[Disaster Recovery Guide](./DISASTER_RECOVERY.md)** - Comprehensive DR procedures
+- **[Multi-Region DR Strategy](./MULTI_REGION_DR_STRATEGY.md)** - Cross-region failover strategy
+- **[ADR-003: Sealed Secrets](./architecture/ADR-003-sealed-secrets.md)** - Architecture decision record
+
 ---
 
 ## Prerequisites

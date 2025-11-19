@@ -70,9 +70,9 @@ metadata:
   name: loadbalancer-config
   namespace: fineract-{env}
 data:
-  LOADBALANCER_DNS: "ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com"
-  APPS_HOSTNAME: "ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com"
-  AUTH_HOSTNAME: "ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com"
+  LOADBALANCER_DNS: "a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com"
+  APPS_HOSTNAME: "a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com"
+  AUTH_HOSTNAME: "a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com"
 ```
 
 **Purpose**:

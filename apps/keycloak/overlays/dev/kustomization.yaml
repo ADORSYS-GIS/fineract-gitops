@@ -19,7 +19,7 @@ configMapGenerator:
   - name: ingress-config
     behavior: merge
     literals:
-      - auth-hostname=ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com
+      - auth-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
 
 patches:
   - patch: |-
@@ -32,13 +32,15 @@ patches:
           spec:
             containers:
             - name: keycloak
-              args:
-              - start
-              - --http-enabled=true
-              - --health-enabled=true
-              - --proxy-headers=xforwarded
-              - --hostname-backchannel-dynamic=true
-              - --hostname=https://ab98d58ce979144bbb37d6fab75be6a4-29a9ced60460ad27.elb.us-east-2.amazonaws.com/auth
+              env:
+              - name: KC_HOSTNAME
+                value: a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
+              - name: KC_HOSTNAME_STRICT
+                value: "false"
+              - name: KC_HTTP_ENABLED
+                value: "true"
+              - name: KC_PROXY
+                value: "edge"
     target:
       kind: Deployment
       name: keycloak

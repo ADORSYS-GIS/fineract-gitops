@@ -8,8 +8,8 @@
 #
 # Prerequisites:
 # 1. Infrastructure must be deployed (make deploy-infrastructure-dev)
-# 2. Kubeconfig must be configured
-# 3. GITHUB_TOKEN must be set
+# 2. Kubeconfig will be auto-configured (or set KUBECONFIG manually)
+# 3. SSH deploy key must exist at ~/.ssh/argocd-deploy-key
 #
 # This script performs:
 # 1. Deploys GitOps tools (ArgoCD, Sealed Secrets, ingress-nginx, cert-manager)
@@ -82,6 +82,18 @@ if [ ! -f "Makefile" ]; then
     error_exit "Not in repository root. Expected to find Makefile."
 fi
 
+# Auto-export KUBECONFIG if not already set
+if [ -z "$KUBECONFIG" ]; then
+    KUBECONFIG_PATH="$HOME/.kube/config-fineract-$ENV"
+    if [ -f "$KUBECONFIG_PATH" ]; then
+        export KUBECONFIG="$KUBECONFIG_PATH"
+        log_info "Auto-exported KUBECONFIG=$KUBECONFIG"
+    else
+        log_warn "KUBECONFIG not set and default path not found: $KUBECONFIG_PATH"
+        log_warn "Will attempt to use default kubectl config"
+    fi
+fi
+
 # ============================================================================
 # Pre-Flight Checks
 # ============================================================================
@@ -112,13 +124,15 @@ preflight_check() {
         log "✓ Connected to cluster: $CLUSTER_NAME"
     fi
 
-    # Check 3: GITHUB_TOKEN
-    if [ -z "$GITHUB_TOKEN" ]; then
-        log_error "GITHUB_TOKEN environment variable not set"
-        echo "  Fix: export GITHUB_TOKEN='your_token'"
-        ((errors++))
+    # Check 3: SSH Deploy Key (replacing GITHUB_TOKEN)
+    if [ -f "$HOME/.ssh/argocd-deploy-key" ]; then
+        log "✓ SSH deploy key found at ~/.ssh/argocd-deploy-key"
     else
-        log "✓ GITHUB_TOKEN is set"
+        log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
+        echo "  This is needed for ArgoCD to access the Git repository"
+        echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
+        echo "  Then add public key to GitHub repository deploy keys"
+        ((errors++))
     fi
 
     # Check 4: Terraform outputs (needed for sealed secrets)
@@ -186,17 +200,16 @@ preflight_check() {
 # Run pre-flight checks
 preflight_check
 
-# Verify prerequisites (kept for backwards compatibility)
-if [ -z "$KUBECONFIG" ]; then
-    error_exit "KUBECONFIG environment variable not set. Run: export KUBECONFIG=~/.kube/config-fineract-$ENV"
-fi
-
+# Additional validation (KUBECONFIG should already be set from above)
 if ! kubectl cluster-info &> /dev/null; then
     error_exit "Cannot connect to Kubernetes cluster. Ensure infrastructure is deployed and kubeconfig is configured."
 fi
 
-if [ -z "$GITHUB_TOKEN" ]; then
-    error_exit "GITHUB_TOKEN environment variable not set. Run: export GITHUB_TOKEN='your_token'"
+# Verify SSH deploy key exists
+if [ ! -f "$HOME/.ssh/argocd-deploy-key" ]; then
+    log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
+    log_warn "ArgoCD may not be able to access the Git repository"
+    log_warn "Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
 fi
 
 echo
@@ -299,6 +312,54 @@ fi
 # ============================================================================
 # PHASE 2.5: Sealed Secrets Strategy - Restore or Regenerate
 # ============================================================================
+
+# Pre-flight check: Validate Terraform state has OAuth2 resources
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PRE-FLIGHT CHECK: Terraform OAuth2 Resources${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Validating Terraform state before sealed secrets generation..."
+echo
+
+cd "$REPO_ROOT/terraform/aws"
+if ! terraform state list 2>/dev/null | grep -q "random_password.oauth2"; then
+    echo -e "${RED}✗ OAuth2 secrets not found in Terraform state${NC}"
+    echo ""
+    echo -e "${YELLOW}Terraform must be applied first to create OAuth2 random passwords.${NC}"
+    echo ""
+    echo "These resources were added in commit 51a5838 to make OAuth2 secrets persistent."
+    echo "Without them, Keycloak and OAuth2-Proxy will fail to authenticate."
+    echo ""
+    echo -e "${BLUE}Required resources:${NC}"
+    echo "  - random_password.oauth2_client_secret"
+    echo "  - random_password.oauth2_cookie_secret"
+    echo ""
+    read -p "Run terraform apply now? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Running terraform apply..."
+        if terraform apply -var-file="environments/${ENV}-eks.tfvars"; then
+            echo -e "${GREEN}✓ Terraform apply completed successfully${NC}"
+        else
+            echo -e "${RED}✗ Terraform apply failed${NC}"
+            echo "Deployment cannot continue without OAuth2 secrets."
+            exit 1
+        fi
+    else
+        echo -e "${RED}Deployment cannot continue without Terraform OAuth2 secrets.${NC}"
+        echo ""
+        echo "Please run manually:"
+        echo "  cd terraform/aws"
+        echo "  terraform apply -var-file=environments/${ENV}-eks.tfvars"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✓ OAuth2 resources found in Terraform state${NC}"
+fi
+echo
+
+cd "$REPO_ROOT"
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}PHASE 2.5: Sealed Secrets Strategy${NC}"
@@ -485,6 +546,7 @@ declare -a CONFIG_FILES=(
     "apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml"
     "apps/keycloak/overlays/${ENV}/kustomization.yaml"
     "apps/fineract/overlays/${ENV}/kustomization.yaml"
+    "operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
 )
 
 for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
@@ -597,6 +659,70 @@ log "✓ Applications deployed successfully"
 echo
 
 # ============================================================================
+# PHASE 6.5: Verify Keycloak Configuration
+# ============================================================================
+
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PHASE 6.5: Verify Keycloak Configuration${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Waiting for Keycloak pod to be ready..."
+
+# Wait for Keycloak pod (5 minute timeout)
+if kubectl wait --for=condition=ready pod -l app=keycloak -n fineract-${ENV} --timeout=300s > /dev/null 2>&1; then
+    log "✓ Keycloak pod is ready"
+else
+    log_warn "Keycloak pod not ready within 5 minutes (continuing anyway)"
+fi
+
+log_info "Waiting for apply-keycloak-config job to complete..."
+
+# Wait for keycloak-config job (10 minute timeout)
+MAX_WAIT=600
+ELAPSED=0
+CHECK_INTERVAL=5
+
+while [ $ELAPSED -lt $MAX_WAIT ]; do
+    JOB_STATUS=$(kubectl get job apply-keycloak-config -n fineract-${ENV} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' 2>/dev/null || echo "")
+    JOB_FAILED=$(kubectl get job apply-keycloak-config -n fineract-${ENV} -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || echo "")
+
+    if [ "$JOB_STATUS" = "True" ]; then
+        log "✓ Keycloak configuration job completed successfully"
+        break
+    elif [ "$JOB_FAILED" = "True" ]; then
+        log_warn "Keycloak configuration job failed!"
+        log_warn "Check logs: kubectl logs -n fineract-${ENV} job/apply-keycloak-config"
+        break
+    fi
+
+    REMAINING=$((MAX_WAIT - ELAPSED))
+    printf "\r... waiting for keycloak-config job (${ELAPSED}s elapsed, ${REMAINING}s remaining)"
+    sleep $CHECK_INTERVAL
+    ELAPSED=$((ELAPSED + CHECK_INTERVAL))
+done
+
+if [ $ELAPSED -ge $MAX_WAIT ]; then
+    log_warn "Keycloak configuration job did not complete within 10 minutes"
+    log_warn "This may cause OAuth2 authentication issues"
+fi
+
+echo
+log_info "Verifying Fineract realm is accessible..."
+
+# Test realm OIDC discovery endpoint
+if curl -k -s -f "https://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
+    log "✓ Fineract realm OIDC discovery endpoint is accessible"
+elif curl -k -s -f "http://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
+    log "✓ Fineract realm OIDC discovery endpoint is accessible (HTTP)"
+else
+    log_warn "Fineract realm OIDC endpoint not accessible yet (may need more time)"
+fi
+
+log "✓ Keycloak configuration verification complete"
+echo
+
+# ============================================================================
 # PHASE 7: Wait for Applications to be Ready
 # ============================================================================
 
@@ -652,6 +778,120 @@ else
     log "✓ All applications are ready"
     echo
 fi
+
+# ============================================================================
+# PHASE 7.5: Verify OAuth2-Proxy Service
+# ============================================================================
+
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PHASE 7.5: Verify OAuth2-Proxy Service${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Waiting for OAuth2-Proxy pod to be ready..."
+
+# Wait for OAuth2-Proxy pod (3 minute timeout)
+if kubectl wait --for=condition=ready pod -l app=oauth2-proxy -n fineract-${ENV} --timeout=180s > /dev/null 2>&1; then
+    log "✓ OAuth2-Proxy pod is ready"
+else
+    log_warn "OAuth2-Proxy pod not ready within 3 minutes"
+    log_warn "Check pod status: kubectl get pods -l app=oauth2-proxy -n fineract-${ENV}"
+fi
+
+log_info "Checking OAuth2-Proxy logs for OIDC discovery..."
+
+# Check logs for OIDC discovery success
+OAUTH2_POD=$(kubectl get pod -l app=oauth2-proxy -n fineract-${ENV} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+if [ -n "$OAUTH2_POD" ]; then
+    if kubectl logs "$OAUTH2_POD" -n fineract-${ENV} 2>/dev/null | grep -q "performing oidc discovery"; then
+        log "✓ OAuth2-Proxy performing OIDC discovery"
+    else
+        log_warn "OIDC discovery log not found (OAuth2-Proxy may still be initializing)"
+    fi
+fi
+
+log_info "Testing OAuth2-Proxy endpoints..."
+
+# Test /oauth2/ping endpoint
+if curl -k -s -f "https://${LB_DNS}/oauth2/ping" > /dev/null 2>&1; then
+    log "✓ OAuth2-Proxy /ping endpoint is accessible"
+elif curl -k -s -f "http://${LB_DNS}/oauth2/ping" > /dev/null 2>&1; then
+    log "✓ OAuth2-Proxy /ping endpoint is accessible (HTTP)"
+else
+    log_warn "OAuth2-Proxy /ping endpoint not accessible yet"
+fi
+
+# Test /oauth2/ready endpoint
+if curl -k -s -f "https://${LB_DNS}/oauth2/ready" > /dev/null 2>&1; then
+    log "✓ OAuth2-Proxy /ready endpoint reports ready"
+elif curl -k -s -f "http://${LB_DNS}/oauth2/ready" > /dev/null 2>&1; then
+    log "✓ OAuth2-Proxy /ready endpoint reports ready (HTTP)"
+else
+    log_warn "OAuth2-Proxy /ready endpoint not ready yet"
+fi
+
+log "✓ OAuth2-Proxy verification complete"
+echo
+
+# ============================================================================
+# PHASE 8: Final Health Check
+# ============================================================================
+
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PHASE 8: Final Health Check${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Performing final health checks..."
+
+# Check for pods in CrashLoopBackOff
+CRASH_PODS=$(kubectl get pods -n fineract-${ENV} --field-selector=status.phase!=Succeeded -o jsonpath='{range .items[?(@.status.containerStatuses[*].state.waiting.reason=="CrashLoopBackOff")]}{.metadata.name}{"\n"}{end}' 2>/dev/null || echo "")
+if [ -z "$CRASH_PODS" ]; then
+    log "✓ No pods in CrashLoopBackOff"
+else
+    log_warn "Pods in CrashLoopBackOff:"
+    echo "$CRASH_PODS" | while read -r pod; do
+        log_warn "  - $pod"
+    done
+fi
+
+# Test Keycloak realm endpoint
+log_info "Testing Keycloak realm endpoint..."
+if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/auth/realms/fineract" | grep -q "200\|302"; then
+    log "✓ Keycloak realm endpoint is responding"
+elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/auth/realms/fineract" | grep -q "200\|302"; then
+    log "✓ Keycloak realm endpoint is responding (HTTP)"
+else
+    log_warn "Keycloak realm endpoint not responding as expected"
+fi
+
+# Test Fineract health endpoint
+log_info "Testing Fineract actuator health endpoint..."
+if curl -k -s "https://${LB_DNS}/fineract-provider/actuator/health" | grep -q '"status":"UP"'; then
+    log "✓ Fineract actuator reports UP"
+elif curl -k -s "http://${LB_DNS}/fineract-provider/actuator/health" | grep -q '"status":"UP"'; then
+    log "✓ Fineract actuator reports UP (HTTP)"
+else
+    log_warn "Fineract actuator health check failed (may need more time to initialize)"
+fi
+
+# Verify authentication is required for protected endpoint
+log_info "Verifying authentication is enforced..."
+HTTP_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/fineract-provider/api/v1/offices" 2>/dev/null || echo "000")
+if [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "307" ]; then
+    log "✓ Authentication is enforced (HTTP $HTTP_CODE redirect/unauthorized)"
+elif [ "$HTTP_CODE" = "200" ]; then
+    log_warn "Protected endpoint returned 200 without authentication (OAuth2 may not be active)"
+else
+    log_warn "Unexpected response code from protected endpoint: $HTTP_CODE"
+fi
+
+# Summary of ArgoCD applications
+log_info "Final ArgoCD application status:"
+kubectl get applications -n argocd -o custom-columns="NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status" 2>/dev/null | grep "fineract-${ENV}" || true
+
+log "✓ Final health check complete"
+echo
 
 # ============================================================================
 # Deployment Summary

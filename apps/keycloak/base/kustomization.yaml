@@ -44,4 +44,4 @@ labels:
 # Image management - allows overriding image tags per environment
 images:
   - name: quay.io/keycloak/keycloak
-    newTag: "26.4.0"
+    newTag: "24.0.5"

@@ -14,6 +14,23 @@ spec:
   - Egress
 
   ingress:
+  # Allow health checks from kubelet (for liveness/readiness/startup probes)
+  # Kubelet runs on the host network, so we need to allow all traffic on health ports
+  # This is required for Kubernetes to properly health-check the pod
+  - from: []  # Allow from any source for health checks
+    ports:
+    - protocol: TCP
+      port: 8080  # Main application port (health endpoints are here in Keycloak 24.x)
+    - protocol: TCP
+      port: 9000  # Management port (if configured)
+
+  # Allow from same namespace pods (for init containers like apply-keycloak-config)
+  - from:
+    - podSelector: {}  # Allow from any pod in same namespace
+    ports:
+    - protocol: TCP
+      port: 8080
+
   # Allow from OAuth2 Proxy
   - from:
     - podSelector:

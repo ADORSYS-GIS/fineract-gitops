@@ -116,7 +116,8 @@ git push
 - `rds-connection` - RDS database connection (deprecated)
 - `fineract-db-credentials` - Fineract database credentials (comprehensive)
 - `keycloak-db-credentials` - Keycloak RDS database credentials
-- `oauth2-proxy-secrets` - OAuth2 Proxy client credentials
+- `oauth2-proxy-secrets` - OAuth2 Proxy cookie secret only (client credentials moved to keycloak-client-secrets)
+- `keycloak-client-secrets` - ALL OAuth2 client credentials (consolidated single source of truth)
 - `s3-connection` - S3 bucket configuration
 - `smtp-credentials` - SES email credentials (if SES enabled)
 - `fineract-redis-credentials` - ElastiCache Redis (if provisioned)
@@ -162,9 +163,10 @@ git push
 **Creates:**
 - `fineract-redis-secret` - In-cluster Redis password
 - `keycloak-admin-credentials` - Keycloak admin user
-- `fineract-admin-credentials` - OAuth2 client for data loader jobs
+- `keycloak-default-users` - Default user passwords for Keycloak realm
 - `grafana-admin-credentials` - Grafana admin user
-- `keycloak-client-secrets` - Placeholder for Keycloak export job
+
+**Note:** OAuth2 client credentials (including fineract-data-loader) are now managed by `seal-terraform-secrets.sh` in the consolidated `keycloak-client-secrets` secret
 
 **Security Notes:**
 - Dev environment uses simple passwords (`admin/admin`) for convenience
@@ -467,13 +469,13 @@ secrets/
 | keycloak-db-credentials | Infrastructure | Terraform | Keycloak RDS database credentials |
 | s3-connection | Infrastructure | Terraform | S3 bucket names, AWS region |
 | service-account | Infrastructure | Terraform | IRSA role ARN annotation |
-| oauth2-proxy-secrets | Infrastructure | Terraform | OAuth2 client ID, secret, cookie secret |
+| oauth2-proxy-secrets | Infrastructure | Terraform | OAuth2 Proxy cookie secret only |
+| keycloak-client-secrets | Infrastructure | Terraform | ALL OAuth2 client credentials (oauth2-proxy, admin-cli, fineract-api, fineract-data-loader) |
 | smtp-credentials | Infrastructure | Terraform (optional) | SES SMTP credentials |
 | fineract-redis-secret | Application | Generated | In-cluster Redis password |
 | keycloak-admin-credentials | Application | Generated | Keycloak admin username/password |
-| fineract-admin-credentials | Application | Generated | OAuth2 client for data loaders |
+| keycloak-default-users | Application | Generated | Default user passwords for Keycloak realm |
 | grafana-admin-credentials | Application | Generated | Grafana admin username/password |
-| keycloak-client-secrets | Application | Placeholder | Populated by Keycloak export job |
 
 ## Support
 

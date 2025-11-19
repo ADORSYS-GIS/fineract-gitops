@@ -166,6 +166,34 @@ module "iam" {
   tags = local.common_tags
 }
 
+# ==============================================================================
+# OAuth2 Secrets (for OAuth2-Proxy and Keycloak client configuration)
+# ==============================================================================
+
+resource "random_password" "oauth2_client_secret" {
+  length  = 64
+  special = false # Only alphanumeric for OAuth2 compatibility
+  upper   = true
+  lower   = true
+  numeric = true
+
+  lifecycle {
+    ignore_changes = [length, special, upper, lower, numeric]
+  }
+}
+
+resource "random_password" "oauth2_cookie_secret" {
+  length  = 32
+  special = false # Only alphanumeric for cookie compatibility
+  upper   = true
+  lower   = true
+  numeric = true
+
+  lifecycle {
+    ignore_changes = [length, special, upper, lower, numeric]
+  }
+}
+
 # Kubernetes Namespace and Secrets - Managed by ArgoCD + Sealed Secrets
 # See: scripts/seal-terraform-secrets.sh for creating sealed secrets from Terraform outputs
 #

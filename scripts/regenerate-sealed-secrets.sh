@@ -95,17 +95,18 @@ fi
 
 echo ""
 
-# ArgoCD GitHub credentials
-echo -e "${BLUE}→ Regenerating ArgoCD GitHub credentials...${NC}"
-if [ -z "$GITHUB_TOKEN" ]; then
-    echo -e "${YELLOW}⚠ GITHUB_TOKEN not set, skipping ArgoCD credentials${NC}"
-    echo "Set GITHUB_TOKEN and run: make seal-argocd-secret"
+# ArgoCD SSH credentials
+echo -e "${BLUE}→ Regenerating ArgoCD SSH credentials...${NC}"
+SSH_DEPLOY_KEY="${HOME}/.ssh/argocd-deploy-key"
+if [ ! -f "$SSH_DEPLOY_KEY" ]; then
+    echo -e "${YELLOW}⚠ SSH deploy key not found at $SSH_DEPLOY_KEY, skipping ArgoCD credentials${NC}"
+    echo "Generate key with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f $SSH_DEPLOY_KEY -N \"\""
 else
-    if [ -f "scripts/seal-argocd-github-credentials.sh" ]; then
-        SEALED_SECRETS_CERT=/tmp/sealed-secrets-cert.pem ./scripts/seal-argocd-github-credentials.sh "$GITHUB_TOKEN"
-        echo -e "${GREEN}✓${NC} ArgoCD credentials regenerated"
+    if [ -f "scripts/seal-argocd-ssh-credentials.sh" ]; then
+        SEALED_SECRETS_CERT=/tmp/sealed-secrets-cert.pem ./scripts/seal-argocd-ssh-credentials.sh
+        echo -e "${GREEN}✓${NC} ArgoCD SSH credentials regenerated"
     else
-        echo -e "${YELLOW}⚠ seal-argocd-github-credentials.sh not found, skipping${NC}"
+        echo -e "${YELLOW}⚠ seal-argocd-ssh-credentials.sh not found, skipping${NC}"
     fi
 fi
 
