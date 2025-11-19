@@ -97,7 +97,7 @@ spec:
         - $(TENANT)
         env:
         - name: FINERACT_URL
-          value: "http://fineract-write-service.fineract-dev.svc.cluster.local:8080/fineract-provider/api/v1"
+          value: "https://fineract-write-service.fineract-dev.svc.cluster.local:8443/fineract-provider/api/v1"
         - name: TENANT
           value: "default"
         - name: FINERACT_CLIENT_ID
