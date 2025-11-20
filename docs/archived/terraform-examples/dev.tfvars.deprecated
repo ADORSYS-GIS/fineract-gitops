@@ -1,0 +1,82 @@
+# Development Environment Configuration
+# Cost-optimized setup for development and testing
+
+# Basic Configuration
+cluster_name = "fineract-dev"
+environment  = "dev"
+aws_region   = "us-east-2"
+
+# Network Configuration
+# IMPORTANT: Replace these with your actual VPC and subnet IDs
+vpc_id              = "vpc-xxxxx"                      # Your VPC ID
+database_subnet_ids = ["subnet-xxxxx", "subnet-yyyyy"] # Private subnets for RDS
+cache_subnet_ids    = ["subnet-xxxxx", "subnet-yyyyy"] # Private subnets for ElastiCache
+
+# EKS Configuration
+# IMPORTANT: Replace these with your EKS cluster details
+eks_cluster_security_group_id = "sg-xxxxx"                                          # Your EKS cluster security group
+eks_oidc_provider_url         = "https://oidc.eks.us-east-2.amazonaws.com/id/XXXXX" # Your EKS OIDC provider URL
+
+# Kubernetes
+kubernetes_namespace = "fineract-dev"
+
+# RDS Configuration - Cost Optimized for Dev
+rds_postgres_version      = "15.4"
+rds_instance_class        = "db.t4g.micro" # Cheapest instance (~$12/month)
+rds_allocated_storage     = 20
+rds_max_allocated_storage = 50
+rds_storage_type          = "gp3"
+
+rds_database_name   = "fineract"
+rds_master_username = "fineract"
+rds_max_connections = "100"
+
+# Single-AZ for dev (no HA needed)
+rds_multi_az                = false
+rds_backup_retention_period = 3 # Minimum backups
+
+# Monitoring
+rds_performance_insights_enabled = true
+rds_monitoring_interval          = 60 # Enhanced monitoring
+
+# Deletion protection OFF for dev (easier to destroy)
+rds_deletion_protection = false
+
+# ElastiCache Configuration - Cost Optimized for Dev
+redis_version            = "7.0"
+redis_node_type          = "cache.t4g.micro" # Cheapest instance (~$11/month)
+redis_num_cache_clusters = 1                 # Standalone, no replication
+
+# Encryption
+redis_encryption_at_rest    = true
+redis_encryption_in_transit = false # Disabled for simplicity in dev
+redis_auth_token_enabled    = false # Disabled (requires encryption in transit)
+
+redis_snapshot_retention_limit = 1 # Minimal snapshots
+
+# S3 Configuration
+s3_enable_versioning           = true
+s3_documents_lifecycle_enabled = true
+s3_backups_expiration_days     = 90 # Shorter retention for dev
+
+# Performance features (optional, adds cost)
+s3_enable_transfer_acceleration = false
+s3_enable_intelligent_tiering   = false
+
+# Encryption (optional)
+# kms_key_id = "arn:aws:kms:us-east-2:123456789012:key/xxxxx"  # Use AWS managed keys if not specified
+
+# Additional Tags
+tags = {
+  CostCenter   = "engineering"
+  Team         = "platform"
+  Purpose      = "development"
+  AutoShutdown = "enabled" # Can be used with Lambda to shutdown after hours
+}
+
+# Estimated Monthly Cost: ~$30-40
+# - RDS db.t4g.micro: ~$12
+# - ElastiCache cache.t4g.micro: ~$11
+# - S3 storage: ~$3-5 (for moderate usage)
+# - Data transfer: ~$2-5
+# - Backups: ~$1-2
