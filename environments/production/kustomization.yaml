@@ -124,8 +124,8 @@ images:
 
   # kubectl - Kubernetes CLI
   - name: bitnami/kubectl
-    newName: bitnami/kubectl
-    newTag: "1.28.4"
+    newName: registry.k8s.io/kubectl
+    newTag: "v1.28.15"
 
   # busybox - Minimal Unix Tools
   - name: busybox
