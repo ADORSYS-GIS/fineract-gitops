@@ -45,8 +45,8 @@ help:
 	@echo "  make deploy-infrastructure-dev           - Phase 1: Deploy infrastructure + setup kubeconfig"
 	@echo "  make deploy-k8s-with-loadbalancer-dns-dev - Phase 2: Deploy K8s resources + LoadBalancer DNS"
 	@echo ""
-	@echo "$(YELLOW)Legacy deployment (requires manual kubeconfig):$(NC)"
-	@echo "  make deploy-with-loadbalancer-dns-dev   - [LEGACY] All-in-one deployment (not recommended)"
+	@echo "$(RED)⚠️  Deprecated commands (see DEPRECATIONS.md):$(NC)"
+	@echo "  make deploy-with-loadbalancer-dns-dev   - ⚠️ DEPRECATED (removal: 2026-05-20) - Use two-phase deployment"
 	@echo ""
 	@echo "$(YELLOW)Component deployment:$(NC)"
 	@echo "  make deploy-infrastructure       - Deploy AWS infrastructure only"
@@ -181,22 +181,34 @@ deploy-k8s-with-loadbalancer-dns-dev: ## Deploy K8s resources with LoadBalancer 
 	@echo "$(GREEN) ✓ Full Deployment Complete!           $(NC)"
 	@echo "$(GREEN)========================================$(NC)"
 
-# LEGACY: All-in-one LoadBalancer DNS deployment (requires manual kubeconfig setup)
-deploy-with-loadbalancer-dns-dev: ## [LEGACY] Deploy dev with LoadBalancer DNS (use two-phase deployment instead)
-	@echo "$(YELLOW)========================================$(NC)"
-	@echo "$(YELLOW) WARNING: Using legacy all-in-one deployment$(NC)"
-	@echo "$(YELLOW)========================================$(NC)"
+# DEPRECATED: All-in-one LoadBalancer DNS deployment (archived to scripts/legacy/)
+deploy-with-loadbalancer-dns-dev: ## ⚠️ DEPRECATED - Removal planned 2026-05-20 - Use two-phase deployment instead
+	@echo "$(RED)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(RED)║            ⚠️  DEPRECATED COMMAND  ⚠️                       ║$(NC)"
+	@echo "$(RED)╚════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "$(RED)RECOMMENDED: Use two-phase deployment instead:$(NC)"
-	@echo "  1. make deploy-infrastructure-dev"
-	@echo "  2. make deploy-k8s-with-loadbalancer-dns-dev"
+	@echo "$(YELLOW)This command uses a deprecated script.$(NC)"
 	@echo ""
-	@read -p "Continue with legacy deployment? [y/N]: " confirm; \
+	@echo "Deprecated: $(YELLOW)2025-11-20$(NC)"
+	@echo "Removal planned: $(RED)2026-05-20$(NC)"
+	@echo ""
+	@echo "$(GREEN)Recommended alternatives:$(NC)"
+	@echo "  1. Two-phase deployment (for fresh infrastructure):"
+	@echo "     $(BLUE)make deploy-infrastructure-dev$(NC)"
+	@echo "     $(BLUE)make deploy-k8s-with-loadbalancer-dns-dev$(NC)"
+	@echo ""
+	@echo "  2. Interactive GitOps deployment:"
+	@echo "     $(BLUE)make deploy-gitops$(NC)"
+	@echo ""
+	@echo "See $(BLUE)DEPRECATIONS.md$(NC) for details."
+	@echo ""
+	@read -p "Continue with deprecated command? [y/N]: " confirm; \
 	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
-		echo "$(RED)Deployment cancelled$(NC)"; \
-		exit 1; \
+		echo ""; \
+		echo "$(GREEN)Good choice! Use one of the recommended alternatives above.$(NC)"; \
+		exit 0; \
 	fi
-	@./scripts/deploy-with-loadbalancer-dns.sh dev
+	@./scripts/legacy/deploy-with-loadbalancer-dns.sh dev
 
 # Infrastructure only
 deploy-infrastructure:

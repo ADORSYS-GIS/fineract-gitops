@@ -3,6 +3,22 @@
 # Interactive GitOps Deployment Script
 # Deploys Fineract platform step-by-step with user confirmation
 #
+# ════════════════════════════════════════════════════════════════════
+# USE CASE: Manual deployments, learning, troubleshooting
+# ════════════════════════════════════════════════════════════════════
+#
+# This script provides an INTERACTIVE deployment experience with:
+# - User confirmations between each step
+# - Clear progress tracking
+# - Easy to pause and resume
+# - Helpful for understanding the deployment process
+# - Best for manual operations and debugging
+#
+# For AUTOMATED deployments (CI/CD pipelines), use:
+#   ./scripts/deploy-full-stack.sh
+#
+# See DEPLOYMENT.md for complete guide
+#
 
 set -e
 

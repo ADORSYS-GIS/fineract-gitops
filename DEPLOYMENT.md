@@ -93,7 +93,11 @@ Expected output:
 
 ## Quick Start
 
-For a fully automated deployment with interactive confirmations:
+Choose the deployment method that fits your use case:
+
+### Method 1: Interactive Deployment (Recommended for Manual Operations)
+
+**USE CASE**: Learning, troubleshooting, manual deployments, understanding the process
 
 ```bash
 # Set required environment variables
@@ -104,18 +108,34 @@ export GITHUB_TOKEN="ghp_YourToken"
 make deploy-gitops
 ```
 
-This will:
-1. Validate prerequisites
-2. Deploy infrastructure components
-3. Setup ArgoCD and secrets
-4. Deploy applications
-5. Verify deployment
+**Features**:
+- User confirmations between each step
+- Clear progress tracking
+- Easy to pause and resume
+- Best for understanding deployment flow
 
-**You'll be prompted after each step to continue** - press `y` or Enter to proceed.
+### Method 2: Automated Deployment (For CI/CD Pipelines)
+
+**USE CASE**: Unattended deployments, CI/CD pipelines, scripted automation
+
+```bash
+# Set required environment variables
+export KUBECONFIG=~/.kube/config-fineract-dev
+export GITHUB_TOKEN="ghp_YourToken"
+
+# Run fully automated deployment
+make deploy  # Or: ./scripts/deploy-full-stack.sh dev
+```
+
+**Features**:
+- No user interaction required
+- Comprehensive logging to file
+- Error handling and step tracking
+- Best for CI/CD pipelines
 
 ---
 
-## Interactive Full Deployment
+## Interactive Full Deployment (Method 1)
 
 The `deploy-gitops` target runs all steps sequentially with user confirmation:
 

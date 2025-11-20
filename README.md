@@ -242,6 +242,7 @@ Similar to AWS, but use `environments/dev-azure` or `environments/dev-gcp`
 ### Other
 - **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - How to manage secrets.
 - **[Disaster Recovery Guide](docs/operations/disaster-recovery/DR_GUIDE.md)** - Backup and restore procedures.
+- **[Deprecations](DEPRECATIONS.md)** - ⚠️ Deprecated features and migration guides.
 
 ---
 

@@ -1,5 +1,25 @@
 #!/bin/bash
 #
+# ╔═════════════════════════════════════════════════════════════════════╗
+# ║                     ⚠️  DEPRECATED SCRIPT  ⚠️                        ║
+# ╚═════════════════════════════════════════════════════════════════════╝
+#
+# This script is DEPRECATED as of 2025-11-20
+# Removal planned: 2026-05-20
+#
+# REASON: Requires manual kubeconfig setup, monolithic design
+#
+# RECOMMENDED ALTERNATIVES:
+#   1. Two-phase deployment (for fresh infrastructure):
+#      make deploy-infrastructure-dev
+#      make deploy-k8s-with-loadbalancer-dns-dev
+#
+#   2. Interactive GitOps deployment:
+#      make deploy-gitops
+#
+# See DEPRECATIONS.md for migration guide
+# ========================================================================
+#
 # Automated Deployment Script - LoadBalancer DNS Mode
 # Fully automated deployment using AWS LoadBalancer DNS (no custom DNS required)
 #
@@ -45,6 +65,39 @@ error_exit() {
     log_error "$1"
     exit 1
 }
+
+# Display deprecation warning
+echo ""
+echo -e "${RED}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${RED}║                    ⚠️  DEPRECATION WARNING  ⚠️                         ║${NC}"
+echo -e "${RED}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "${YELLOW}This script (deploy-with-loadbalancer-dns.sh) is DEPRECATED.${NC}"
+echo ""
+echo -e "Deprecated: ${YELLOW}2025-11-20${NC}"
+echo -e "Removal planned: ${RED}2026-05-20${NC}"
+echo ""
+echo -e "${GREEN}Recommended alternatives:${NC}"
+echo -e "  1. Two-phase deployment (for fresh infrastructure):"
+echo -e "     ${BLUE}make deploy-infrastructure-dev${NC}"
+echo -e "     ${BLUE}make deploy-k8s-with-loadbalancer-dns-dev${NC}"
+echo ""
+echo -e "  2. Interactive GitOps deployment:"
+echo -e "     ${BLUE}make deploy-gitops${NC}"
+echo ""
+echo -e "See ${BLUE}DEPRECATIONS.md${NC} for migration guide."
+echo ""
+echo -e "${RED}════════════════════════════════════════════════════════════════════════${NC}"
+echo ""
+read -p "Continue using deprecated script? [y/N]: " confirm
+if [[ ! $confirm =~ ^[Yy]$ ]]; then
+    echo ""
+    echo -e "${GREEN}Good choice! Use one of the recommended alternatives above.${NC}"
+    exit 0
+fi
+echo ""
+log_warn "Continuing with deprecated script..."
+echo ""
 
 # Check arguments
 if [ -z "$1" ]; then
