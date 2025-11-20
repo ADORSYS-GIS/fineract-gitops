@@ -1,0 +1,137 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fineract-base-aws
+
+# Base Kustomization for Fineract Environments
+#
+# This base configuration contains all common resources, images, labels,
+# and annotations shared across dev, uat, and production environments.
+#
+# Environment-specific overlays (dev/uat/production) inherit from this base
+# and override only what differs (namespace, environment labels, Fineract version, etc.)
+#
+# Benefits:
+# - Single source of truth for common configuration
+# - Reduces duplication from ~615 lines to ~255 lines (58% reduction)
+# - Easier version updates (update once, apply to all environments)
+# - Consistent configuration across environments
+
+# Common Resources
+# All environments use these base resources
+resources:
+  # Database initialization (ArgoCD PreSync hook, runs before Fineract)
+  - ../../operations/fineract-database-init/base
+
+  # Fineract application
+  - ../../apps/fineract/base
+
+  # NOTE: Other components are deployed via ArgoCD applications:
+  # - fineract-redis (deployed via ArgoCD app)
+  # - keycloak (deployed via ArgoCD app)
+  # - oauth2-proxy (deployed via ArgoCD app)
+  # - monitoring, logging, network-policies (all via ArgoCD)
+
+# Common Image Versions
+# These are the default versions used across all environments
+# Environments can override specific images (e.g., dev uses apache/fineract:develop)
+images:
+  # ============================================================
+  # Common Image Version Configuration
+  # ============================================================
+  # This is the single source of truth for all common utility
+  # and supporting service images across all environments.
+  #
+  # Environment overlays override only what differs:
+  # - dev: apache/fineract:develop (latest features)
+  # - uat/prod: apache/fineract:1.12.1 (stable release)
+  # ============================================================
+
+  # Components Deployed via Separate ArgoCD Applications
+  # --------------------------------------------------------
+
+  # Keycloak - Identity and Access Management
+  # Deployed via: argocd/applications/{env}/keycloak.yaml
+  - name: quay.io/keycloak/keycloak
+    newName: quay.io/keycloak/keycloak
+    newTag: "26.4.0"
+
+  # OAuth2 Proxy - Authentication Gateway
+  # Deployed via: argocd/applications/{env}/oauth2-proxy.yaml
+  - name: quay.io/oauth2-proxy/oauth2-proxy
+    newName: quay.io/oauth2-proxy/oauth2-proxy
+    newTag: "v7.13.0"
+
+  # Redis - Session Storage
+  # Deployed via: argocd/applications/{env}/fineract-redis.yaml
+  - name: redis
+    newName: redis
+    newTag: "7.2-alpine"
+
+  # Redis Exporter - Prometheus Metrics
+  # Deployed via: argocd/applications/{env}/fineract-redis.yaml
+  - name: oliver006/redis_exporter
+    newName: oliver006/redis_exporter
+    newTag: "v1.55.0-alpine"
+
+  # Utility Images
+  # --------------------------------------------------------
+
+  # alpine - Lightweight Linux with envsubst via gettext
+  # Usage: OAuth2 Proxy init containers, Keycloak config jobs
+  - name: alpine
+    newName: alpine
+    newTag: "3.18"
+
+  # curlimages/curl - HTTP Client for health checks
+  # Usage: OAuth2 Proxy initContainers
+  - name: curlimages/curl
+    newName: curlimages/curl
+    newTag: "8.4.0"
+
+  # postgres - PostgreSQL Client for database operations
+  # Usage: Database init jobs, create database jobs
+  - name: postgres
+    newName: postgres
+    newTag: "15-alpine"
+
+  # python - Python runtime for data loading and drift detection
+  # Usage: Fineract data loaders, config drift detection
+  - name: python
+    newName: python
+    newTag: "3.11-slim"
+
+  # kubectl - Kubernetes CLI
+  # Usage: Database init jobs, scale cronjobs, export jobs
+  - name: bitnami/kubectl
+    newName: registry.k8s.io/kubectl
+    newTag: "v1.28.15"
+
+  # busybox - Minimal Unix Tools
+  # Usage: Init containers, data loader jobs
+  - name: busybox
+    newName: busybox
+    newTag: "1.36.1"
+
+  # keycloak-config-cli - Keycloak Configuration Tool
+  # Usage: Apply Keycloak realm configuration
+  - name: adorsys/keycloak-config-cli
+    newName: adorsys/keycloak-config-cli
+    newTag: "5.9.0"
+
+# Common Labels
+# Applied to all resources across all environments
+# Environments override only the 'environment' label
+commonLabels:
+  provider: aws-managed
+  infrastructure: aws
+  managed-by: argocd
+
+# Common Annotations
+# Applied to all resources across all environments
+# Environments override environment-specific annotations
+commonAnnotations:
+  provider-type: "aws-managed"
+  deployment-profile: "aws - managed services"
+  terraform-required: "true"
