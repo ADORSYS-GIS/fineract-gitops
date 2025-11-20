@@ -114,10 +114,10 @@ export FINERACT_TOKEN_URL=http://localhost:8090/realms/fineract/protocol/openid-
 ## Testing Strategies
 
 ### 1. Unit Testing (Fastest)
-Test individual loader logic with minimal data:
+Test individual loader logic with actual data:
 ```bash
 python3 scripts/loaders/offices.py \
-  --yaml-dir data/test/minimal/offices \
+  --yaml-dir data/offices \
   --fineract-url http://localhost:8443/fineract-provider/api/v1 \
   --tenant default
 ```
@@ -175,10 +175,10 @@ python3 scripts/loaders/offices.py \
   --tenant default
 ```
 
-**Test with Minimal Data (Fast):**
+**Test with Real Data:**
 ```bash
 python3 scripts/loaders/offices.py \
-  --yaml-dir data/test/minimal/offices \
+  --yaml-dir data/offices \
   --fineract-url http://localhost:8443/fineract-provider/api/v1 \
   --tenant default
 ```
@@ -481,11 +481,12 @@ Catch errors early:
 python3 scripts/validate_yaml_data.py data/dev/
 ```
 
-### 4. Test with Minimal Data First
+### 4. Test with Small Datasets First
 
-Use test fixtures for fast iteration:
+Start with smaller entity types for fast iteration:
 ```bash
-python3 scripts/loaders/offices.py --yaml-dir data/test/minimal/offices
+# Offices are small and have few dependencies
+python3 scripts/loaders/offices.py --yaml-dir data/offices
 ```
 
 ### 5. Use Verbose Mode for Debugging
