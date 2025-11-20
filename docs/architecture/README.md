@@ -172,7 +172,7 @@ See [DIAGRAMS.md](DIAGRAMS.md) for detailed architecture diagrams.
 ### Kubernetes Platform
 - **Kubernetes**: 1.28+
 - **ArgoCD**: 2.9+ (GitOps continuous deployment)
-- **Sealed Secrets**: v0.26.3 (secrets encryption)
+- **Sealed Secrets**: v0.27.0 (secrets encryption)
 - **Cert-Manager**: v1.13+ (TLS certificates)
 
 ### Data Tier

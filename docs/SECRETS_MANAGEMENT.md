@@ -217,8 +217,8 @@ kubectl get pods -n kube-system -l app.kubernetes.io/name=sealed-secrets
 brew install kubeseal
 
 # Linux
-wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.26.3/kubeseal-0.26.3-linux-amd64.tar.gz
-tar -xvzf kubeseal-0.26.3-linux-amd64.tar.gz
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/kubeseal-0.27.0-linux-amd64.tar.gz
+tar -xvzf kubeseal-0.27.0-linux-amd64.tar.gz
 sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 
 # Verify
@@ -776,8 +776,8 @@ kubectl get deployment -n kube-system sealed-secrets-controller \
   -o jsonpath='{.spec.template.spec.containers[0].image}'
 
 # Install matching kubeseal version
-# Example: v0.26.3
-wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.26.3/...
+# Example: v0.27.0
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/...
 ```
 
 ### Q: Can I use Sealed Secrets with Helm?

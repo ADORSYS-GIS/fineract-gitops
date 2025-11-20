@@ -40,11 +40,11 @@ Install missing tools:
 # ArgoCD CLI
 brew install argocd
 
-# kubeseal CLI
+# kubeseal CLI (v0.27.0 - must match controller version)
 brew install kubeseal
 
 # Or on Linux
-curl -L https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/kubeseal-0.24.0-linux-amd64.tar.gz | tar xz
+curl -L https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/kubeseal-0.27.0-linux-amd64.tar.gz | tar xz
 sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 ```
 

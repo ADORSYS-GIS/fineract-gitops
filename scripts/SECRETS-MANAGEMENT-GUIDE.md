@@ -348,7 +348,7 @@ git push
 kubectl get pods -n kube-system | grep sealed-secrets
 
 # If not running, install it
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/controller.yaml
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/controller.yaml
 ```
 
 ### Problem: seal-terraform-secrets.sh fails with "Could not fetch RDS credentials"

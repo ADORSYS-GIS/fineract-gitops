@@ -385,7 +385,7 @@ kubectl apply -k environments/dev-gcp
 | Frontend Apps | ✅ Ready | Latest | Web, Accounting, Reporting apps |
 | Logging | ✅ Ready | Latest | Loki/Promtail stack |
 | Monitoring | ✅ Ready | Latest | Prometheus/Grafana stack |
-| Sealed Secrets | ✅ Ready | v0.26.3 | GitOps secrets management |
+| Sealed Secrets | ✅ Ready | v0.27.0 | GitOps secrets management |
 | ArgoCD | ✅ Ready | 2.9+ | GitOps CD |
 | **Providers** | ✅ Ready | - | **Multi-cloud support (AWS/Azure/GCP)** |
 | **Terraform** | ✅ Ready | 1.5+ | **AWS modules complete** |

@@ -221,7 +221,7 @@ eks_oidc_provider_url         = "$OIDC_PROVIDER"
 kubernetes_namespace = "fineract-dev"
 
 # RDS Configuration - Cost Optimized for Dev
-rds_postgres_version  = "15.4"
+rds_postgres_version  = "15.14"  # Latest stable (see docs/VERSION_MATRIX.md)
 rds_instance_class    = "db.t4g.micro"
 rds_allocated_storage = 20
 rds_max_allocated_storage = 50

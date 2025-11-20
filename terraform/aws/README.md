@@ -523,7 +523,7 @@ redis_num_cache_clusters = 5  # 1 primary + 4 replicas
 
 **Update PostgreSQL version:**
 ```hcl
-rds_postgres_version = "15.5"  # New version
+rds_postgres_version = "15.14"  # Latest stable version (see docs/VERSION_MATRIX.md)
 ```
 
 **Update Redis version:**

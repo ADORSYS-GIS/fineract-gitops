@@ -6,13 +6,26 @@
 
 ## 📋 Prerequisites
 
+> 📖 **Complete Setup Guide:** See [PREREQUISITES.md](PREREQUISITES.md) for detailed installation instructions.
+> 📋 **Version Requirements:** See [VERSION_MATRIX.md](VERSION_MATRIX.md) for compatibility matrix.
+
 Before you begin, ensure you have:
 
-- ✅ Git installed
-- ✅ Python 3.8+ installed
-- ✅ kubectl installed (for Kubernetes interactions)
-- ✅ ArgoCD CLI installed (optional, for GitOps management)
-- ✅ Access to a Kubernetes cluster (for deployment)
+### Required Tools
+- ✅ **Git** (2.30+) - Version control
+- ✅ **kubectl** (1.28+) - Kubernetes CLI
+- ✅ **kustomize** (5.0+) - Configuration management
+- ✅ **kubeseal** (0.27.0) - Sealed Secrets CLI
+- ✅ **Python** (3.8+) - Operational scripts
+
+### Optional Tools
+- ✅ **ArgoCD CLI** (2.8+) - GitOps management
+- ✅ **AWS CLI** (2.0+) - For AWS deployments
+- ✅ **Terraform** (1.5+) - Infrastructure provisioning
+
+### Access Requirements
+- ✅ Access to a Kubernetes cluster (EKS, K3s, or other CNCF conformant)
+- ✅ kubectl configured with cluster credentials
 
 ---
 

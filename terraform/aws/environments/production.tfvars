@@ -22,7 +22,9 @@ eks_oidc_provider_url         = "https://oidc.eks.us-east-2.amazonaws.com/id/XXX
 kubernetes_namespace = "fineract-production"
 
 # RDS Configuration - Production Grade
-rds_postgres_version      = "15.4"
+# Note: PostgreSQL 15.14 is recommended (see docs/VERSION_MATRIX.md)
+# Update carefully during maintenance window: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.PostgreSQL.html
+rds_postgres_version      = "15.14"
 rds_instance_class        = "db.r6g.large" # Production instance with 16GB RAM
 rds_allocated_storage     = 100
 rds_max_allocated_storage = 1000  # Allow growth to 1TB

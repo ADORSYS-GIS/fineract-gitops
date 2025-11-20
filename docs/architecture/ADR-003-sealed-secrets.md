@@ -100,7 +100,7 @@ spec:
     spec:
       containers:
       - name: sealed-secrets-controller
-        image: quay.io/bitnami/sealed-secrets-controller:v0.26.3
+        image: quay.io/bitnami/sealed-secrets-controller:v0.27.0
 ```
 
 ### Secret Types Sealed

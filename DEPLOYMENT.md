@@ -23,22 +23,26 @@ This guide covers deploying the complete Fineract platform to Kubernetes using G
 
 Ensure the following tools are installed:
 
+> 📋 **Version Requirements:** See [docs/VERSION_MATRIX.md](docs/VERSION_MATRIX.md) for detailed version compatibility.
+> 📖 **Installation Guide:** Complete setup instructions at [docs/PREREQUISITES.md](docs/PREREQUISITES.md)
+
+**Required Tools:**
 - **kubectl** (1.28+) - Kubernetes CLI
 - **kustomize** (5.0+) - Configuration management
-- **kubeseal** - Sealed Secrets CLI
-- **aws CLI** (if using EKS) - AWS authentication
+- **kubeseal** (0.27.0) - Sealed Secrets CLI
+- **aws CLI** (2.0+) (if using EKS) - AWS authentication
 - **terraform** (1.5+) - Infrastructure provisioning
 - **jq** (optional) - JSON processing
-- **git** - Version control
+- **git** (2.30+) - Version control
 
 ```bash
 # Install on macOS
 brew install kubectl kustomize kubeseal awscli terraform jq
 
-# Verify installations
+# Verify installations (see docs/VERSION_MATRIX.md for required versions)
 kubectl version --client
 kustomize version
-kubeseal --version
+kubeseal --version  # Should be 0.27.0
 aws --version
 terraform version
 ```
@@ -132,7 +136,7 @@ Step 1/5: Validate Prerequisites
 → Checking kustomize...
 ✓ kustomize v5.2.1
 → Checking kubeseal...
-✓ kubeseal v0.26.3
+✓ kubeseal v0.27.0
 → Checking AWS CLI...
 ✓ aws-cli/2.13.0
 → Checking KUBECONFIG...
@@ -178,7 +182,7 @@ make deploy-step-1
 ```
 ✓ kubectl v1.28.3
 ✓ kustomize v5.2.1
-✓ kubeseal v0.26.3
+✓ kubeseal v0.27.0
 ✓ aws-cli/2.13.0
 ✓ KUBECONFIG set: ~/.kube/config-fineract-dev
 ✓ Connected to cluster

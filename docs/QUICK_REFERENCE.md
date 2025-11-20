@@ -1,5 +1,7 @@
 # Fineract GitOps - Quick Reference
 
+> 📋 **Prerequisites:** [PREREQUISITES.md](PREREQUISITES.md) | **Versions:** [VERSION_MATRIX.md](VERSION_MATRIX.md)
+
 ## 📁 Repository Layout
 
 ```

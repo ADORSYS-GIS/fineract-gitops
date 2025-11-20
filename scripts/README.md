@@ -632,10 +632,10 @@ kubectl cluster-info
 
 **kubeseal not found**:
 ```bash
-# Install kubeseal
+# Install kubeseal (v0.27.0 - must match controller)
 brew install kubeseal  # macOS
 # or
-wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.26.3/kubeseal-linux-amd64
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/kubeseal-linux-amd64
 ```
 
 ---
