@@ -729,3 +729,131 @@ aws dynamodb create-table \
 ## License
 
 Apache License 2.0 - See main repository for details.
+
+---
+
+## Module Versioning Strategy
+
+### Overview
+
+All Terraform modules in this repository use **Git tags** for version tracking. This enables:
+- 📌 **Version pinning** - Lock environments to specific module versions
+- 🔄 **Rollbacks** - Revert to previous versions when needed
+- 📝 **Change tracking** - Clear history of module evolution
+- 🔒 **Stability** - Production can use tested versions while dev uses latest
+
+### Current Approach: Local Paths (Monorepo)
+
+This repository uses **local module paths** which is optimal for monorepo development:
+
+```hcl
+module "eks" {
+  source = "./modules/eks"  # Local path
+  # ...
+}
+```
+
+**Benefits of Local Paths**:
+- ✅ Immediate testing of module changes
+- ✅ No need to push tags before testing
+- ✅ Simpler development workflow
+- ✅ All changes in single commit
+
+### Module Versions
+
+All 11 modules are tagged with semantic versions:
+
+| Module | Current Version | Git Tag | CHANGELOG |
+|--------|----------------|---------|-----------|
+| EKS | v1.0.0 | `modules/terraform/aws/eks/v1.0.0` | [CHANGELOG](modules/eks/CHANGELOG.md) |
+| IAM | v1.0.0 | `modules/terraform/aws/iam/v1.0.0` | [CHANGELOG](modules/iam/CHANGELOG.md) |
+| K3s | v1.0.0 | `modules/terraform/aws/k3s/v1.0.0` | [CHANGELOG](modules/k3s/CHANGELOG.md) |
+| Kubernetes Namespace | v1.0.0 | `modules/terraform/aws/kubernetes-namespace/v1.0.0` | [CHANGELOG](modules/kubernetes-namespace/CHANGELOG.md) |
+| Kubernetes Secret | v1.0.0 | `modules/terraform/aws/kubernetes-secret/v1.0.0` | [CHANGELOG](modules/kubernetes-secret/CHANGELOG.md) |
+| RDS | v1.0.0 | `modules/terraform/aws/rds/v1.0.0` | [CHANGELOG](modules/rds/CHANGELOG.md) |
+| Route53 | v1.0.0 | `modules/terraform/aws/route53/v1.0.0` | [CHANGELOG](modules/route53/CHANGELOG.md) |
+| S3 | v1.0.0 | `modules/terraform/aws/s3/v1.0.0` | [CHANGELOG](modules/s3/CHANGELOG.md) |
+| Secrets Manager | v1.0.0 | `modules/terraform/aws/secrets-manager/v1.0.0` | [CHANGELOG](modules/secrets-manager/CHANGELOG.md) |
+| SES | v1.0.0 | `modules/terraform/aws/ses/v1.0.0` | [CHANGELOG](modules/ses/CHANGELOG.md) |
+| VPC | v1.0.0 | `modules/terraform/aws/vpc/v1.0.0` | [CHANGELOG](modules/vpc/CHANGELOG.md) |
+
+### Semantic Versioning
+
+Modules follow [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+
+- **MAJOR** (vX.0.0): Breaking changes, requires configuration updates
+- **MINOR** (v1.X.0): New features, backward compatible
+- **PATCH** (v1.0.X): Bug fixes, backward compatible
+
+### Using Tagged Versions (External Repositories)
+
+For external repositories or when you want version pinning, reference modules via Git tags:
+
+```hcl
+# Pin to specific version
+module "eks" {
+  source = "git::https://github.com/your-org/fineract-gitops.git//terraform/aws/modules/eks?ref=modules/terraform/aws/eks/v1.0.0"
+  # ...
+}
+
+# Use latest in a major version
+module "rds" {
+  source = "git::https://github.com/your-org/fineract-gitops.git//terraform/aws/modules/rds?ref=modules/terraform/aws/rds/v1.0"
+  # ...
+}
+```
+
+### Updating Module Versions
+
+When making changes to modules:
+
+1. **Make changes** in the module directory
+2. **Test locally** with current `./modules/...` references
+3. **Update CHANGELOG.md** in the module directory
+4. **Create new Git tag**:
+   ```bash
+   git tag -a modules/terraform/aws/eks/v1.1.0 -m "Add feature X to EKS module"
+   git push origin modules/terraform/aws/eks/v1.1.0
+   ```
+5. **Update main CHANGELOG** (this README) with new version
+
+### Version Pinning Strategy by Environment
+
+**Development**:
+- Uses: Local paths (`./modules/...`)
+- Strategy: Always latest code for rapid iteration
+
+**UAT**:
+- Uses: Local paths or recent tagged versions
+- Strategy: Test thoroughly before promoting to production
+
+**Production**:
+- Uses: Stable tagged versions only
+- Strategy: Only update after successful UAT validation
+- Example: Lock production to v1.0.0, test v1.1.0 in UAT first
+
+### Viewing Module Changes
+
+```bash
+# List all module tags
+git tag -l "modules/terraform/aws/*/v*"
+
+# View module CHANGELOG
+cat terraform/aws/modules/eks/CHANGELOG.md
+
+# Compare two versions
+git diff modules/terraform/aws/eks/v1.0.0..modules/terraform/aws/eks/v1.1.0 -- terraform/aws/modules/eks/
+```
+
+### Module Release Process
+
+1. **Development**: Make changes, test locally
+2. **Documentation**: Update module CHANGELOG.md
+3. **Tagging**: Create semantic version tag
+4. **Testing**: Deploy to dev/uat environments
+5. **Production**: Update production to use new version after validation
+
+---
+
+**Last Updated**: 2025-11-20  
+**Versioning Started**: 2025-11-20 (Phase 1 of maintenance cleanup)
