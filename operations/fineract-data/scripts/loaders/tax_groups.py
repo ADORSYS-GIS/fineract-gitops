@@ -112,12 +112,7 @@ class TaxGroupsLoader(BaseLoader):
             # Check if entity already exists
             existing_id = self.entity_exists('taxes/group', entity_name)
 
-            if existing_id:
-                logger.info(f"  Entity already exists: {entity_name} (ID: {existing_id})")
-                self.loaded_entities[entity_name] = existing_id
-                continue
-
-            # Create entity
+            # Prepare API payload (needed for both create and update)
             api_payload = self.yaml_to_fineract_api(yaml_data)
 
             # Validate we have tax components
@@ -125,6 +120,26 @@ class TaxGroupsLoader(BaseLoader):
                 logger.error(f"  No valid tax components found for: {entity_name}")
                 self.failed_entities.append(yaml_file.name)
                 continue
+
+            if existing_id:
+                # Entity exists - check for changes
+                if self.has_changes('/taxes/group', existing_id, api_payload):
+                    # Update entity
+                    logger.info(f"  ↻ Updating: {entity_name}")
+                    response = self.put(f'/taxes/group/{existing_id}', api_payload)
+                    if response:
+                        logger.info(f"  ✓ Updated: {entity_name} (ID: {existing_id})")
+                        self.updated_entities[entity_name] = existing_id
+                    else:
+                        logger.error(f"  ✗ Failed to update: {entity_name}")
+                        self.failed_entities.append(yaml_file.name)
+                else:
+                    # No changes detected
+                    logger.info(f"  ⊘ No changes: {entity_name} (ID: {existing_id})")
+                    self.skipped_entities[entity_name] = existing_id
+                continue
+
+            # Create entity
 
             response = self.post('taxes/group', api_payload)
 
