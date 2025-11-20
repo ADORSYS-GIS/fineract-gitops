@@ -19,7 +19,6 @@ Sync waves control the order in which ArgoCD synchronizes resources. Lower wave 
 | **6** | Ingress Controllers, Cert-Manager | Routing and TLS certificates | Yes |
 | **10** | Fineract Backend | Main application | Yes |
 | **11** | Web App (Frontend) | User interface | Yes |
-| **20** | Data Loaders, Migration Jobs | Seed data after app is running | Yes |
 
 ## Implementation by Environment
 
@@ -35,7 +34,6 @@ Wave  5:  oauth2-proxy
 Wave  6:  fineract-ingress
 Wave 10:  fineract (backend)
 Wave 11:  web-app (frontend)
-Wave 20:  fineract-data (loaders)
 ```
 
 ### UAT Environment
@@ -48,7 +46,6 @@ Wave  3:  keycloak, fineract-redis
 Wave  5:  oauth2-proxy
 Wave  6:  fineract-ingress
 Wave 10:  fineract (backend)
-Wave 20:  fineract-data (loaders)
 ```
 
 ### Production Environment
@@ -68,7 +65,6 @@ Same as UAT, with stricter health checks and manual sync policies.
 7. **Wave 6 (Ingress/TLS)**: Routing configured after apps are ready
 8. **Wave 10 (Fineract)**: Main application after all dependencies
 9. **Wave 11 (Web App)**: Frontend after backend is healthy
-10. **Wave 20 (Data Loaders)**: Seed data only after application is fully operational
 
 ## Adding Sync Waves
 

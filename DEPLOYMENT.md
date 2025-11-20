@@ -767,17 +767,7 @@ Configure:
 
 See: `operations/keycloak-config/` for configurations
 
-### 2. Load Initial Data
-
-```bash
-# Run data loader job
-kubectl apply -f operations/fineract-data/kubernetes/base/jobs/load-all-configs.yaml
-
-# Monitor job
-kubectl logs -n fineract-dev -l job-name=fineract-data-loader -f
-```
-
-### 3. Verify API Access
+### 2. Verify API Access
 
 ```bash
 # Get Keycloak token
@@ -793,7 +783,7 @@ curl -k -H "Authorization: Bearer $TOKEN" \
   https://apps.dev.fineract.com/fineract-provider/api/v1/clients
 ```
 
-### 4. Monitor Applications
+### 3. Monitor Applications
 
 Access ArgoCD UI:
 ```bash
@@ -801,7 +791,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 # https://localhost:8080
 ```
 
-### 5. Setup Monitoring (Optional)
+### 4. Setup Monitoring (Optional)
 
 Deploy monitoring stack:
 ```bash

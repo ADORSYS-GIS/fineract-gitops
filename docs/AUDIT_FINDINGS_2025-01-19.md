@@ -1044,6 +1044,8 @@ spec:
 - `operations/README.md:217`
 - `operations/fineract-data/cronjobs/config-drift-detection.yaml:423`
 
+> **Note**: The fineract-data findings in this section (config-drift-detection.yaml) relate to a feature that was subsequently removed from the repository.
+
 **Description**:
 TODO comments in documentation and code indicate incomplete features or cleanup work.
 
@@ -1411,6 +1413,8 @@ echo 'region = "us-west-2"' >> environments/dev.tfvars
 - `operations/fineract-data/scripts/loaders/staff.py:28` has `ChangeMe123!`
 - **Impact**: Development/testing only, not production
 - **Action**: Document that passwords must be changed in Keycloak
+
+> **Note**: This finding relates to the fineract-data feature which was subsequently removed from the repository.
 
 **Historical Documentation TODOs** (Low severity)
 - TODO references in cleanup-history/ documentation

@@ -145,7 +145,6 @@ Application-specific documentation and configuration guides.
 |-------------|---------------|-------------|
 | **Web App** | [apps/web-app/README.md](../apps/web-app/README.md) | Frontend applications (admin, account manager, etc.) |
 | **User Sync Service** | [apps/user-sync-service/README.md](../apps/user-sync-service/README.md) | Password reset and Keycloak user synchronization |
-| **Fineract Data Management** | [operations/fineract-data/README.md](../operations/fineract-data/README.md) | YAML-based configuration data management |
 | **OAuth2 Proxy** | [apps/oauth2-proxy/base/README.md](../apps/oauth2-proxy/base/README.md) | OIDC reverse proxy for authentication |
 
 ---
@@ -216,7 +215,7 @@ Compliance and audit documentation (placeholder for future content).
 → [Frontend Implementation Guide](development/FRONTEND_APPS_IMPLEMENTATION_GUIDE.md) → [Web App README](../apps/web-app/README.md)
 
 **Task: Migrate configuration from Excel**
-→ [Excel to YAML Conversion](operations/CONVERT_EXCEL_TO_YAML.md) → [Fineract Data Management](../operations/fineract-data/README.md)
+→ [Excel to YAML Conversion](operations/CONVERT_EXCEL_TO_YAML.md)
 
 **Task: Implement new frontend app**
 → [Frontend Implementation Guide](development/FRONTEND_APPS_IMPLEMENTATION_GUIDE.md)

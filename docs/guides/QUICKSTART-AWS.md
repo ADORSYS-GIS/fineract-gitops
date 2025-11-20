@@ -395,22 +395,6 @@ curl -k https://localhost:8443/fineract-provider/actuator/health
 # You should see: {"status":"UP"}
 ```
 
-### Step 5.3: Load Initial Data (Optional)
-
-```bash
-# Navigate to data loading scripts
-cd operations/fineract-data/scripts
-
-# Load initial data
-python3 main.py --environment dev-aws
-
-# This will load:
-# - Payment types
-# - Code values
-# - Currencies
-# - Loan products
-# - Offices
-```
 
 ---
 

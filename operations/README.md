@@ -8,9 +8,8 @@ This directory contains operational tools, configuration management utilities, a
 
 The operations directory provides tools and configurations for:
 
-1. **Fineract Data Management** - YAML-based configuration data
-2. **Keycloak Configuration** - SSO/IAM setup and user synchronization
-3. **Disaster Recovery** - Backup and restore procedures
+1. **Keycloak Configuration** - SSO/IAM setup and user synchronization
+2. **Disaster Recovery** - Backup and restore procedures
 
 These tools help manage the platform at runtime and handle operational tasks that go beyond basic Kubernetes manifests.
 
@@ -21,18 +20,6 @@ These tools help manage the platform at runtime and handle operational tasks tha
 ```
 operations/
 ├── README.md                           # This file
-├── fineract-data/                      # Configuration data management
-│   ├── README.md                       # Data management guide
-│   ├── data/                           # YAML configuration files
-│   │   ├── base/                       # Base configurations
-│   │   │   ├── codes/                  # System codes
-│   │   │   ├── roles/                  # User roles
-│   │   │   └── notifications/          # Notification templates
-│   │   ├── dev/                        # Dev-specific configs
-│   │   ├── uat/                        # UAT-specific configs
-│   │   └── production/                 # Production-specific configs
-│   └── scripts/                        # Data loading scripts
-│
 ├── keycloak-config/                    # Keycloak SSO configuration
 │   ├── README.md                       # Keycloak setup guide
 │   ├── config/                         # Realm configurations
@@ -55,54 +42,7 @@ operations/
 
 ## Components
 
-### 1. Fineract Data Management
-
-**Purpose**: Manage Fineract configuration data as YAML instead of Excel sheets
-
-**Location**: `operations/fineract-data/`
-
-**What it provides**:
-- YAML-based configuration for codes, roles, notifications
-- Version control for configuration data
-- Environment-specific configurations
-- Data loading scripts
-
-**Why YAML instead of Excel**:
-- ✅ Version control with Git
-- ✅ Code reviews for config changes
-- ✅ Environment-specific overrides
-- ✅ Automated validation
-- ✅ GitOps-compatible
-- ✅ Easier to diff and merge
-
-**Key Features**:
-- **System Codes**: Define lookup codes (loan products, account types, etc.)
-- **User Roles**: Define permissions and access control
-- **Notification Templates**: SMS and email templates
-- **Validation Scripts**: Ensure data integrity before deployment
-
-**Usage**:
-```bash
-# Navigate to fineract-data
-cd operations/fineract-data
-
-# Review README for detailed instructions
-cat README.md
-
-# Validate configuration data
-./scripts/validate-data.py
-
-# Load data to environment
-./scripts/load-data.sh dev
-```
-
-**Related Documentation**:
-- [Convert Excel to YAML Guide](../docs/operations/CONVERT_EXCEL_TO_YAML.md)
-- [Fineract Data README](fineract-data/README.md)
-
----
-
-### 2. Keycloak Configuration
+### 1. Keycloak Configuration
 
 **Purpose**: Configure Keycloak SSO/IAM for Fineract authentication
 
@@ -172,7 +112,7 @@ kubectl apply -k user-sync-service/
 
 ---
 
-### 3. Disaster Recovery
+### 2. Disaster Recovery
 
 **Purpose**: Backup and restore procedures for Fineract platform
 
@@ -220,31 +160,7 @@ cat README.md
 
 ## Common Operational Tasks
 
-### Task 1: Add New System Code
-
-```bash
-# 1. Navigate to fineract-data
-cd operations/fineract-data
-
-# 2. Create new code YAML
-cat > data/base/codes/new-code.yaml <<EOF
-code_name: NEW_CODE
-code_description: Description of new code
-values:
-  - value: "OPTION1"
-    description: "Option 1 description"
-  - value: "OPTION2"
-    description: "Option 2 description"
-EOF
-
-# 3. Validate
-./scripts/validate-data.py
-
-# 4. Load to environment
-./scripts/load-data.sh dev
-```
-
-### Task 2: Configure New Keycloak Client
+### Task 1: Configure New Keycloak Client
 
 ```bash
 # 1. Navigate to keycloak-config
@@ -260,7 +176,7 @@ vi config/clients.yaml
 kubectl apply -f config/clients.yaml
 ```
 
-### Task 3: Run Manual Backup
+### Task 2: Run Manual Backup
 
 ```bash
 # 1. Navigate to disaster-recovery
@@ -271,28 +187,6 @@ cd operations/disaster-recovery
 
 # 3. Verify backup completed
 kubectl get jobs -n backup
-```
-
-### Task 4: Add Notification Template
-
-```bash
-# 1. Navigate to fineract-data
-cd operations/fineract-data
-
-# 2. Create SMS template
-cat > data/base/notifications/new-sms-template.yaml <<EOF
-name: NEW_SMS_NOTIFICATION
-type: sms
-template: "Hello {{name}}, your transaction {{amount}} was successful."
-triggers:
-  - event: TRANSACTION_COMPLETE
-EOF
-
-# 3. Create email template (similar process)
-
-# 4. Validate and load
-./scripts/validate-data.py
-./scripts/load-data.sh dev
 ```
 
 ---
@@ -323,11 +217,6 @@ Each operational component supports environment-specific configurations:
 
 ## Automation & CI/CD
 
-### Fineract Data
-- Validate YAML on PR
-- Auto-load to dev on merge
-- Manual promotion to UAT/production
-
 ### Keycloak Config
 - Validate realm config on PR
 - Auto-apply to dev
@@ -341,11 +230,6 @@ Each operational component supports environment-specific configurations:
 ---
 
 ## Security Considerations
-
-### Fineract Data
-- Sensitive data encrypted in sealed secrets
-- Environment-specific data isolation
-- Audit logging for data changes
 
 ### Keycloak Config
 - Client secrets in sealed secrets
@@ -362,11 +246,6 @@ Each operational component supports environment-specific configurations:
 ---
 
 ## Monitoring & Alerts
-
-### Fineract Data
-- Data load success/failure
-- Validation errors
-- Configuration drift detection
 
 ### Keycloak
 - User sync failures
@@ -385,15 +264,6 @@ Each operational component supports environment-specific configurations:
 ## Troubleshooting
 
 ### Common Issues
-
-#### Data Load Failures
-**Symptom**: YAML data not loading to Fineract
-
-**Solutions**:
-1. Validate YAML syntax
-2. Check Fineract API connectivity
-3. Review API credentials
-4. Check Fineract logs
 
 #### Keycloak Sync Issues
 **Symptom**: Users not syncing between Keycloak and Fineract
@@ -417,8 +287,6 @@ Each operational component supports environment-specific configurations:
 
 ## Related Documentation
 
-- **[CI/CD Integration](../docs/operations/CI_CD_INTEGRATION.md)** - Pipeline setup
-- **[Convert Excel to YAML](../docs/operations/CONVERT_EXCEL_TO_YAML.md)** - Data migration
 - **[Fineract Environment Variables](../docs/FINERACT_ENVIRONMENT_VARIABLES.md)** - Config reference
 - **[Secrets Management](../docs/SECRETS_MANAGEMENT.md)** - Secrets handling
 
@@ -436,5 +304,5 @@ For operational issues:
 ---
 
 **Last Updated:** 2025-10-28
-**Components:** Fineract Data, Keycloak Config, Disaster Recovery
+**Components:** Keycloak Config, Disaster Recovery
 **Status:** Active and Operational

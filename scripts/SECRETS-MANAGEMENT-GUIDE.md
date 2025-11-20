@@ -166,7 +166,7 @@ git push
 - `keycloak-default-users` - Default user passwords for Keycloak realm
 - `grafana-admin-credentials` - Grafana admin user
 
-**Note:** OAuth2 client credentials (including fineract-data-loader) are now managed by `seal-terraform-secrets.sh` in the consolidated `keycloak-client-secrets` secret
+**Note:** OAuth2 client credentials are now managed by `seal-terraform-secrets.sh` in the consolidated `keycloak-client-secrets` secret
 
 **Security Notes:**
 - Dev environment uses simple passwords (`admin/admin`) for convenience
@@ -470,7 +470,7 @@ secrets/
 | s3-connection | Infrastructure | Terraform | S3 bucket names, AWS region |
 | service-account | Infrastructure | Terraform | IRSA role ARN annotation |
 | oauth2-proxy-secrets | Infrastructure | Terraform | OAuth2 Proxy cookie secret only |
-| keycloak-client-secrets | Infrastructure | Terraform | ALL OAuth2 client credentials (oauth2-proxy, admin-cli, fineract-api, fineract-data-loader) |
+| keycloak-client-secrets | Infrastructure | Terraform | ALL OAuth2 client credentials (oauth2-proxy, admin-cli, fineract-api) |
 | smtp-credentials | Infrastructure | Terraform (optional) | SES SMTP credentials |
 | fineract-redis-secret | Application | Generated | In-cluster Redis password |
 | keycloak-admin-credentials | Application | Generated | Keycloak admin username/password |

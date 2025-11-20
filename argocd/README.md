@@ -27,8 +27,7 @@ argocd/
 │       ├── kafka.yaml            # Kafka application
 │       ├── minio.yaml            # MinIO application
 │       ├── apache-gateway.yaml   # Apache Gateway application
-│       ├── fineract.yaml         # Fineract application
-│       └── fineract-data.yaml    # Data loader (manual sync)
+│       └── fineract.yaml         # Fineract application
 ├── config/                        # ArgoCD configuration
 │   ├── argocd-cm.yaml            # ArgoCD ConfigMap
 │   ├── argocd-rbac-cm.yaml       # RBAC policies
@@ -178,8 +177,7 @@ fineract-full (app-of-apps)
 ├── fineract-kafka
 ├── fineract-minio
 ├── fineract-gateway
-├── fineract-app
-└── fineract-data-loader (manual sync)
+└── fineract-app
 ```
 
 ### Sync Waves
@@ -241,8 +239,6 @@ syncPolicy:
       factor: 2
       maxDuration: 3m
 ```
-
-**Exception**: `fineract-data-loader` requires manual sync (data safety).
 
 ## Health Checks
 

@@ -291,7 +291,6 @@ kubectl apply -k environments/dev/
 - [ ] Test actual deployment in dev environment
 - [ ] Verify all pods start successfully
 - [ ] Validate database connections work
-- [ ] Test data loader jobs (OAuth2 client auth)
 - [ ] Verify ArgoCD can sync from GitHub
 
 ### Validation Commands

@@ -173,7 +173,6 @@ This bootstraps all Fineract applications via ArgoCD:
 - Keycloak
 - OAuth2 Proxy
 - Fineract (read/write/batch)
-- Data loader jobs
 
 ## Step 6: Verify Deployment
 
@@ -203,16 +202,6 @@ kubectl get applications -n argocd
 
 # Check specific application
 kubectl get application fineract-dev-fineract -n argocd -o yaml
-```
-
-### Check Fineract Data Loader Jobs
-
-```bash
-# Check job status
-kubectl get jobs -n fineract-dev | grep fineract-data-loader
-
-# View logs for a specific wave
-kubectl logs -n fineract-dev job/fineract-data-loader-wave-05 -f
 ```
 
 ## Sealed Secrets Management

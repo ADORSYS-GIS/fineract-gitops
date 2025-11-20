@@ -94,7 +94,6 @@ keycloak-config/
 | **fineract-oauth2-proxy** | Confidential | Server-side proxy for ALL web frontends (Client Portal, Staff Portal, Admin Portal) | Authorization Code |
 | **admin-cli** | Confidential | Keycloak config management + user synchronization | Client Credentials |
 | **fineract-api** | Confidential | Generic backend service account for API integrations | Client Credentials |
-| **fineract-data-loader** | Confidential | Automated data loading operations | Client Credentials |
 
 **Architecture Decision**: OAuth2 Proxy pattern for web frontends:
 - ✅ Better security (client secret server-side, never in browser)
@@ -262,8 +261,7 @@ kubectl wait --for=condition=ready pod -l app=keycloak -n fineract --timeout=300
 kubectl create secret generic keycloak-client-secrets -n fineract-dev \
   --from-literal=fineract-oauth2-proxy=dev-secret-oauth2-proxy-123 \
   --from-literal=admin-cli=dev-secret-admin-456 \
-  --from-literal=fineract-api=dev-secret-api-789 \
-  --from-literal=fineract-data-loader=dev-secret-loader-101
+  --from-literal=fineract-api=dev-secret-api-789
 ```
 
 **Production** (use SealedSecrets):
@@ -276,7 +274,6 @@ kubectl create secret generic keycloak-client-secrets -n fineract-production \
   --from-literal=fineract-oauth2-proxy=<strong-secret> \
   --from-literal=admin-cli=<strong-secret> \
   --from-literal=fineract-api=<strong-secret> \
-  --from-literal=fineract-data-loader=<strong-secret> \
   --dry-run=client -o yaml | \
   kubeseal --controller-namespace sealed-secrets -o yaml > \
   environments/production/sealed-secrets/keycloak-client-secrets-sealed.yaml
