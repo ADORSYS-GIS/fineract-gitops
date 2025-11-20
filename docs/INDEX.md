@@ -29,12 +29,14 @@ Essential guides for new users and initial setup.
 
 | Document | Description | Audience |
 |----------|-------------|----------|
+| **[Prerequisites Guide](PREREQUISITES.md)** | Complete tool installation and setup guide | 🆕 New users |
+| **[Version Matrix](VERSION_MATRIX.md)** | Authoritative version requirements for all tools and applications | 📋 All users |
 | **[Getting Started Guide](GETTING_STARTED.md)** | Complete walkthrough from prerequisites to first deployment | 🆕 New users |
 | **[Quick Reference](QUICK_REFERENCE.md)** | Common commands and operations cheat sheet | 🔄 All users |
 | **[Main README](../README.md)** | Repository overview, architecture, and component status | 📖 Everyone |
 | **[Deployment Guide](../DEPLOYMENT.md)** | Interactive full deployment with validation steps | 🎯 Operators |
 
-**Start here:** If this is your first time, read [Getting Started Guide](GETTING_STARTED.md) → [Deployment Guide](../DEPLOYMENT.md) → Deploy!
+**Start here:** If this is your first time, read [Prerequisites Guide](PREREQUISITES.md) → [Getting Started Guide](GETTING_STARTED.md) → [Deployment Guide](../DEPLOYMENT.md) → Deploy!
 
 ---
 
@@ -73,8 +75,9 @@ System architecture, design decisions, and technical documentation.
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| **[Architecture Overview](architecture/README.md)** | Complete system architecture and patterns | 🏗️ Architects, Leads |
-| **[System Diagrams](architecture/DIAGRAMS.md)** | Detailed architecture diagrams | 📊 Architects |
+| **[Architecture Overview](ARCHITECTURE.md)** | Complete system architecture with Mermaid diagrams | 🏗️ Architects, Leads |
+| **[Architecture README](architecture/README.md)** | Technology stack and architectural patterns | 🏗️ Architects, Leads |
+| **[System Diagrams](architecture/DIAGRAMS.md)** | ASCII architecture diagrams | 📊 Architects |
 | **[ADR-001: Multi-Cloud Providers](architecture/ADR-001-multi-cloud-providers.md)** | Provider abstraction decision | 🏗️ Architects |
 | **[ADR-002: Multi-Instance Fineract](architecture/ADR-002-multi-instance-fineract.md)** | Read/Write/Batch separation | 🏗️ Architects |
 | **[ADR-003: Sealed Secrets](architecture/ADR-003-sealed-secrets.md)** | Secrets management approach | 🏗️ Architects |
@@ -84,6 +87,7 @@ System architecture, design decisions, and technical documentation.
 - Multi-instance Fineract (separate read/write/batch)
 - GitOps with ArgoCD
 - Sealed Secrets for security
+- **NEW:** Comprehensive Mermaid diagrams in [ARCHITECTURE.md](ARCHITECTURE.md) including security flows, DR workflows, and CI/CD pipelines
 
 ---
 
@@ -144,8 +148,6 @@ Application-specific documentation and configuration guides.
 | Application | Documentation | Description |
 |-------------|---------------|-------------|
 | **Web App** | [apps/web-app/README.md](../apps/web-app/README.md) | Frontend applications (admin, account manager, etc.) |
-| **User Sync Service** | [apps/user-sync-service/README.md](../apps/user-sync-service/README.md) | Password reset and Keycloak user synchronization |
-| **Fineract Data Management** | [operations/fineract-data/README.md](../operations/fineract-data/README.md) | YAML-based configuration data management |
 | **OAuth2 Proxy** | [apps/oauth2-proxy/base/README.md](../apps/oauth2-proxy/base/README.md) | OIDC reverse proxy for authentication |
 
 ---
@@ -178,9 +180,11 @@ Compliance and audit documentation (placeholder for future content).
 ### By Role
 
 **🆕 New User / Getting Started:**
-1. [Getting Started Guide](GETTING_STARTED.md)
-2. [Quick Reference](QUICK_REFERENCE.md)
-3. [Deployment Guide](../DEPLOYMENT.md)
+1. [Prerequisites Guide](PREREQUISITES.md) - Install required tools
+2. [Version Matrix](VERSION_MATRIX.md) - Check version compatibility
+3. [Getting Started Guide](GETTING_STARTED.md) - Complete walkthrough
+4. [Quick Reference](QUICK_REFERENCE.md) - Common commands
+5. [Deployment Guide](../DEPLOYMENT.md) - Deploy to cluster
 
 **🔐 Security / DevOps Engineer:**
 1. [Secrets Management](SECRETS_MANAGEMENT.md)
@@ -197,14 +201,15 @@ Compliance and audit documentation (placeholder for future content).
 3. [Secrets Quick Reference](../secrets/README.md)
 
 **🏗️ Architect / Tech Lead:**
-1. [README - Architecture](../README.md#-architecture)
-2. [Architecture Overview](architecture/README.md)
-3. [Implementation Guide](development/IMPLEMENTATION_GUIDE.md)
+1. [Architecture Overview](ARCHITECTURE.md) - Complete diagrams (Mermaid)
+2. [Architecture README](architecture/README.md) - Tech stack & patterns
+3. [System Diagrams](architecture/DIAGRAMS.md) - ASCII diagrams
+4. [Implementation Guide](development/IMPLEMENTATION_GUIDE.md) - Best practices
 
 ### By Task
 
 **Task: Deploy Fineract for the first time**
-→ [Getting Started Guide](GETTING_STARTED.md) → [Deployment Guide](../DEPLOYMENT.md)
+→ [Prerequisites Guide](PREREQUISITES.md) → [Getting Started Guide](GETTING_STARTED.md) → [Deployment Guide](../DEPLOYMENT.md)
 
 **Task: Set up secrets management**
 → [Secrets Management](SECRETS_MANAGEMENT.md) → [Sealed Secrets Deployment Guide](SEALED_SECRETS_DEPLOYMENT_GUIDE.md)
@@ -216,7 +221,7 @@ Compliance and audit documentation (placeholder for future content).
 → [Frontend Implementation Guide](development/FRONTEND_APPS_IMPLEMENTATION_GUIDE.md) → [Web App README](../apps/web-app/README.md)
 
 **Task: Migrate configuration from Excel**
-→ [Excel to YAML Conversion](operations/CONVERT_EXCEL_TO_YAML.md) → [Fineract Data Management](../operations/fineract-data/README.md)
+→ [Excel to YAML Conversion](operations/CONVERT_EXCEL_TO_YAML.md)
 
 **Task: Implement new frontend app**
 → [Frontend Implementation Guide](development/FRONTEND_APPS_IMPLEMENTATION_GUIDE.md)
@@ -231,12 +236,14 @@ Compliance and audit documentation (placeholder for future content).
 ```
 docs/
 ├── INDEX.md                              # This file - documentation index
+├── PREREQUISITES.md                      # 🆕 Tool installation guide
+├── VERSION_MATRIX.md                     # 🆕 Authoritative version requirements
 ├── GETTING_STARTED.md                    # Complete setup walkthrough
 ├── QUICK_REFERENCE.md                    # Common commands cheat sheet
+├── ARCHITECTURE.md                       # ⭐ Enhanced with 5 new Mermaid diagrams
 ├── SECRETS_MANAGEMENT.md                 # Comprehensive secrets guide
 ├── SEALED_SECRETS_DEPLOYMENT_GUIDE.md    # Sealed Secrets deployment
 ├── AWS_COST_ANALYSIS.md                  # Cost analysis and optimization
-├── ARCHITECTURE.md                       # System architecture overview
 │
 ├── operations/                           # Operational guides
 │   ├── CI_CD_INTEGRATION.md              # Pipeline setup
@@ -310,6 +317,6 @@ This index is maintained as part of the repository reorganization. When adding n
 
 ---
 
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-11-20
 **Repository:** [fineract-gitops](https://github.com/yourusername/fineract-gitops)
 **Maintainer:** Platform Team

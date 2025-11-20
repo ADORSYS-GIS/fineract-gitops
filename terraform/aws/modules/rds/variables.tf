@@ -26,7 +26,7 @@ variable "allowed_security_groups" {
 variable "postgres_version" {
   description = "PostgreSQL version"
   type        = string
-  default     = "15.4"
+  default     = "15.14"  # Latest stable version (see docs/VERSION_MATRIX.md)
 }
 
 variable "instance_class" {

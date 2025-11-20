@@ -1,9 +1,0 @@
-apiVersion: fineract.apache.org/v1
-kind: Fund
-metadata:
-  name: bank-loan---bicec
-  labels:
-    fund-type: general
-spec:
-  name: Bank Loan - BICEC
-  externalId: FUND-003

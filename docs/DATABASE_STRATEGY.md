@@ -76,12 +76,14 @@ FINERACT_HIKARI_JDBC_URL: "jdbc:postgresql://$(RDS_ENDPOINT):5432/fineract"
 FINERACT_HIKARI_USERNAME: ${from secret: fineract-db-credentials}
 FINERACT_HIKARI_PASSWORD: ${from secret: fineract-db-credentials}
 
-# Connection Pool (HikariCP)
-FINERACT_HIKARI_MINIMUM_IDLE: "3"
-FINERACT_HIKARI_MAXIMUM_POOL_SIZE: "10"
-FINERACT_HIKARI_IDLE_TIMEOUT: "60000"
-FINERACT_HIKARI_CONNECTION_TIMEOUT: "20000"
-FINERACT_HIKARI_TEST_QUERY: "SELECT 1"
+# HikariCP Connection Pool Configuration
+FINERACT_HIKARI_MINIMUM_IDLE: "3"         # Read: 3, Write: 5, Batch: 2
+FINERACT_HIKARI_MAXIMUM_POOL_SIZE: "10"   # Read: 10, Write: 15, Batch: 5
+FINERACT_HIKARI_IDLE_TIMEOUT: "60000"     # 60 seconds
+FINERACT_HIKARI_CONNECTION_TIMEOUT: "20000"  # 20 seconds
+FINERACT_HIKARI_MAX_LIFETIME: "1800000"   # 30 minutes
+FINERACT_HIKARI_LEAK_DETECTION_THRESHOLD: "60000"  # 60 seconds
+FINERACT_HIKARI_CONNECTION_TEST_QUERY: "SELECT 1"
 
 # Redis Connection (in-cluster)
 SPRING_REDIS_HOST: ${from secret: fineract-redis-credentials}
@@ -292,14 +294,33 @@ This strategy aims to minimize risks associated with Fineract version upgrades b
 connections = ((core_count * 2) + effective_spindle_count)
 ```
 
-**Example:**
-- 2 vCPU instance = ~5-10 connections per pod
-- With 3 replicas = 15-30 total connections
+**Implemented Configuration (Base):**
+
+| Deployment | Min Idle | Max Pool Size | Timeout (ms) | Max Lifetime (ms) | Leak Detection (ms) |
+|------------|----------|---------------|--------------|-------------------|---------------------|
+| **Read**   | 3        | 10            | 20000        | 1800000           | 60000               |
+| **Write**  | 5        | 15            | 20000        | 1800000           | 60000               |
+| **Batch**  | 2        | 5             | 20000        | 1800000           | 60000               |
+
+**Environment-Specific Overlays:**
+
+**Development** (`apps/fineract/overlays/dev/`):
+- Read: 2-5 connections
+- Write: 3-8 connections
+- Batch: 1-3 connections
+- **Total Max:** ~16 connections
+
+**Production** (`apps/fineract/overlays/production/`):
+- Read: 5-15 connections (up to 5 replicas via HPA = 75 connections max)
+- Write: 8-25 connections (up to 3 replicas = 75 connections max)
+- Batch: 3-10 connections (1 replica = 10 connections)
+- **Total Max:** ~160 connections (well under RDS 500 limit)
 
 **RDS Max Connections:**
 - db.t3.micro: 60 connections
 - db.t3.small: 150 connections
 - db.t3.medium: 300 connections
+- db.r6g.large (production): ~500 connections (configured in `terraform/aws/environments/production.tfvars`)
 
 ### Read/Write Splitting
 

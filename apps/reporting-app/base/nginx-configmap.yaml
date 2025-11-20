@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reporting-app-nginx-config
+  labels:
+    app: reporting-app
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Cache-Control headers for static assets
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            add_header X-Content-Type-Options "nosniff" always;
+            access_log off;
+
+            # CORS headers for fonts and assets
+            add_header Access-Control-Allow-Origin "*";
+        }
+
+        # HTML files - short cache with revalidation
+        location ~* \.(html)$ {
+            expires 1h;
+            add_header Cache-Control "public, must-revalidate";
+            add_header X-Content-Type-Options "nosniff" always;
+        }
+
+        # JSON files - no cache (API responses, config files)
+        location ~* \.(json)$ {
+            expires -1;
+            add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+            add_header X-Content-Type-Options "nosniff" always;
+        }
+
+        # API proxy pass (if needed)
+        location /api/ {
+            proxy_pass http://fineract-read-service:8080;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # No caching for API calls
+            add_header Cache-Control "no-store, no-cache, must-revalidate";
+        }
+
+        # SPA fallback - all other routes serve index.html
+        location / {
+            try_files $uri $uri/ /index.html;
+            expires 1h;
+            add_header Cache-Control "public, must-revalidate";
+        }
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+        # Gzip compression
+        gzip on;
+        gzip_vary on;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+    }

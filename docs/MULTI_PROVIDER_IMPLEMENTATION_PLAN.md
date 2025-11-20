@@ -427,7 +427,7 @@ fi
 
 # 3. Install sealed-secrets controller
 echo "🔒 Installing sealed-secrets controller..."
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/controller.yaml
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/controller.yaml
 
 # 4. Wait for sealed-secrets controller
 echo "⏳ Waiting for sealed-secrets controller..."

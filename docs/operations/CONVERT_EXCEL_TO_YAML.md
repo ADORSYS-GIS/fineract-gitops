@@ -14,14 +14,7 @@ fineract/docs/data-collection/fineract-demo-data/├── scripts/
 
 ## 🎯 Goal
 
-Convert this Excel data into:
-```
-fineract-gitops/operations/fineract-data/data/
-├── base/              ← Shared code values
-├── dev/               ← Dev config + demo data
-├── uat/               ← UAT config + test data
-└── production/        ← Production config ONLY
-```
+Convert this Excel data into YAML format for version control and configuration management.
 
 ## 🔄 Conversion Strategy
 
@@ -304,7 +297,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='Convert Excel to YAML')
     parser.add_argument('--excel', required=True, help='Path to Excel file')
-    parser.add_argument('--output', required=True, help='Output directory (e.g., operations/fineract-data/data/dev)')
+    parser.add_argument('--output', required=True, help='Output directory for YAML files')
     parser.add_argument('--entity-type', required=True, choices=[
         'loan-products', 'savings-products', 'offices', 'charges',
         'code-values', 'all'
@@ -340,7 +333,7 @@ python3 scripts/excel_to_yaml.py \
 # Convert only loan products
 python3 scripts/excel_to_yaml.py \
   --excel fineract/docs/data-collection/fineract-demo-data/fineract_demo_data.xlsx \
-  --output operations/fineract-data/data/dev \
+  --output /path/to/output/directory \
   --entity-type loan-products
 ```
 
@@ -463,13 +456,13 @@ git diff
 
 1. **Commit YAML files:**
    ```bash
-   git add operations/fineract-data/data/
+   git add .
    git commit -m "data: convert Excel to YAML format"
    ```
 
-2. **Create data loading jobs** (see IMPLEMENTATION_GUIDE.md)
+2. **Use YAML files for configuration management**
 
-3. **Write Python loader scripts** to convert YAML → Fineract API
+3. **Version control all changes**
 
 4. **Test in dev environment**
 

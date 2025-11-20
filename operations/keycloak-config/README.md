@@ -48,17 +48,6 @@ keycloak-config/
 │           └── html/
 │               └── password-reset-email.ftl     # Email template
 │
-├── user-sync-service/                           # Fineract → Keycloak user sync
-│   ├── README.md                                # User sync documentation
-│   ├── base/
-│   │   ├── kustomization.yaml                   # Base kustomization with ConfigMap
-│   │   ├── deployment.yaml                      # Kubernetes deployment
-│   │   └── rbac.yaml                            # RBAC permissions
-│   ├── app/
-│   │   ├── sync_service.py                      # Python Flask service
-│   │   └── requirements.txt                     # Dependencies
-│   └── Dockerfile                               # Container image
-│
 ├── security-policies/                           # Production security lockdown
 │   ├── network-policy-production.yaml           # NetworkPolicy (blocks admin console)
 │   └── keycloak-production-config.yaml          # Production environment config
@@ -94,7 +83,6 @@ keycloak-config/
 | **fineract-oauth2-proxy** | Confidential | Server-side proxy for ALL web frontends (Client Portal, Staff Portal, Admin Portal) | Authorization Code |
 | **admin-cli** | Confidential | Keycloak config management + user synchronization | Client Credentials |
 | **fineract-api** | Confidential | Generic backend service account for API integrations | Client Credentials |
-| **fineract-data-loader** | Confidential | Automated data loading operations | Client Credentials |
 
 **Architecture Decision**: OAuth2 Proxy pattern for web frontends:
 - ✅ Better security (client secret server-side, never in browser)
@@ -262,8 +250,7 @@ kubectl wait --for=condition=ready pod -l app=keycloak -n fineract --timeout=300
 kubectl create secret generic keycloak-client-secrets -n fineract-dev \
   --from-literal=fineract-oauth2-proxy=dev-secret-oauth2-proxy-123 \
   --from-literal=admin-cli=dev-secret-admin-456 \
-  --from-literal=fineract-api=dev-secret-api-789 \
-  --from-literal=fineract-data-loader=dev-secret-loader-101
+  --from-literal=fineract-api=dev-secret-api-789
 ```
 
 **Production** (use SealedSecrets):
@@ -276,7 +263,6 @@ kubectl create secret generic keycloak-client-secrets -n fineract-production \
   --from-literal=fineract-oauth2-proxy=<strong-secret> \
   --from-literal=admin-cli=<strong-secret> \
   --from-literal=fineract-api=<strong-secret> \
-  --from-literal=fineract-data-loader=<strong-secret> \
   --dry-run=client -o yaml | \
   kubeseal --controller-namespace sealed-secrets -o yaml > \
   environments/production/sealed-secrets/keycloak-client-secrets-sealed.yaml
@@ -316,12 +302,8 @@ argocd app sync keycloak-config-dev
 
 ```bash
 # Verify deployment (deployed with base)
-kubectl get pods -n fineract-dev -l app.kubernetes.io/name=fineract-keycloak-sync
-kubectl logs -n fineract-dev -l app.kubernetes.io/name=fineract-keycloak-sync
-
-# Test health endpoint
-kubectl port-forward -n fineract-dev svc/user-sync-service 5000:5000
-curl http://localhost:5000/health
+kubectl get pods -n fineract-dev -l app.kubernetes.io/name=keycloak
+kubectl logs -n fineract-dev -l app.kubernetes.io/name=keycloak
 ```
 
 ### 6. Apply Production Security Policies
@@ -355,9 +337,8 @@ kubectl get all -n fineract-dev -l app.kubernetes.io/part-of=fineract-platform
 # Test realm endpoint (replace with your environment domain)
 curl -k https://auth.dev.fineract.com/realms/fineract/.well-known/openid-configuration
 
-# Test user sync service
-kubectl port-forward -n fineract-dev svc/user-sync-service 5000:5000
-curl http://localhost:5000/health
+# Test Keycloak health
+kubectl get pods -n fineract-dev -l app.kubernetes.io/name=keycloak
 ```
 
 ---
@@ -391,13 +372,6 @@ vim operations/keycloak-config/base/config/realm-fineract.yaml
 # - name: auditor
 #   description: Audit role with read-only + audit log access
 #   composite: false
-
-# If mapping from Fineract, update user sync service:
-vim operations/keycloak-config/user-sync-service/app/sync_service.py
-
-# Add to ROLE_MAPPING:
-# "Auditor": "auditor",
-# "auditor": "auditor",
 
 # Commit and push
 git add operations/keycloak-config/
@@ -555,38 +529,6 @@ open http://localhost:8080/realms/fineract/account
 # Password: Password123! (temporary - will be forced to change)
 ```
 
-### 2. Test User Sync
-
-```bash
-# Port forward user sync service
-kubectl port-forward -n fineract svc/user-sync-service 5000:5000
-
-# Sync a user
-curl -X POST http://localhost:5000/sync/user \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": 123,
-    "username": "john.doe",
-    "email": "john.doe@webank.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "role": "Loan Officer",
-    "officeId": 1,
-    "officeName": "Head Office",
-    "employeeId": "EMP001",
-    "mobileNumber": "+254712345678"
-  }'
-
-# Expected response:
-# {
-#   "status": "success",
-#   "message": "User john.doe synced to Keycloak successfully",
-#   "keycloak_user_id": "...",
-#   "temporary_password": "...",
-#   "required_actions": ["UPDATE_PASSWORD", "VERIFY_EMAIL", "webauthn-register"]
-# }
-```
-
 ### 3. Test WebAuthn Registration
 
 ```bash
@@ -723,7 +665,6 @@ Follow the steps in [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Dep
 ### Component Documentation
 
 - **Theme**: `themes/webank/README.md` - Theme structure, customization, testing
-- **User Sync**: `user-sync-service/README.md` - API documentation, role mapping, deployment
 
 ### External References
 
@@ -818,8 +759,10 @@ Admin creates user in Fineract
 
 **Frontend Integration** (Staff Dashboard):
 
+Users are created in Fineract via the standard Fineract API, and authentication is handled through Keycloak SSO.
+
 ```javascript
-// 1. Create user in Fineract
+// Create user in Fineract
 const fineractResponse = await fetch('/fineract-provider/api/v1/staff', {
   method: 'POST',
   headers: {
@@ -836,28 +779,6 @@ const fineractResponse = await fetch('/fineract-provider/api/v1/staff', {
 });
 
 const fineractUser = await fineractResponse.json();
-
-// 2. Sync to Keycloak
-const syncResponse = await fetch('/api/user-sync/sync/user', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    userId: fineractUser.resourceId,
-    username: 'john.doe',
-    email: 'john.doe@webank.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    role: 'Loan Officer',  // Fineract role (with space)
-    officeId: 1,
-    officeName: 'Head Office',
-    employeeId: 'EMP001',
-    mobileNumber: '+254712345678'
-  })
-});
-
-const syncResult = await syncResponse.json();
-// syncResult.temporary_password - send to user via secure channel
-// syncResult.required_actions - ["UPDATE_PASSWORD", "VERIFY_EMAIL", "webauthn-register"]
 ```
 
 ### Authentication Flow
@@ -942,19 +863,6 @@ const publicKeys = await fetch(jwksUrl).then(r => r.json());
    kubectl port-forward -n fineract svc/keycloak-service 8080:8080
    ```
 4. Access at `http://localhost:8080/admin`
-
-### Issue: "User sync failing"
-
-**Check logs**:
-```bash
-kubectl logs -n fineract -l app=fineract-user-sync
-```
-
-**Common causes**:
-- Admin CLI secret incorrect
-- Keycloak not reachable
-- Role not found in ROLE_MAPPING
-- User already exists
 
 ### Issue: "WebAuthn registration not working"
 

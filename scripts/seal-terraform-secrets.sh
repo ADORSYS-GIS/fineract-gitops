@@ -275,14 +275,10 @@ echo
 # 4. Keycloak Client Secrets (SINGLE SOURCE OF TRUTH for all OAuth client credentials)
 echo "4. Keycloak Client Secrets..."
 echo -e "${YELLOW}  IMPORTANT: This is the single source of truth for ALL OAuth client credentials${NC}"
-echo -e "${YELLOW}  Used by: oauth2-proxy, user-sync-service, data loader jobs, keycloak realm config${NC}"
+echo -e "${YELLOW}  Used by: oauth2-proxy, data loader jobs, keycloak realm config${NC}"
 
 OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
 # OAUTH2_CLIENT_SECRET and OAUTH2_COOKIE_SECRET already fetched from Terraform above (before cd ..)
-
-# Hardcoded secret for fineract-data-loader (same as in create-complete-sealed-secrets.sh)
-# This value must match what's configured in Keycloak realm-fineract.yaml
-FINERACT_DATA_LOADER_SECRET="6IJ25BUdxHKpFJKaz8bg0emeElXbp23A"
 
 # Generate random secrets for service account clients (admin-cli and fineract-api)
 # These are used by backend services for machine-to-machine authentication
@@ -292,7 +288,6 @@ FINERACT_API_SECRET=$(openssl rand -base64 32)
 # Create consolidated keycloak-client-secrets with:
 # - Both client-id AND client-secret for all OAuth clients
 # - Renamed keys with -client-id and -client-secret suffixes for clarity
-# - Removed deprecated clients (message-gateway, payment-gateway, data-loader)
 # - Added oauth2-proxy-cookie-secret for completeness (also in oauth2-proxy-secrets for backward compatibility)
 create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "oauth2-proxy-client-id=${OAUTH2_CLIENT_ID}" \
@@ -301,9 +296,7 @@ create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "admin-cli-client-id=admin-cli" \
     "admin-cli-client-secret=${ADMIN_CLI_SECRET}" \
     "fineract-api-client-id=fineract-api" \
-    "fineract-api-client-secret=${FINERACT_API_SECRET}" \
-    "fineract-data-loader-client-id=fineract-data-loader" \
-    "fineract-data-loader-client-secret=${FINERACT_DATA_LOADER_SECRET}"
+    "fineract-api-client-secret=${FINERACT_API_SECRET}"
 
 echo
 

@@ -277,46 +277,6 @@ Deployment is healthy and ready!
 
 ---
 
-### validate-data.py
-
-**Purpose**: Validate YAML configuration data for Fineract
-
-**Usage**:
-```bash
-cd operations/fineract-data
-../../scripts/validate-data.py [file.yaml]
-
-# Validate specific file
-../../scripts/validate-data.py data/base/codes/loan-products.yaml
-
-# Validate all files
-../../scripts/validate-data.py
-```
-
-**What it validates**:
-1. YAML syntax correctness
-2. Required fields present
-3. Data type validation
-4. Value range checks
-5. Reference integrity
-6. Naming conventions
-
-**Example output**:
-```
-Validating Fineract configuration data...
-
-✓ data/base/codes/loan-products.yaml
-✓ data/base/roles/admin-role.yaml
-✗ data/base/notifications/sms-template.yaml
-  ERROR: Missing required field 'template'
-  WARNING: 'name' should be uppercase
-
-Summary: 2 valid, 1 error
-Validation failed!
-```
-
----
-
 ### test-argocd.sh
 
 **Purpose**: Test ArgoCD installation and application sync
@@ -588,11 +548,6 @@ jobs:
 
       - name: Check for Plaintext Secrets
         run: ./scripts/check-plaintext-secrets.sh
-
-      - name: Validate Data
-        run: |
-          cd operations/fineract-data
-          ../../scripts/validate-data.py
 ```
 
 ### Security Considerations
@@ -677,10 +632,10 @@ kubectl cluster-info
 
 **kubeseal not found**:
 ```bash
-# Install kubeseal
+# Install kubeseal (v0.27.0 - must match controller)
 brew install kubeseal  # macOS
 # or
-wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.26.3/kubeseal-linux-amd64
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/kubeseal-linux-amd64
 ```
 
 ---

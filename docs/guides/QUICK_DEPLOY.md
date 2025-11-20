@@ -129,14 +129,10 @@ kubectl apply -f argocd/applications/dev/fineract.yaml
 
 # 7. Deploy Web Apps (from fineract-apps repo CI/CD or manually)
 kubectl apply -f argocd/applications/dev/fineract-web-apps.yaml
-
-# 8. (Optional) Load Fineract configuration data
-kubectl apply -f argocd/applications/dev/fineract-data.yaml
-argocd app sync fineract-dev-data-loader
 ```
 
-**Total Commands**: 6 commands (platform) + 2-3 commands (apps + data)
-**Total Time**: ~60-75 minutes
+**Total Commands**: 6 commands (platform) + 2 commands (apps)
+**Total Time**: ~60 minutes
 
 ---
 
@@ -251,38 +247,6 @@ kubectl apply -f argocd/applications/dev/fineract-web-apps.yaml
 # Watch deployment
 kubectl get pods -n fineract-dev -l app.kubernetes.io/name=fineract-web-app -w
 ```
-
-### Fineract Configuration Data Loading (Optional)
-
-**AFTER Fineract backend and frontend are deployed**, you can load initial configuration data.
-
-**What gets loaded**:
-- Code values (gender, education level, etc.)
-- Offices (head office, branches)
-- Loan products (personal loans, business loans, etc.)
-- Demo data (dev/uat only: test clients, accounts, transactions)
-
-**When to run**: Only run ONCE after initial Fineract deployment
-
-```bash
-# 1. Apply fineract-data ArgoCD application
-kubectl apply -f argocd/applications/dev/fineract-data.yaml
-
-# 2. Manually trigger data loading (requires approval)
-argocd app sync fineract-dev-data-loader
-
-# 3. Watch data loading jobs
-kubectl get jobs -n fineract-dev -l app=fineract-data-loader -w
-
-# 4. Check job logs
-kubectl logs -n fineract-dev -l job-name=load-code-values --tail=50
-kubectl logs -n fineract-dev -l job-name=load-offices --tail=50
-kubectl logs -n fineract-dev -l job-name=load-loan-products --tail=50
-```
-
-**Data loaded from**: `operations/fineract-data/data/dev/`
-
-**Note**: Data loading jobs are **idempotent** (safe to re-run, won't create duplicates)
 
 ---
 

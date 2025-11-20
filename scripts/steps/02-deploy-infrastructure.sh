@@ -81,7 +81,7 @@ echo -e "${GREEN}✓${NC} gp3 StorageClass created"
 
 # Sealed Secrets Controller
 echo "→ Installing Sealed Secrets Controller..."
-kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.24.0/controller.yaml
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.0/controller.yaml
 echo "  Waiting for controller..."
 kubectl wait --for=condition=available --timeout=120s deployment/sealed-secrets-controller -n kube-system
 echo -e "${GREEN}✓${NC} Sealed Secrets ready"

@@ -580,7 +580,6 @@ Keycloak realm configuration (realm, clients, roles, users) is managed separatel
 | `fineract-oauth2-proxy` | Confidential | Server-side proxy for all web frontends | Authorization Code |
 | `admin-cli` | Confidential | Keycloak config management + user sync | Client Credentials |
 | `fineract-api` | Confidential | Generic backend service account | Client Credentials |
-| `fineract-data-loader` | Confidential | Automated data loading | Client Credentials |
 
 **OAuth2-Proxy Architecture:**
 - Single OAuth2-Proxy instance handles authentication for all frontend apps

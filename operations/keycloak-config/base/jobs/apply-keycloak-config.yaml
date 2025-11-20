@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: keycloak-config-cli
-        image: adorsys/keycloak-config-cli:latest-24.0.5
+        image: adorsys/keycloak-config-cli:5.9.0
         env:
         # Keycloak Connection
         # KEYCLOAK_URL should be set via ConfigMap in environment overlays
@@ -222,18 +222,6 @@ spec:
             secretKeyRef:
               name: keycloak-client-secrets
               key: fineract-api-client-secret
-              optional: true
-        - name: FINERACT_DATA_LOADER_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: fineract-data-loader-client-id
-              optional: true
-        - name: FINERACT_DATA_LOADER_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: fineract-data-loader-client-secret
               optional: true
         - name: ADMIN_PASSWORD
           valueFrom:

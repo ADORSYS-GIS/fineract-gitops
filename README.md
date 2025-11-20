@@ -30,6 +30,9 @@ Complete, production-ready GitOps infrastructure for deploying Apache Fineract (
 
 ## 🚀 Quick Start
 
+> 📋 **Prerequisites:** See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for complete tool installation guide
+> 🔧 **Versions:** Check [docs/VERSION_MATRIX.md](docs/VERSION_MATRIX.md) for version requirements
+
 ### GitOps Deployment (Recommended)
 
 For step-by-step deployment with validation and user confirmation:
@@ -49,9 +52,12 @@ make deploy-gitops
 - Individual step execution (run steps independently)
 - Troubleshooting and verification
 
-### Alternative Guides
+### Essential Guides
 
-- **[End-to-End Automation Guide](docs/E2E_AUTOMATION_GUIDE.md)** - Complete infrastructure provisioning and deployment
+- **[Prerequisites Guide](docs/PREREQUISITES.md)** - Complete tool installation and setup
+- **[Version Matrix](docs/VERSION_MATRIX.md)** - Authoritative version requirements
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete walkthrough
+- **[End-to-End Automation Guide](docs/E2E_AUTOMATION_GUIDE.md)** - Full infrastructure provisioning and deployment
 - **[Quick Reference](docs/QUICK_REFERENCE.md)** - Common commands and operations
 
 ### High-Level Steps
@@ -101,7 +107,6 @@ Deploy Fineract on any cloud or on-premise with flexible provider abstraction:
 - **Keycloak** - SSO and identity management
 
 ### Supporting Services
-- **User Sync Service** - Password reset and Keycloak synchronization
 - **Frontend Applications** - Web App, Reporting App, Accounting App
 - **Logging & Monitoring** - Loki/Promtail for logs, Prometheus/Grafana for metrics
 
@@ -126,7 +131,6 @@ fineract-gitops/
 │   ├── web-app/               # Main frontend application
 │   ├── accounting-app/        # Accounting module frontend
 │   ├── reporting-app/         # Reporting module frontend
-│   ├── user-sync-service/     # Keycloak user synchronization
 │   ├── ingress/               # Ingress resources
 │   ├── ingress-nginx/         # NGINX ingress controller
 │   ├── network-policies/      # Network security policies
@@ -163,7 +167,6 @@ fineract-gitops/
 │   └── production/            # Production secrets (encrypted)
 │
 ├── operations/                # Operational tooling
-│   ├── fineract-data/         # Configuration data management
 │   ├── keycloak-config/       # Keycloak configuration
 │   └── disaster-recovery/     # Backup/restore procedures
 │
@@ -245,6 +248,7 @@ Similar to AWS, but use `environments/dev-azure` or `environments/dev-gcp`
 ### Other
 - **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - How to manage secrets.
 - **[Disaster Recovery Guide](docs/operations/disaster-recovery/DR_GUIDE.md)** - Backup and restore procedures.
+- **[Deprecations](DEPRECATIONS.md)** - ⚠️ Deprecated features and migration guides.
 
 ---
 
@@ -388,7 +392,7 @@ kubectl apply -k environments/dev-gcp
 | Frontend Apps | ✅ Ready | Latest | Web, Accounting, Reporting apps |
 | Logging | ✅ Ready | Latest | Loki/Promtail stack |
 | Monitoring | ✅ Ready | Latest | Prometheus/Grafana stack |
-| Sealed Secrets | ✅ Ready | v0.26.3 | GitOps secrets management |
+| Sealed Secrets | ✅ Ready | v0.27.0 | GitOps secrets management |
 | ArgoCD | ✅ Ready | 2.9+ | GitOps CD |
 | **Providers** | ✅ Ready | - | **Multi-cloud support (AWS/Azure/GCP)** |
 | **Terraform** | ✅ Ready | 1.5+ | **AWS modules complete** |

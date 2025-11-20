@@ -85,7 +85,7 @@
 | 4 | `s3-connection` | `fineract-*` | `seal-terraform-secrets.sh` | S3 document storage |
 | 5 | `fineract-redis-secret` | `fineract-*` | `create-complete-sealed-secrets.sh` | In-cluster Redis password |
 | 6 | `keycloak-admin-credentials` | `fineract-*` | `create-complete-sealed-secrets.sh` | Keycloak admin console |
-| 7 | `fineract-admin-credentials` | `fineract-*` | `create-complete-sealed-secrets.sh` | OAuth2 client for data loaders |
+| 7 | `fineract-admin-credentials` | `fineract-*` | `create-complete-sealed-secrets.sh` | Fineract admin authentication |
 | 8 | `keycloak-client-secrets` | `fineract-*` | `create-complete-sealed-secrets.sh` | Keycloak OAuth clients (placeholder) |
 | 9 | `grafana-admin-credentials` | `monitoring` | `create-complete-sealed-secrets.sh` | Grafana admin console |
 
@@ -258,7 +258,6 @@ Before deploying to production, verify:
 - [ ] Fineract connects to RDS database
 - [ ] Keycloak starts and connects to database
 - [ ] OAuth2 Proxy authentication works
-- [ ] Data loader jobs can authenticate (OAuth2 client)
 - [ ] Redis connection works
 - [ ] S3 document storage works (if enabled)
 - [ ] Grafana admin login works

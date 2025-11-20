@@ -1413,7 +1413,6 @@ S3 access uses IRSA instead of static access keys:
 
 ### Operations Documentation
 - [Database Initialization](/operations/fineract-database-init/README.md)
-- [Fineract Data Loading](/operations/fineract-data/README.md)
 - [Keycloak Configuration](/operations/keycloak-config/README.md)
 - [Disaster Recovery](/docs/operations/DISASTER_RECOVERY.md)
 

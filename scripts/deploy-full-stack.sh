@@ -1,6 +1,24 @@
 #!/bin/bash
+#
 # Fineract GitOps - Full Stack Automated Deployment
 # This script orchestrates the complete deployment of the Fineract platform
+#
+# ════════════════════════════════════════════════════════════════════
+# USE CASE: Automated deployments, CI/CD pipelines
+# ════════════════════════════════════════════════════════════════════
+#
+# This script provides a FULLY AUTOMATED deployment with:
+# - No user interaction required
+# - All steps run sequentially
+# - Comprehensive logging to file
+# - Error handling and step tracking
+# - Best for CI/CD pipelines and unattended deployments
+#
+# For INTERACTIVE deployments (manual operations), use:
+#   ./scripts/deploy-gitops.sh
+#
+# See DEPLOYMENT.md for complete guide
+#
 
 set -e  # Exit on error
 set -o pipefail  # Exit on pipe failure

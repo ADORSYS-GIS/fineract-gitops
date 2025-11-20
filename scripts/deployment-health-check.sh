@@ -1,50 +1,28 @@
 #!/bin/bash
-# Comprehensive deployment health check
+#
+# Deployment Health Check - Simplified Wrapper
+#
+# This script is a backward-compatible wrapper around verify-deployment-health.sh
+# It provides a simple interface for quick health checks.
+#
+# Usage:
+#   ./scripts/deployment-health-check.sh [environment]
+#
+# For more comprehensive health checks with detailed phases, use:
+#   ./scripts/verify-deployment-health.sh [environment] [--quick|--full]
+#
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV="${1:-dev}"
 
-echo "=========================================="
-echo "  Deployment Health Check - $ENV"
-echo "=========================================="
+# Colors for output
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}Running quick deployment health check for ${ENV}...${NC}"
 echo ""
 
-# Check K8s nodes
-echo "=== Kubernetes Nodes ==="
-kubectl get nodes
-echo ""
-
-# Check ArgoCD applications
-echo "=== ArgoCD Applications ==="
-kubectl get applications -n argocd
-echo ""
-
-# Check namespaces
-echo "=== Namespaces ==="
-kubectl get namespaces
-echo ""
-
-# Check pods in fineract namespace
-echo "=== Fineract Pods ==="
-kubectl get pods -n fineract-$ENV || echo "Fineract namespace not ready yet"
-echo ""
-
-# Check monitoring pods
-echo "=== Monitoring Pods ==="
-kubectl get pods -n monitoring || echo "Monitoring namespace not ready yet"
-echo ""
-
-# Check logging pods
-echo "=== Logging Pods ==="
-kubectl get pods -n logging || echo "Logging namespace not ready yet"
-echo ""
-
-# Check ArgoCD pods
-echo "=== ArgoCD Pods ==="
-kubectl get pods -n argocd
-echo ""
-
-echo "=========================================="
-echo "  Health Check Complete"
-echo "=========================================="
+# Call the comprehensive health check script in quick mode
+exec "$SCRIPT_DIR/verify-deployment-health.sh" "$ENV" --quick

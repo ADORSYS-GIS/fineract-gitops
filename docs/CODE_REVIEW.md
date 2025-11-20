@@ -212,6 +212,8 @@ All P0 security issues resolved in Phases 7.1-7.3
 
 ## 5. Operations - Fineract Data (`operations/fineract-data`)
 
+> **Note**: This feature was removed from the repository. This section is retained for historical reference only.
+
 ### 5.1. Data Loading Scripts (`scripts/loaders/`)
 
 | Issue | File(s) | Recommendation | Current Status |
@@ -261,7 +263,7 @@ All P0 security issues resolved in Phases 7.1-7.3
 | Issue | File(s) | Recommendation | Current Status |
 | :--- | :--- | :--- | :--- |
 | **Hardcoded `DOMAIN` in Client URLs and SMTP Configuration** | `realm-fineract.yaml` | Ensure that the `${DOMAIN}` variable is consistently and correctly substituted by the `keycloak-config-cli` or the Kustomize overlay process for each environment. | **Resolved** (DOMAIN variable used in base, substituted in overlays for each environment) |
-| **Hardcoded Client Secret for `fineract-data-loader` Client** | `realm-fineract.yaml` | This secret *must* be externalized and managed securely. | **Partially Resolved** (Phase 7.2 - fineract-api done, data-loader remains) |
+| **Hardcoded Client Secret for `fineract-data-loader` Client** | `realm-fineract.yaml` | This secret *must* be externalized and managed securely. | **Resolved** (Feature removed from repository) |
 | **`registrationAllowed: false` but `doRegister` in Login Theme** | `realm-fineract.yaml` | Either enable `registrationAllowed` if self-registration is desired, or remove the "Register" link from the custom login theme. | **Resolved** (Register link removed from login.ftl - consistent with registrationAllowed: false) |
 | **`resetPasswordAllowed: false`** | `realm-fineract.yaml` | Re-evaluate this policy. For most applications, allowing users to reset their own passwords is a standard and expected feature. | **Resolved** (Phase 9) |
 | **`verifyEmail: false`** | `realm-fineract.yaml` | For better security and user management, `verifyEmail` should generally be `true`. | **Resolved** (Phase 9) |
@@ -269,7 +271,7 @@ All P0 security issues resolved in Phases 7.1-7.3
 | **`failureFactor: 3` (Brute Force Protection)** | `realm-fineract.yaml` | Monitor the impact of this setting. A slightly higher value (e.g., 5) might offer a better balance between security and usability. | **Resolved** (Set to 3 with documentation "reduced from 5 for tighter security" - appropriate for banking) |
 | **`passwordPolicy` String** | `realm-fineract.yaml` | For better readability, consider breaking down the password policy into individual attributes or add comments to explain each part. | **Resolved** (Policy documented with comment "Enhanced for Banking Security" - comprehensive requirements listed) |
 | **`fineract-api` Client Secret (`FINERACT_API_SECRET`)** | `realm-fineract.yaml` | Ensure that `FINERACT_API_SECRET` is securely generated and managed. | **Resolved** (Managed via sealed secret keycloak-client-secrets-sealed.yaml in secrets/dev/) |
-| **`mifos-sub-mapper` in `fineract-data-loader` Client** | `realm-fineract.yaml` | Document the reason for hardcoding the `sub` claim to "mifos". | **Resolved** (Documented at lines 279-284: backward compatibility with Fineract's legacy Mifos authentication, identifies service account operations) |
+| **`mifos-sub-mapper` in `fineract-data-loader` Client** | `realm-fineract.yaml` | Document the reason for hardcoding the `sub` claim to "mifos". | **Resolved** (Feature removed from repository) |
 | **`frontendUrl` Commented Out** | `realm-fineract.yaml` | Investigate and resolve the variable substitution issue so that `frontendUrl` can be properly configured. | **Resolved** (Documented at lines 506-527: keycloak-config-cli validation rejects ${DOMAIN} syntax; Keycloak auto-detects URL from headers; 4 alternative solutions documented) |
 
 ### 6.2. Keycloak Configuration Jobs (`base/jobs/`)

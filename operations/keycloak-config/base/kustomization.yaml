@@ -7,7 +7,6 @@ kind: Kustomization
 # Resources
 resources:
 - jobs/apply-keycloak-config.yaml
-# Note: user-sync-service is now a separate app in apps/user-sync-service
 
 # ConfigMaps generated from files
 configMapGenerator:

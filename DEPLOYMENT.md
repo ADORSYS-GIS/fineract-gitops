@@ -23,22 +23,26 @@ This guide covers deploying the complete Fineract platform to Kubernetes using G
 
 Ensure the following tools are installed:
 
+> 📋 **Version Requirements:** See [docs/VERSION_MATRIX.md](docs/VERSION_MATRIX.md) for detailed version compatibility.
+> 📖 **Installation Guide:** Complete setup instructions at [docs/PREREQUISITES.md](docs/PREREQUISITES.md)
+
+**Required Tools:**
 - **kubectl** (1.28+) - Kubernetes CLI
 - **kustomize** (5.0+) - Configuration management
-- **kubeseal** - Sealed Secrets CLI
-- **aws CLI** (if using EKS) - AWS authentication
+- **kubeseal** (0.27.0) - Sealed Secrets CLI
+- **aws CLI** (2.0+) (if using EKS) - AWS authentication
 - **terraform** (1.5+) - Infrastructure provisioning
 - **jq** (optional) - JSON processing
-- **git** - Version control
+- **git** (2.30+) - Version control
 
 ```bash
 # Install on macOS
 brew install kubectl kustomize kubeseal awscli terraform jq
 
-# Verify installations
+# Verify installations (see docs/VERSION_MATRIX.md for required versions)
 kubectl version --client
 kustomize version
-kubeseal --version
+kubeseal --version  # Should be 0.27.0
 aws --version
 terraform version
 ```
@@ -89,7 +93,11 @@ Expected output:
 
 ## Quick Start
 
-For a fully automated deployment with interactive confirmations:
+Choose the deployment method that fits your use case:
+
+### Method 1: Interactive Deployment (Recommended for Manual Operations)
+
+**USE CASE**: Learning, troubleshooting, manual deployments, understanding the process
 
 ```bash
 # Set required environment variables
@@ -100,18 +108,34 @@ export GITHUB_TOKEN="ghp_YourToken"
 make deploy-gitops
 ```
 
-This will:
-1. Validate prerequisites
-2. Deploy infrastructure components
-3. Setup ArgoCD and secrets
-4. Deploy applications
-5. Verify deployment
+**Features**:
+- User confirmations between each step
+- Clear progress tracking
+- Easy to pause and resume
+- Best for understanding deployment flow
 
-**You'll be prompted after each step to continue** - press `y` or Enter to proceed.
+### Method 2: Automated Deployment (For CI/CD Pipelines)
+
+**USE CASE**: Unattended deployments, CI/CD pipelines, scripted automation
+
+```bash
+# Set required environment variables
+export KUBECONFIG=~/.kube/config-fineract-dev
+export GITHUB_TOKEN="ghp_YourToken"
+
+# Run fully automated deployment
+make deploy  # Or: ./scripts/deploy-full-stack.sh dev
+```
+
+**Features**:
+- No user interaction required
+- Comprehensive logging to file
+- Error handling and step tracking
+- Best for CI/CD pipelines
 
 ---
 
-## Interactive Full Deployment
+## Interactive Full Deployment (Method 1)
 
 The `deploy-gitops` target runs all steps sequentially with user confirmation:
 
@@ -132,7 +156,7 @@ Step 1/5: Validate Prerequisites
 → Checking kustomize...
 ✓ kustomize v5.2.1
 → Checking kubeseal...
-✓ kubeseal v0.26.3
+✓ kubeseal v0.27.0
 → Checking AWS CLI...
 ✓ aws-cli/2.13.0
 → Checking KUBECONFIG...
@@ -178,7 +202,7 @@ make deploy-step-1
 ```
 ✓ kubectl v1.28.3
 ✓ kustomize v5.2.1
-✓ kubeseal v0.26.3
+✓ kubeseal v0.27.0
 ✓ aws-cli/2.13.0
 ✓ KUBECONFIG set: ~/.kube/config-fineract-dev
 ✓ Connected to cluster
@@ -767,17 +791,7 @@ Configure:
 
 See: `operations/keycloak-config/` for configurations
 
-### 2. Load Initial Data
-
-```bash
-# Run data loader job
-kubectl apply -f operations/fineract-data/kubernetes/base/jobs/load-all-configs.yaml
-
-# Monitor job
-kubectl logs -n fineract-dev -l job-name=fineract-data-loader -f
-```
-
-### 3. Verify API Access
+### 2. Verify API Access
 
 ```bash
 # Get Keycloak token
@@ -793,7 +807,7 @@ curl -k -H "Authorization: Bearer $TOKEN" \
   https://apps.dev.fineract.com/fineract-provider/api/v1/clients
 ```
 
-### 4. Monitor Applications
+### 3. Monitor Applications
 
 Access ArgoCD UI:
 ```bash
@@ -801,7 +815,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 # https://localhost:8080
 ```
 
-### 5. Setup Monitoring (Optional)
+### 4. Setup Monitoring (Optional)
 
 Deploy monitoring stack:
 ```bash

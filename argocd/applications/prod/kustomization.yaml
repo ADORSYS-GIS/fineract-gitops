@@ -7,7 +7,6 @@ kind: Kustomization
 
 resources:
   - argocd-config.yaml
-  - fineract-data.yaml
   - fineract-ingress.yaml
   - fineract-redis.yaml
   - fineract.yaml

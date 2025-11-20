@@ -9,7 +9,6 @@ resources:
   - argocd-config.yaml
   - database-fineract-init.yaml  # Renamed for clarity
   - database-keycloak-setup.yaml  # Renamed for clarity
-  - fineract-data.yaml
   - fineract-ingress.yaml
   - fineract-redis.yaml
   - fineract.yaml

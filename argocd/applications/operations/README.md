@@ -8,16 +8,8 @@ This directory contains ArgoCD Application manifests for operational tasks and u
 - **database-init.yaml** - Database initialization job (one-time setup)
 - **database-setup.yaml** - Database configuration and schema setup
 
-### Data Management
-- **fineract-data-dev.yaml** - Development environment data loading
-- **fineract-data-uat.yaml** - UAT environment data loading
-- **fineract-data-production.yaml** - Production environment data loading
-
 ### Identity & Access
 - **keycloak-config.yaml** - Keycloak realm and client configuration
-
-### Services
-- **user-sync-service.yaml** - User synchronization service between Keycloak and Fineract
 
 ## Deployment
 
@@ -45,5 +37,4 @@ Operations applications are deployed manually because they:
 
 Some operations applications reference environment-specific configurations:
 - Database operations use credentials from each environment's sealed secrets
-- Data loading jobs target specific namespaces (fineract-dev, fineract-uat, fineract-production)
 - Keycloak config syncs with the active Keycloak instance per environment

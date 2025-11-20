@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
+  - nginx-configmap.yaml
   # ingress.yaml removed - web-app now integrated into fineract-oauth2-ingress at apps/ingress/
 
 commonLabels:

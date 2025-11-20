@@ -221,7 +221,7 @@ eks_oidc_provider_url         = "$OIDC_PROVIDER"
 kubernetes_namespace = "fineract-dev"
 
 # RDS Configuration - Cost Optimized for Dev
-rds_postgres_version  = "15.4"
+rds_postgres_version  = "15.14"  # Latest stable (see docs/VERSION_MATRIX.md)
 rds_instance_class    = "db.t4g.micro"
 rds_allocated_storage = 20
 rds_max_allocated_storage = 50
@@ -395,22 +395,6 @@ curl -k https://localhost:8443/fineract-provider/actuator/health
 # You should see: {"status":"UP"}
 ```
 
-### Step 5.3: Load Initial Data (Optional)
-
-```bash
-# Navigate to data loading scripts
-cd operations/fineract-data/scripts
-
-# Load initial data
-python3 main.py --environment dev-aws
-
-# This will load:
-# - Payment types
-# - Code values
-# - Currencies
-# - Loan products
-# - Offices
-```
 
 ---
 
