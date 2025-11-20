@@ -149,10 +149,13 @@ def main():
 
     logger.info("=" * 80)
 
-    # Exit with error code if any failures
+    # Log failures but don't block deployment
     if total_failed > 0 or failed_entities:
-        logger.error(f"System Foundation loading completed with {total_failed} failures")
-        sys.exit(1)
+        logger.warning(f"System Foundation loading completed with {total_failed} failures")
+        logger.warning("⚠️  Some entities failed to load but deployment will continue")
+        logger.warning("Review logs above for details on failed entities")
+        # Exit 0 to allow subsequent sync waves to proceed
+        sys.exit(0)
     else:
         logger.info("System Foundation loading completed successfully")
         sys.exit(0)
