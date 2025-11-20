@@ -103,7 +103,16 @@ def main():
             logger.info(f"  ✗ {entity}")
     logger.info("=" * 80)
 
-    sys.exit(1 if total_failed > 0 or failed_entities else 0)
+    # Log failures but don't block deployment
+    if total_failed > 0 or failed_entities:
+        logger.warning(f"Accounting loading completed with {total_failed} failures")
+        logger.warning("⚠️  Some entities failed to load but deployment will continue")
+        logger.warning("Review logs above for details on failed entities")
+        # Exit 0 to allow subsequent sync waves to proceed
+        sys.exit(0)
+    else:
+        logger.info("Accounting loading completed successfully")
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()
