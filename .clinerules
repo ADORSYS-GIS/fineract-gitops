@@ -9,16 +9,8 @@ This is a GitOps infrastructure repository for Apache Fineract banking platform.
 - YAML: 2-space indentation
 - Comments: Comprehensive inline documentation
 
-## Always Use YAML for Configuration
-- All Fineract configuration in YAML format (NOT Excel)
-- Reason: Git-friendly diffs, code review, version control
-- Pattern: See operations/fineract-data/data/ for examples
-
 ## File Organization
 - Follow existing directory structure strictly
-- Configuration data: operations/fineract-data/data/{env}/
-- Jobs: operations/fineract-data/jobs/base/
-- Scripts: operations/fineract-data/scripts/loaders/
 - Docs: Keep comprehensive documentation
 
 ## When Creating New Files
@@ -91,7 +83,6 @@ Examples:
 - `docs: update implementation guide`
 
 ## Important Paths
-- Fineract data: operations/fineract-data/
 - Keycloak config: operations/keycloak-config/
 - Apps: apps/
 - Scripts: scripts/
@@ -113,11 +104,10 @@ Examples:
 - ✅ Create PRs for production changes
 
 ## Reference Files
-When extending, use these as templates:
-- Job template: operations/fineract-data/jobs/base/10-load-loan-products.yaml
-- Loader template: operations/fineract-data/scripts/loaders/loan_products.py
-- Schema template: operations/fineract-data/schemas/loan-product.schema.json
-- YAML template: operations/fineract-data/data/dev/products/loan-products/personal-loan.yaml
+When extending, use existing files in the repository as templates for:
+- Kubernetes manifests
+- Keycloak configurations
+- ArgoCD applications
 
 ## Read First
 New to the project? Read these in order:

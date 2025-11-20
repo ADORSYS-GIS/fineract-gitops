@@ -17,9 +17,6 @@ kind: Kustomization
 resources:
   - argocd-config.yaml
   - keycloak-config.yaml
-  - fineract-data-dev.yaml
-  - fineract-data-uat.yaml
-  - fineract-data-production.yaml
   - database-init.yaml
   - database-setup.yaml
   - user-sync-service.yaml

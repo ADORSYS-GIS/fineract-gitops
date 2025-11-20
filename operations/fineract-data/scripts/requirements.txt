@@ -1,4 +1,0 @@
-PyYAML==6.0.1
-requests==2.31.0
-urllib3>=1.26.0
-structlog==24.1.0

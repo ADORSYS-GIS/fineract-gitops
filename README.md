@@ -163,7 +163,6 @@ fineract-gitops/
 │   └── production/            # Production secrets (encrypted)
 │
 ├── operations/                # Operational tooling
-│   ├── fineract-data/         # Configuration data management
 │   ├── keycloak-config/       # Keycloak configuration
 │   └── disaster-recovery/     # Backup/restore procedures
 │

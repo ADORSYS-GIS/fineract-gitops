@@ -134,11 +134,9 @@ create_sealed_secret "keycloak-admin-credentials" "${NAMESPACE}" \
 
 echo
 
-# 3. Fineract Admin Credentials - DEPRECATED (moved to keycloak-client-secrets)
+# 3. Fineract Admin Credentials - DEPRECATED
 echo "3. Fineract Admin Credentials..."
-echo -e "${YELLOW}  SKIPPED: This secret is now part of keycloak-client-secrets${NC}"
-echo -e "${YELLOW}  OAuth client credentials for data loaders are managed by seal-terraform-secrets.sh${NC}"
-echo -e "${YELLOW}  Key: fineract-data-loader-client-id and fineract-data-loader-client-secret${NC}"
+echo -e "${YELLOW}  SKIPPED: OAuth client credentials are now managed by seal-terraform-secrets.sh${NC}"
 
 echo
 

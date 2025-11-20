@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: fineract-data-dev
-  namespace: fineract-dev
-data:
-  # Data files will be generated from data/dev/*
-  # This is a placeholder - actual content should be copied from the data directory
-  # Each YAML file in data/dev/ should be added as a key in this ConfigMap

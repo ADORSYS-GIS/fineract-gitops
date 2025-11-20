@@ -223,18 +223,6 @@ spec:
               name: keycloak-client-secrets
               key: fineract-api-client-secret
               optional: true
-        - name: FINERACT_DATA_LOADER_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: fineract-data-loader-client-id
-              optional: true
-        - name: FINERACT_DATA_LOADER_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: keycloak-client-secrets
-              key: fineract-data-loader-client-secret
-              optional: true
         - name: ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
