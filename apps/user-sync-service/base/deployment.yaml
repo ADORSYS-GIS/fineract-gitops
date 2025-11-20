@@ -19,7 +19,7 @@ spec:
       serviceAccountName: fineract-keycloak-sync
       containers:
       - name: sync-service
-        image: ghcr.io/apache/fineract/fineract-keycloak-sync:latest
+        image: fineract-keycloak-sync:v1.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000

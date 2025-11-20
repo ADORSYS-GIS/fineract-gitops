@@ -22,8 +22,7 @@ resources:
   - namespace.yaml
 
   # Database initialization (run before Fineract starts)
-  - ../../operations/database-init/base
-  - ../../operations/database-setup
+  - ../../operations/fineract-database-init/base
 
   # Fineract application
   - ../../apps/fineract/base
