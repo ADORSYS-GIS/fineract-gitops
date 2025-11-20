@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-read
+spec:
+  template:
+    spec:
+      containers:
+      - name: fineract
+        env:
+        - name: FINERACT_HIKARI_MINIMUM_IDLE
+          value: "5"
+        - name: FINERACT_HIKARI_MAXIMUM_POOL_SIZE
+          value: "15"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-write
+spec:
+  template:
+    spec:
+      containers:
+      - name: fineract
+        env:
+        - name: FINERACT_HIKARI_MINIMUM_IDLE
+          value: "8"
+        - name: FINERACT_HIKARI_MAXIMUM_POOL_SIZE
+          value: "25"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-batch
+spec:
+  template:
+    spec:
+      containers:
+      - name: fineract
+        env:
+        - name: FINERACT_HIKARI_MINIMUM_IDLE
+          value: "3"
+        - name: FINERACT_HIKARI_MAXIMUM_POOL_SIZE
+          value: "10"

@@ -166,6 +166,22 @@ spec:
               name: fineract-db-credentials
               key: password
 
+        # HikariCP Connection Pool Configuration
+        - name: FINERACT_HIKARI_MINIMUM_IDLE
+          value: "5"
+        - name: FINERACT_HIKARI_MAXIMUM_POOL_SIZE
+          value: "15"
+        - name: FINERACT_HIKARI_IDLE_TIMEOUT
+          value: "60000"  # 60 seconds
+        - name: FINERACT_HIKARI_CONNECTION_TIMEOUT
+          value: "20000"  # 20 seconds
+        - name: FINERACT_HIKARI_MAX_LIFETIME
+          value: "1800000"  # 30 minutes
+        - name: FINERACT_HIKARI_LEAK_DETECTION_THRESHOLD
+          value: "60000"  # 60 seconds
+        - name: FINERACT_HIKARI_CONNECTION_TEST_QUERY
+          value: "SELECT 1"
+
         # Tenant Database Configuration - AWS RDS PostgreSQL
         - name: FINERACT_DEFAULT_TENANTDB_HOSTNAME
           valueFrom:
