@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Account Number Formats Loader
-Loads account number preferences into Fineract from YAML files
+Creates or updates account number format preferences in Fineract from YAML files
 """
 import sys
 import argparse
@@ -12,53 +12,53 @@ from base_loader import BaseLoader, logger
 class AccountNumberFormatsLoader(BaseLoader):
     """Loader for Fineract Account Number Formats"""
 
-    def yaml_to_fineract_api(self, yaml_data: dict) -> dict:
+    def yaml_to_fineract_api(self, yaml_data: dict, is_update: bool = False) -> dict:
         """
         Convert Account Number Formats YAML to Fineract API payload
 
         Args:
             yaml_data: YAML data structure
+            is_update: Whether this is an update (excludes accountType)
 
         Returns:
             Fineract API payload
         """
         spec = yaml_data.get('spec', {})
 
-        # Map account types
+        # Map account types to Fineract entity IDs
         account_type_map = {
             'CLIENT': 1,
             'LOAN': 2,
             'SAVINGS': 3,
-            'CENTER': 4,
-            'GROUP': 5
+            'CENTERS': 4,
+            'GROUPS': 5
         }
 
-        # Map prefix types
+        # Map prefix types to Fineract IDs
         prefix_type_map = {
             'NONE': 1,
-            'OFFICE_NAME': 2,
-            'CLIENT_TYPE': 3,
-            'LOAN_PRODUCT_SHORT_NAME': 4
+            'OFFICE NAME': 2,
+            'OFFICE SHORT NAME': 2,  # Alias
+            'CLIENT TYPE': 3,
+            'LOAN PRODUCT SHORT NAME': 4
         }
 
         account_type = spec.get('accountType', 'CLIENT').upper()
         prefix_type = spec.get('prefixType', 'NONE').upper()
 
         payload = {
-            'accountType': account_type_map.get(account_type, 1),
             'prefixType': prefix_type_map.get(prefix_type, 1),
-            'locale': 'en'
         }
 
-        # Add optional fields
-        if 'startingValue' in spec:
-            payload['startingValue'] = spec['startingValue']
+        # accountType is only for CREATE, not UPDATE
+        if not is_update:
+            payload['accountType'] = account_type_map.get(account_type, 1)
 
         return payload
 
     def load_all(self) -> dict:
         """
-        Load all account number preferences YAML files
+        Load all account number format YAML files
 
         Returns:
             Summary dict
@@ -95,25 +95,34 @@ class AccountNumberFormatsLoader(BaseLoader):
                 self.failed_entities.append(yaml_file.name)
                 continue
 
-            # Check if entity already exists
-            existing_id = self.entity_exists('accountnumberformats', entity_name)
+            # Check if entity already exists by accountType
+            existing_id = self.entity_exists('accountnumberformats', entity_name, identifier_field='accountTypeName')
 
             if existing_id:
-                logger.info(f"  Entity already exists: {entity_name} (ID: {existing_id})")
-                self.loaded_entities[entity_name] = existing_id
-                continue
+                logger.info(f"  Found existing format for {entity_name} (ID: {existing_id})")
 
-            # Create entity
-            api_payload = self.yaml_to_fineract_api(yaml_data)
-            response = self.post('accountnumberformats', api_payload)
+                # Update existing format
+                api_payload = self.yaml_to_fineract_api(yaml_data, is_update=True)
+                response = self.put(f'accountnumberformats/{existing_id}', api_payload)
 
-            if response and 'resourceId' in response:
-                entity_id = response['resourceId']
-                logger.info(f"  ✓ Created account number preferences: {entity_name} (ID: {entity_id})")
-                self.loaded_entities[entity_name] = entity_id
+                if response:
+                    logger.info(f"  ✓ Updated account number format: {entity_name} (ID: {existing_id})")
+                    self.updated_entities[entity_name] = existing_id
+                else:
+                    logger.error(f"  ✗ Failed to update: {entity_name}")
+                    self.failed_entities.append(yaml_file.name)
             else:
-                logger.error(f"  ✗ Failed to create account number preferences: {entity_name}")
-                self.failed_entities.append(yaml_file.name)
+                # Create new format
+                api_payload = self.yaml_to_fineract_api(yaml_data, is_update=False)
+                response = self.post('accountnumberformats', api_payload)
+
+                if response and 'resourceId' in response:
+                    entity_id = response['resourceId']
+                    logger.info(f"  ✓ Created account number format: {entity_name} (ID: {entity_id})")
+                    self.loaded_entities[entity_name] = entity_id
+                else:
+                    logger.error(f"  ✗ Failed to create: {entity_name}")
+                    self.failed_entities.append(yaml_file.name)
 
         return self.get_summary()
 

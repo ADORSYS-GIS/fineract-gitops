@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Maker Checker Loader
-Loads maker checker configuration into Fineract from YAML files
+Configures maker-checker permissions in Fineract from YAML files
+NOTE: This is a stub implementation - MakerChecker configuration may not be fully supported via API
 """
 import sys
 import argparse
@@ -11,30 +12,6 @@ from base_loader import BaseLoader, logger
 
 class MakerCheckerLoader(BaseLoader):
     """Loader for Fineract Maker Checker"""
-
-    def yaml_to_fineract_api(self, yaml_data: dict) -> dict:
-        """
-        Convert Maker Checker YAML to Fineract API payload
-
-        Args:
-            yaml_data: YAML data structure
-
-        Returns:
-            Fineract API payload
-        """
-        spec = yaml_data.get('spec', {})
-
-        # Basic payload - customize based on Fineract API requirements
-        payload = {
-            'name': spec.get('name'),
-            'description': spec.get('description', ''),
-            'dateFormat': 'yyyy-MM-dd',
-            'locale': 'en'
-        }
-
-        # Add entity-specific fields here
-
-        return payload
 
     def load_all(self) -> dict:
         """
@@ -46,6 +23,8 @@ class MakerCheckerLoader(BaseLoader):
         logger.info("=" * 80)
         logger.info("LOADING MAKER CHECKER")
         logger.info("=" * 80)
+        logger.warning("MakerChecker loader is not fully implemented - skipping all configurations")
+        logger.warning("Maker-checker permissions may need to be configured manually in Fineract UI")
 
         yaml_files = sorted(self.yaml_dir.glob('*.yaml'))
 
@@ -67,32 +46,16 @@ class MakerCheckerLoader(BaseLoader):
                 continue
 
             spec = yaml_data.get('spec', {})
-            entity_name = spec.get('taskName')  # MakerChecker uses 'taskName' not 'name'
+            task_name = spec.get('taskName')  # MakerChecker uses 'taskName' not 'name'
 
-            if not entity_name:
+            if not task_name:
                 logger.error(f"  Missing taskName in spec")
                 self.failed_entities.append(yaml_file.name)
                 continue
 
-            # Check if entity already exists
-            existing_id = self.entity_exists('makercheckers', entity_name)
-
-            if existing_id:
-                logger.info(f"  Entity already exists: {entity_name} (ID: {existing_id})")
-                self.loaded_entities[entity_name] = existing_id
-                continue
-
-            # Create entity
-            api_payload = self.yaml_to_fineract_api(yaml_data)
-            response = self.post('makercheckers', api_payload)
-
-            if response and 'resourceId' in response:
-                entity_id = response['resourceId']
-                logger.info(f"  ✓ Created maker checker configuration: {entity_name} (ID: {entity_id})")
-                self.loaded_entities[entity_name] = entity_id
-            else:
-                logger.error(f"  ✗ Failed to create maker checker configuration: {entity_name}")
-                self.failed_entities.append(yaml_file.name)
+            # Skip - not implemented yet
+            logger.info(f"  Skipping MakerChecker config: {task_name} (not implemented)")
+            self.skipped_entities.append(task_name)
 
         return self.get_summary()
 
@@ -111,7 +74,7 @@ def main():
         summary = loader.load_all()
         loader.print_summary()
 
-        # Exit with error code if any failures
+        # Don't exit with error for skipped entities
         if summary['total_failed'] > 0:
             sys.exit(1)
         else:
