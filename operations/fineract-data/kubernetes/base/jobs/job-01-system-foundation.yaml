@@ -18,7 +18,7 @@ spec:
 
       containers:
       - name: loader
-        image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-0f2dcf1
+        image: ghcr.io/adorsys-gis/fineract-loader:deploy-key-0b299af
         command:
         - python3
         - /app/loaders/load_system_foundation.py
