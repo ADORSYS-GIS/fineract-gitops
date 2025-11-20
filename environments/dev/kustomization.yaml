@@ -157,12 +157,6 @@ images:
   # Custom Images
   # --------------------------------------------------------
 
-  # fineract-keycloak-sync - User Sync Service
-  # Custom-built image, built via scripts/build-user-sync-service.sh
-  - name: fineract-keycloak-sync
-    newName: fineract-keycloak-sync
-    newTag: "v1.0.0"
-
   # Frontend Applications
   # --------------------------------------------------------
 

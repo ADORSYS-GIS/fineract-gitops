@@ -144,7 +144,6 @@ Application-specific documentation and configuration guides.
 | Application | Documentation | Description |
 |-------------|---------------|-------------|
 | **Web App** | [apps/web-app/README.md](../apps/web-app/README.md) | Frontend applications (admin, account manager, etc.) |
-| **User Sync Service** | [apps/user-sync-service/README.md](../apps/user-sync-service/README.md) | Password reset and Keycloak user synchronization |
 | **OAuth2 Proxy** | [apps/oauth2-proxy/base/README.md](../apps/oauth2-proxy/base/README.md) | OIDC reverse proxy for authentication |
 
 ---

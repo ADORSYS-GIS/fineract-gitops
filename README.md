@@ -101,7 +101,6 @@ Deploy Fineract on any cloud or on-premise with flexible provider abstraction:
 - **Keycloak** - SSO and identity management
 
 ### Supporting Services
-- **User Sync Service** - Password reset and Keycloak synchronization
 - **Frontend Applications** - Web App, Reporting App, Accounting App
 - **Logging & Monitoring** - Loki/Promtail for logs, Prometheus/Grafana for metrics
 
@@ -126,7 +125,6 @@ fineract-gitops/
 │   ├── web-app/               # Main frontend application
 │   ├── accounting-app/        # Accounting module frontend
 │   ├── reporting-app/         # Reporting module frontend
-│   ├── user-sync-service/     # Keycloak user synchronization
 │   ├── ingress/               # Ingress resources
 │   ├── ingress-nginx/         # NGINX ingress controller
 │   ├── network-policies/      # Network security policies

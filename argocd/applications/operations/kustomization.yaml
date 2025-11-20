@@ -7,7 +7,6 @@ kind: Kustomization
 # - Keycloak configuration
 # - Fineract data loading operations (per environment)
 # - Database initialization
-# - User sync service
 #
 # Uses Kustomize replacements to centralize repository URL
 #
@@ -19,7 +18,6 @@ resources:
   - keycloak-config.yaml
   - database-init.yaml
   - database-setup.yaml
-  - user-sync-service.yaml
 
 # Replacements to inject repository URL into all Application manifests
 replacements:

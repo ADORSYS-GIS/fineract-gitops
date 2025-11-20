@@ -275,7 +275,7 @@ echo
 # 4. Keycloak Client Secrets (SINGLE SOURCE OF TRUTH for all OAuth client credentials)
 echo "4. Keycloak Client Secrets..."
 echo -e "${YELLOW}  IMPORTANT: This is the single source of truth for ALL OAuth client credentials${NC}"
-echo -e "${YELLOW}  Used by: oauth2-proxy, user-sync-service, data loader jobs, keycloak realm config${NC}"
+echo -e "${YELLOW}  Used by: oauth2-proxy, data loader jobs, keycloak realm config${NC}"
 
 OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
 # OAUTH2_CLIENT_SECRET and OAUTH2_COOKIE_SECRET already fetched from Terraform above (before cd ..)

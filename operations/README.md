@@ -26,10 +26,6 @@ operations/
 │   │   ├── realm-fineract.yaml         # Fineract realm definition
 │   │   ├── clients.yaml                # OAuth clients
 │   │   └── roles.yaml                  # Keycloak roles
-│   ├── user-sync-service/              # User synchronization
-│   │   ├── README.md                   # Service documentation
-│   │   ├── deployment.yaml             # Kubernetes deployment
-│   │   └── src/                        # Source code
 │   └── ROLE_MAPPING_SOLUTION.md        # Role mapping guide
 │
 └── disaster-recovery/                  # Backup & restore
@@ -74,40 +70,8 @@ operations/
 - OAuth2/OIDC settings
 ```
 
-#### User Sync Service
-```
-user-sync-service/
-├── deployment.yaml      # Kubernetes deployment
-├── service.yaml         # Kubernetes service
-├── configmap.yaml       # Service configuration
-└── src/                 # Python service code
-```
-
-**Functionality**:
-1. Listens for Keycloak user events
-2. Creates corresponding users in Fineract
-3. Synchronizes password changes
-4. Handles password reset requests
-5. Updates user attributes
-
-**Usage**:
-```bash
-# Navigate to keycloak-config
-cd operations/keycloak-config
-
-# Review README for setup instructions
-cat README.md
-
-# Deploy realm configuration
-kubectl apply -f config/realm-fineract.yaml
-
-# Deploy user sync service
-kubectl apply -k user-sync-service/
-```
-
 **Related Documentation**:
 - [Keycloak Config README](keycloak-config/README.md)
-- [User Sync Service README](keycloak-config/user-sync-service/README.md)
 - [Role Mapping Solution](keycloak-config/ROLE_MAPPING_SOLUTION.md)
 
 ---
@@ -265,12 +229,12 @@ Each operational component supports environment-specific configurations:
 
 ### Common Issues
 
-#### Keycloak Sync Issues
-**Symptom**: Users not syncing between Keycloak and Fineract
+#### Keycloak Configuration Issues
+**Symptom**: Keycloak realm configuration not applied
 
 **Solutions**:
-1. Check user-sync-service logs
-2. Verify Keycloak event configuration
+1. Check keycloak-config logs
+2. Verify Keycloak admin credentials
 3. Check Fineract API permissions
 4. Review role mappings
 

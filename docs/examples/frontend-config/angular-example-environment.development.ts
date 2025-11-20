@@ -57,8 +57,8 @@ export const environment = {
   // Message Gateway (for SMS/Email notifications)
   messageGatewayUrl: 'http://localhost:8080/message-gateway',
 
-  // User Sync Service (for password reset, user management)
-  userSyncUrl: 'http://localhost:8080/api/user-sync',
+  // Note: User sync service has been removed. User management is handled through Keycloak SSO.
+  // userSyncUrl: 'http://localhost:8080/api/user-sync',
 
   // =============================================================================
   // Application Configuration

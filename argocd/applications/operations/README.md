@@ -11,9 +11,6 @@ This directory contains ArgoCD Application manifests for operational tasks and u
 ### Identity & Access
 - **keycloak-config.yaml** - Keycloak realm and client configuration
 
-### Services
-- **user-sync-service.yaml** - User synchronization service between Keycloak and Fineract
-
 ## Deployment
 
 These applications are **NOT** managed by the app-of-apps pattern and require manual deployment.
