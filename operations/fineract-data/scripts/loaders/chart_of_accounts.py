@@ -178,7 +178,17 @@ class ChartOfAccountsLoader(BaseLoader):
         gl_code = spec.get('glCode')
 
         if not entity_name or not gl_code:
-            logger.error(f"  Missing name or glCode in {yaml_file.name}")
+            error_msg = "Missing required fields in GL account YAML"
+            logger.error(f"  {error_msg}")
+            self.record_error(
+                yaml_file.name,
+                'validation',
+                error_msg,
+                {
+                    'missing_fields': [f for f in ['name', 'glCode'] if not spec.get(f)],
+                    'file': str(yaml_file)
+                }
+            )
             self.failed_entities.append(yaml_file.name)
             return False
 
@@ -203,7 +213,18 @@ class ChartOfAccountsLoader(BaseLoader):
                     self.updated_entities[entity_name] = existing_id
                     return True
                 else:
-                    logger.error(f"  ✗ Failed to update: {entity_name}")
+                    error_msg = f"Failed to update GL account via API"
+                    logger.error(f"  ✗ {error_msg}")
+                    self.record_error(
+                        entity_name,
+                        'api',
+                        error_msg,
+                        {
+                            'entity_id': existing_id,
+                            'gl_code': gl_code,
+                            'endpoint': f'/glaccounts/{existing_id}'
+                        }
+                    )
                     self.failed_entities.append(yaml_file.name)
                     return False
             else:
@@ -221,7 +242,18 @@ class ChartOfAccountsLoader(BaseLoader):
             self.loaded_entities[entity_name] = entity_id
             return True
         else:
-            logger.error(f"  ✗ Failed to create GL account: {entity_name}")
+            error_msg = f"Failed to create GL account via API"
+            logger.error(f"  ✗ {error_msg}")
+            self.record_error(
+                entity_name,
+                'api',
+                error_msg,
+                {
+                    'gl_code': gl_code,
+                    'endpoint': '/glaccounts',
+                    'parent_gl_code': spec.get('parentGLCode', 'none')
+                }
+            )
             self.failed_entities.append(yaml_file.name)
             return False
 

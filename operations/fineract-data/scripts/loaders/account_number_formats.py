@@ -139,6 +139,9 @@ def main():
     loader = AccountNumberFormatsLoader(args.yaml_dir, args.fineract_url, args.tenant)
 
     try:
+        # Run pre-flight validation checks
+        loader.validate_configuration()
+
         summary = loader.load_all()
         loader.print_summary()
 

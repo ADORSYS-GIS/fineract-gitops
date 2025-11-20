@@ -46,14 +46,34 @@ class RolesLoader(BaseLoader):
                     # Map by code for easy lookup
                     permission_map[perm.get('code')] = perm.get('id')
 
-            # Resolve permission codes to IDs
+            # Resolve permission codes to IDs (with strict validation)
             permission_ids = []
+            invalid_perms = []
+
             for perm in permissions_data:
                 perm_code = perm.get('code')
                 if perm_code and perm_code in permission_map:
                     permission_ids.append(permission_map[perm_code])
                 elif perm_code:
-                    logger.warning(f"  Permission code not found: {perm_code}")
+                    invalid_perms.append(perm_code)
+
+            # Strict validation: Fail on invalid permission codes
+            if invalid_perms:
+                role_name = spec.get('name', 'unknown')
+                error_msg = f"Invalid permission codes in role '{role_name}': {invalid_perms}"
+                logger.error(f"  {error_msg}")
+
+                # Show sample of available permissions for debugging
+                available_perms = sorted(permission_map.keys())[:20]
+                logger.info(f"  Available permissions (first 20): {available_perms}")
+                logger.info(f"  Total available permissions: {len(permission_map)}")
+
+                raise ValueError(
+                    f"{error_msg}\n"
+                    f"Please check permission codes in YAML file.\n"
+                    f"Total available permissions: {len(permission_map)}\n"
+                    f"Sample permissions: {', '.join(available_perms[:10])}"
+                )
 
             if permission_ids:
                 payload['permissions'] = permission_ids
