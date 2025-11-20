@@ -5,12 +5,12 @@ Loads all transaction data (Waves 35-39) in sequence
 """
 import sys
 import argparse
-import logging
+import structlog
 from pathlib import Path
 import importlib.util
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Use structured logging (configured in base_loader.py)
+logger = structlog.get_logger(__name__)
 
 ENTITY_LOADERS = [
     ('demo_savings_deposits', 'DemoSavingsDepositsLoader'),

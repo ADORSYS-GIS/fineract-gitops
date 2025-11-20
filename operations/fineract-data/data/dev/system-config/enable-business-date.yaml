@@ -5,7 +5,7 @@ metadata:
   labels:
     config-scope: global
 spec:
-  name: enable_business_date
+  name: enable-business-date
   enabled: true
   value: 'false'
   trapDoor: false

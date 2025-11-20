@@ -36,6 +36,10 @@ spec:
           value: "false"
         - name: TENANT
           value: default
+        - name: FINERACT_LOG_FORMAT
+          value: "json"
+        - name: FINERACT_LOG_LEVEL
+          value: "INFO"
         - name: FINERACT_CLIENT_ID
           valueFrom:
             secretKeyRef:

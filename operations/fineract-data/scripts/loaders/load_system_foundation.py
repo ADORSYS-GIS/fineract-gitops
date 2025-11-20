@@ -28,6 +28,8 @@ ENTITY_LOADERS = [
     ('currency_config', 'CurrencyConfigLoader'),
     ('working_days', 'WorkingDaysLoader'),
     ('account_number_formats', 'AccountNumberFormatsLoader'),
+    ('global_configurations', 'GlobalConfigurationsLoader'),  # GlobalConfiguration + Configuration (38 files)
+    ('external_services', 'ExternalServicesLoader'),  # SMSEmailConfig (17 files)
     ('scheduler_jobs', 'SchedulerJobsLoader'),
 ]
 

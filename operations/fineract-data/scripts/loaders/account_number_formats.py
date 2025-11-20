@@ -34,13 +34,14 @@ class AccountNumberFormatsLoader(BaseLoader):
             'GROUPS': 5
         }
 
-        # Map prefix types to Fineract IDs
+        # Map prefix types to Fineract IDs (from AccountNumberPrefixType enum)
         prefix_type_map = {
             'NONE': 1,
-            'OFFICE NAME': 2,
-            'OFFICE SHORT NAME': 2,  # Alias
-            'CLIENT TYPE': 3,
-            'LOAN PRODUCT SHORT NAME': 4
+            'OFFICE NAME': 1,
+            'CLIENT TYPE': 101,
+            'LOAN PRODUCT SHORT NAME': 201,
+            'SAVINGS PRODUCT SHORT NAME': 301,
+            'PREFIX SHORT NAME': 401
         }
 
         account_type = spec.get('accountType', 'CLIENT').upper()

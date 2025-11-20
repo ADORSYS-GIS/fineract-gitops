@@ -6,5 +6,5 @@ metadata:
     format-type: savings
 spec:
   accountType: SAVINGS
-  prefixType: PRODUCT SHORT NAME
+  prefixType: SAVINGS PRODUCT SHORT NAME
   accountNumberLength: 12
