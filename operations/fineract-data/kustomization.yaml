@@ -143,11 +143,6 @@ configMapGenerator:
   - system-config__base-currency.yaml=data/dev/system-config/base-currency.yaml
   - system-config__centers-account-format.yaml=data/dev/system-config/centers-account-format.yaml
   - system-config__client-account-format.yaml=data/dev/system-config/client-account-format.yaml
-  - system-config__close-savings-account.yaml=data/dev/system-config/close-savings-account.yaml
-  - system-config__create-loan-reschedule-request.yaml=data/dev/system-config/create-loan-reschedule-request.yaml
-  - system-config__create-manual-journal-entry.yaml=data/dev/system-config/create-manual-journal-entry.yaml
-  - system-config__create-office-transaction.yaml=data/dev/system-config/create-office-transaction.yaml
-  - system-config__create-user.yaml=data/dev/system-config/create-user.yaml
   - system-config__currency-config.yaml=data/dev/system-config/currency-config.yaml
   - system-config__days-in-month-type.yaml=data/dev/system-config/days-in-month-type.yaml
   - system-config__days-in-year-type.yaml=data/dev/system-config/days-in-year-type.yaml
@@ -179,9 +174,6 @@ configMapGenerator:
   - system-config__loan-approval-limit-cashier.yaml=data/dev/system-config/loan-approval-limit-cashier.yaml
   - system-config__loan-approval-limit-director.yaml=data/dev/system-config/loan-approval-limit-director.yaml
   - system-config__loan-approval-limit-manager.yaml=data/dev/system-config/loan-approval-limit-manager.yaml
-  - system-config__loan-approval.yaml=data/dev/system-config/loan-approval.yaml
-  - system-config__loan-disbursement.yaml=data/dev/system-config/loan-disbursement.yaml
-  - system-config__loan-write-off.yaml=data/dev/system-config/loan-write-off.yaml
   - system-config__maker-checker.yaml=data/dev/system-config/maker-checker.yaml
   - system-config__max-loan-reschedule.yaml=data/dev/system-config/max-loan-reschedule.yaml
   - system-config__meetings-mandatory-for-jlg-loans.yaml=data/dev/system-config/meetings-mandatory-for-jlg-loans.yaml
@@ -192,7 +184,6 @@ configMapGenerator:
   - system-config__password-change-required.yaml=data/dev/system-config/password-change-required.yaml
   - system-config__penalty-wait-period.yaml=data/dev/system-config/penalty-wait-period.yaml
   - system-config__post-interest-for-savings.yaml=data/dev/system-config/post-interest-for-savings.yaml
-  - system-config__propose-client-transfer.yaml=data/dev/system-config/propose-client-transfer.yaml
   - system-config__reschedule-future-repayments.yaml=data/dev/system-config/reschedule-future-repayments.yaml
   - system-config__savings-account-format.yaml=data/dev/system-config/savings-account-format.yaml
   - system-config__sms-enabled.yaml=data/dev/system-config/sms-enabled.yaml
@@ -207,7 +198,6 @@ configMapGenerator:
   - system-config__twilio-from-phone-number.yaml=data/dev/system-config/twilio-from-phone-number.yaml
   - system-config__update-loan-arrears-ageing.yaml=data/dev/system-config/update-loan-arrears-ageing.yaml
   - system-config__update-savings-dormant-accounts.yaml=data/dev/system-config/update-savings-dormant-accounts.yaml
-  - system-config__update-user.yaml=data/dev/system-config/update-user.yaml
   - system-config__wht-rate-savings-interest.yaml=data/dev/system-config/wht-rate-savings-interest.yaml
   - system-config__working-days.yaml=data/dev/system-config/working-days.yaml
   - system-config__writeoff-after-days.yaml=data/dev/system-config/writeoff-after-days.yaml
