@@ -19,3 +19,7 @@ commonLabels:
   app.kubernetes.io/name: fineract-data-loader
   app.kubernetes.io/component: data-initialization
   app.kubernetes.io/part-of: fineract
+
+# Common annotations
+commonAnnotations:
+  deployment-trigger: "2025-11-20-14-42"

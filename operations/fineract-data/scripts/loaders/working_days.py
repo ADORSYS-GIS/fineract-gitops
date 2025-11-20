@@ -26,7 +26,7 @@ class WorkingDaysLoader(BaseLoader):
 
         payload = {
             'recurrence': spec.get('recurrence'),
-            'repaymentRescheduleType': spec.get('repaymentReschedulingType'),
+            'repaymentRescheduleType': spec.get('repaymentRescheduleType'),  # Fixed: was 'repaymentReschedulingType'
             'extendTermForDailyRepayments': spec.get('extendTermForDailyRepayments', False),
             'locale': 'en'
         }

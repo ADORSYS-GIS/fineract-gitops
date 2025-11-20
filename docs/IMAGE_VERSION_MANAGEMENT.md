@@ -112,7 +112,7 @@ Supporting tools and infrastructure components:
 | Component | Current Version | Image Repository | Usage |
 |-----------|----------------|------------------|-------|
 | **envsubst** | 1.4.2 | bhgedigital/envsubst | Config substitution |
-| **kubectl** | 1.28.4 | bitnami/kubectl | K8s operations |
+| **kubectl** | v1.28.15 | registry.k8s.io/kubectl | K8s operations |
 | **aws-cli** | 2.15.0 | amazon/aws-cli | AWS operations |
 | **busybox** | 1.36.1 | busybox | Init containers |
 | **curl** | 8.5.0 | curlimages/curl | Health checks |

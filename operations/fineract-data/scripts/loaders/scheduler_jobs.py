@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Scheduler Jobs Loader
-Loads scheduler job configuration into Fineract from YAML files
+Updates scheduler job configuration in Fineract from YAML files
 """
 import sys
 import argparse
@@ -24,21 +24,18 @@ class SchedulerJobsLoader(BaseLoader):
         """
         spec = yaml_data.get('spec', {})
 
-        # Basic payload - customize based on Fineract API requirements
+        # Build payload for updating scheduler job
         payload = {
-            'name': spec.get('name'),
-            'description': spec.get('description', ''),
-            'dateFormat': 'yyyy-MM-dd',
-            'locale': 'en'
+            'displayName': spec.get('displayName', spec.get('jobName')),
+            'cronExpression': spec.get('cronExpression'),
+            'active': spec.get('active', True),
         }
-
-        # Add entity-specific fields here
 
         return payload
 
     def load_all(self) -> dict:
         """
-        Load all scheduler job configuration YAML files
+        Update all scheduler job configurations from YAML files
 
         Returns:
             Summary dict
@@ -67,31 +64,33 @@ class SchedulerJobsLoader(BaseLoader):
                 continue
 
             spec = yaml_data.get('spec', {})
-            entity_name = spec.get('name')
+            job_name = spec.get('jobName')  # SchedulerJob uses 'jobName' not 'name'
 
-            if not entity_name:
-                logger.error(f"  Missing name in spec")
+            if not job_name:
+                logger.error(f"  Missing jobName in spec")
                 self.failed_entities.append(yaml_file.name)
                 continue
 
-            # Check if entity already exists
-            existing_id = self.entity_exists('jobs', entity_name)
+            # Find existing scheduler job by name
+            existing_id = self.entity_exists('jobs', job_name, identifier_field='displayName')
 
-            if existing_id:
-                logger.info(f"  Entity already exists: {entity_name} (ID: {existing_id})")
-                self.loaded_entities[entity_name] = existing_id
+            if not existing_id:
+                logger.warning(f"  Scheduler job not found in Fineract: {job_name}")
+                logger.warning(f"  Skipping (scheduler jobs are pre-configured in Fineract)")
+                self.skipped_entities[job_name] = None
                 continue
 
-            # Create entity
-            api_payload = self.yaml_to_fineract_api(yaml_data)
-            response = self.post('jobs', api_payload)
+            # Update the scheduler job configuration
+            logger.info(f"  Found existing scheduler job: {job_name} (ID: {existing_id})")
 
-            if response and 'resourceId' in response:
-                entity_id = response['resourceId']
-                logger.info(f"  ✓ Created scheduler job configuration: {entity_name} (ID: {entity_id})")
-                self.loaded_entities[entity_name] = entity_id
+            api_payload = self.yaml_to_fineract_api(yaml_data)
+            response = self.put(f'jobs/{existing_id}', api_payload)
+
+            if response:
+                logger.info(f"  ✓ Updated scheduler job: {job_name} (ID: {existing_id})")
+                self.updated_entities[job_name] = existing_id
             else:
-                logger.error(f"  ✗ Failed to create scheduler job configuration: {entity_name}")
+                logger.error(f"  ✗ Failed to update scheduler job: {job_name}")
                 self.failed_entities.append(yaml_file.name)
 
         return self.get_summary()

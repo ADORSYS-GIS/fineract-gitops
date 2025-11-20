@@ -9,23 +9,62 @@ spec:
   description: Create and manage offices/branches
   disabled: false
   permissions:
-  - grouping: Office
-    code: Office_ALL_FUNCTIONS
-  - grouping: Staff
-    code: Staff_ALL_FUNCTIONS
-  - grouping: Loan Product
-    code: Loan Product_ALL_FUNCTIONS
-  - grouping: Savings Product
-    code: Savings Product_ALL_FUNCTIONS
-  - grouping: Charge
-    code: Charge_ALL_FUNCTIONS
-  - grouping: Client
-    code: Client_CREATE_UPDATE_READ
-  - grouping: Loan
-    code: Loan_READ
-  - grouping: Savings
-    code: Savings_READ
-  - grouping: Report
-    code: Report_READ
-  - grouping: Maker-Checker
-    code: Maker-Checker_CREATE
+  # Office - full CRUD
+  - grouping: organisation
+    code: READ_OFFICE
+  - grouping: organisation
+    code: CREATE_OFFICE
+  - grouping: organisation
+    code: UPDATE_OFFICE
+  # Staff - full CRUD
+  - grouping: organisation
+    code: READ_STAFF
+  - grouping: organisation
+    code: CREATE_STAFF
+  - grouping: organisation
+    code: UPDATE_STAFF
+  - grouping: organisation
+    code: DELETE_STAFF
+  # Loan Products - full CRUD
+  - grouping: organisation
+    code: READ_LOANPRODUCT
+  - grouping: organisation
+    code: CREATE_LOANPRODUCT
+  - grouping: organisation
+    code: UPDATE_LOANPRODUCT
+  - grouping: organisation
+    code: DELETE_LOANPRODUCT
+  # Savings Products - full CRUD
+  - grouping: organisation
+    code: READ_SAVINGSPRODUCT
+  - grouping: organisation
+    code: CREATE_SAVINGSPRODUCT
+  - grouping: organisation
+    code: UPDATE_SAVINGSPRODUCT
+  - grouping: organisation
+    code: DELETE_SAVINGSPRODUCT
+  # Charges - full CRUD
+  - grouping: organisation
+    code: READ_CHARGE
+  - grouping: organisation
+    code: CREATE_CHARGE
+  - grouping: organisation
+    code: UPDATE_CHARGE
+  - grouping: organisation
+    code: DELETE_CHARGE
+  # Client - create, update, read
+  - grouping: portfolio
+    code: READ_CLIENT
+  - grouping: portfolio
+    code: CREATE_CLIENT
+  - grouping: portfolio
+    code: UPDATE_CLIENT
+  # Loan - read only
+  - grouping: portfolio
+    code: READ_LOAN
+  # Savings - read only
+  - grouping: portfolio
+    code: READ_SAVINGSACCOUNT
+  # Reporting - super user access
+  - grouping: special
+    code: REPORTING_SUPER_USER

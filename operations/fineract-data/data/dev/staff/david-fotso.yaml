@@ -9,6 +9,7 @@ spec:
   lastName: Fotso
   officeId: Bafoussam Branch
   isLoanOfficer: true
+  joiningDate: '2024-01-01'
   externalId: STF-009
   mobileNo: +237 677 90 12 34
   emailAddress: d.fotso@mfi.cm

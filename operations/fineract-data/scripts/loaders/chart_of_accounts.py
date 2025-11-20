@@ -178,7 +178,17 @@ class ChartOfAccountsLoader(BaseLoader):
         gl_code = spec.get('glCode')
 
         if not entity_name or not gl_code:
-            logger.error(f"  Missing name or glCode in {yaml_file.name}")
+            error_msg = "Missing required fields in GL account YAML"
+            logger.error(f"  {error_msg}")
+            self.record_error(
+                yaml_file.name,
+                'validation',
+                error_msg,
+                {
+                    'missing_fields': [f for f in ['name', 'glCode'] if not spec.get(f)],
+                    'file': str(yaml_file)
+                }
+            )
             self.failed_entities.append(yaml_file.name)
             return False
 
@@ -189,13 +199,41 @@ class ChartOfAccountsLoader(BaseLoader):
         if not existing_id:
             existing_id = self._resolve_gl_account(gl_code)
 
+        # Prepare API payload (needed for both create and update)
+        api_payload = self.yaml_to_fineract_api(yaml_data)
+
         if existing_id:
-            logger.info(f"  Entity already exists: {entity_name} (ID: {existing_id})")
-            self.loaded_entities[entity_name] = existing_id
-            return True
+            # Entity exists - check for changes
+            if self.has_changes('/glaccounts', existing_id, api_payload):
+                # Update entity
+                logger.info(f"  ↻ Updating: {entity_name}")
+                response = self.put(f'/glaccounts/{existing_id}', api_payload)
+                if response:
+                    logger.info(f"  ✓ Updated: {entity_name} (ID: {existing_id})")
+                    self.updated_entities[entity_name] = existing_id
+                    return True
+                else:
+                    error_msg = f"Failed to update GL account via API"
+                    logger.error(f"  ✗ {error_msg}")
+                    self.record_error(
+                        entity_name,
+                        'api',
+                        error_msg,
+                        {
+                            'entity_id': existing_id,
+                            'gl_code': gl_code,
+                            'endpoint': f'/glaccounts/{existing_id}'
+                        }
+                    )
+                    self.failed_entities.append(yaml_file.name)
+                    return False
+            else:
+                # No changes detected
+                logger.info(f"  ⊘ No changes: {entity_name} (ID: {existing_id})")
+                self.skipped_entities[entity_name] = existing_id
+                return True
 
         # Create entity
-        api_payload = self.yaml_to_fineract_api(yaml_data)
         response = self.post('glaccounts', api_payload)
 
         if response and 'resourceId' in response:
@@ -204,7 +242,18 @@ class ChartOfAccountsLoader(BaseLoader):
             self.loaded_entities[entity_name] = entity_id
             return True
         else:
-            logger.error(f"  ✗ Failed to create GL account: {entity_name}")
+            error_msg = f"Failed to create GL account via API"
+            logger.error(f"  ✗ {error_msg}")
+            self.record_error(
+                entity_name,
+                'api',
+                error_msg,
+                {
+                    'gl_code': gl_code,
+                    'endpoint': '/glaccounts',
+                    'parent_gl_code': spec.get('parentGLCode', 'none')
+                }
+            )
             self.failed_entities.append(yaml_file.name)
             return False
 

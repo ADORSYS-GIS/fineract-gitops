@@ -6,5 +6,5 @@ metadata:
     format-type: loan
 spec:
   accountType: LOAN
-  prefixType: PRODUCT SHORT NAME
+  prefixType: LOAN PRODUCT SHORT NAME
   accountNumberLength: 12

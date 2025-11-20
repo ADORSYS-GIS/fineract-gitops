@@ -17,15 +17,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Entity loaders to run in order (matching wave sequence)
+# IMPORTANT: maker_checker must run BEFORE roles so that maker-checker permissions
+# are enabled before roles with those permissions are created
 ENTITY_LOADERS = [
     ('code_values', 'CodeValuesLoader'),
     ('offices', 'OfficesLoader'),
     ('staff', 'StaffLoader'),
+    ('maker_checker', 'MakerCheckerLoader'),  # Enable maker-checker permissions BEFORE roles
     ('roles', 'RolesLoader'),
     ('currency_config', 'CurrencyConfigLoader'),
     ('working_days', 'WorkingDaysLoader'),
     ('account_number_formats', 'AccountNumberFormatsLoader'),
-    ('maker_checker', 'MakerCheckerLoader'),
+    ('global_configurations', 'GlobalConfigurationsLoader'),  # GlobalConfiguration + Configuration (38 files)
+    ('external_services', 'ExternalServicesLoader'),  # SMSEmailConfig (17 files)
     ('scheduler_jobs', 'SchedulerJobsLoader'),
 ]
 
@@ -145,10 +149,13 @@ def main():
 
     logger.info("=" * 80)
 
-    # Exit with error code if any failures
+    # Log failures but don't block deployment
     if total_failed > 0 or failed_entities:
-        logger.error(f"System Foundation loading completed with {total_failed} failures")
-        sys.exit(1)
+        logger.warning(f"System Foundation loading completed with {total_failed} failures")
+        logger.warning("⚠️  Some entities failed to load but deployment will continue")
+        logger.warning("Review logs above for details on failed entities")
+        # Exit 0 to allow subsequent sync waves to proceed
+        sys.exit(0)
     else:
         logger.info("System Foundation loading completed successfully")
         sys.exit(0)

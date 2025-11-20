@@ -110,7 +110,7 @@ class LoanProductsLoader(BaseLoader):
             'graceOnInterestCharged': spec.get('gracePeriods', {}).get('interestCharged', 0),
 
             # Settings
-            'allowPartialPeriodInterestCalcualtion': spec.get('allowPartialPeriodInterestCalculation', True),
+            'allowPartialPeriodInterestCalculation': spec.get('allowPartialPeriodInterestCalculation', True),
             'canDefineInstallmentAmount': spec.get('canDefineInstallmentAmount', False),
             'isInterestRecalculationEnabled': spec.get('interestRecalculation', {}).get('enabled', False),
             'holdGuaranteeFunds': spec.get('holdGuaranteeFunds', False),

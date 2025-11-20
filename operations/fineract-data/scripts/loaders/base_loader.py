@@ -38,6 +38,14 @@ class BaseLoader:
         self.tenant = tenant
         self.dry_run = dry_run
 
+        # Strict mode: Fail on reference resolution errors (default: True)
+        # Set STRICT_REFERENCE_RESOLUTION=false to allow missing references
+        self.strict_mode = os.getenv('STRICT_REFERENCE_RESOLUTION', 'true').lower() == 'true'
+        if self.strict_mode:
+            logger.info("Strict reference resolution enabled - will fail on missing references")
+        else:
+            logger.warning("Strict reference resolution disabled - missing references will be skipped")
+
         # ====================================================================
         # SENSITIVE DATA IN ENVIRONMENT VARIABLES
         # ====================================================================
@@ -217,6 +225,97 @@ class BaseLoader:
         self.failed_entities = []
         self.updated_entities = {}
         self.skipped_entities = {}
+
+        # Track detailed error information for better debugging
+        self.error_details = {}  # Maps entity name to error details
+
+    def validate_configuration(self):
+        """
+        Pre-flight validation: Check configuration and connectivity before processing
+        Raises ValueError with clear message if configuration is invalid
+        """
+        logger.info("Running pre-flight validation checks...")
+
+        # Check 1: YAML directory exists and is readable
+        if not self.yaml_dir.exists():
+            raise ValueError(
+                f"YAML directory not found: {self.yaml_dir}\n"
+                f"Please ensure the directory exists and is accessible."
+            )
+
+        if not self.yaml_dir.is_dir():
+            raise ValueError(
+                f"Path is not a directory: {self.yaml_dir}\n"
+                f"Please provide a valid directory path."
+            )
+
+        yaml_files = list(self.yaml_dir.glob('*.yaml'))
+        if not yaml_files:
+            logger.warning(f"No YAML files found in {self.yaml_dir}")
+        else:
+            logger.info(f"Found {len(yaml_files)} YAML files to process")
+
+        # Check 2: Fineract API connectivity
+        try:
+            response = self.session.get(
+                f"{self.fineract_url}/fineract-provider/api/v1/offices",
+                timeout=10
+            )
+            response.raise_for_status()
+            logger.info(f"✓ Fineract API connectivity verified: {self.fineract_url}")
+        except requests.exceptions.ConnectionError as e:
+            raise ValueError(
+                f"Cannot connect to Fineract API: {self.fineract_url}\n"
+                f"Error: {str(e)}\n"
+                f"Please check:\n"
+                f"  1. Fineract URL is correct\n"
+                f"  2. Fineract is running and accessible\n"
+                f"  3. Network connectivity\n"
+                f"  4. Firewall rules"
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                raise ValueError(
+                    f"Authentication failed to Fineract API\n"
+                    f"Please check:\n"
+                    f"  1. OAuth2 credentials (FINERACT_CLIENT_ID, FINERACT_CLIENT_SECRET)\n"
+                    f"  2. Basic auth credentials (FINERACT_USERNAME, FINERACT_PASSWORD)\n"
+                    f"  3. Token URL is correct (FINERACT_TOKEN_URL)"
+                )
+            elif e.response.status_code == 403:
+                raise ValueError(
+                    f"Access forbidden to Fineract API\n"
+                    f"User/client does not have sufficient permissions.\n"
+                    f"Please check role assignments in Fineract."
+                )
+            else:
+                raise ValueError(
+                    f"Fineract API returned error: {e.response.status_code}\n"
+                    f"Error: {str(e)}"
+                )
+        except requests.exceptions.Timeout:
+            raise ValueError(
+                f"Timeout connecting to Fineract API: {self.fineract_url}\n"
+                f"Fineract may be slow or unresponsive."
+            )
+
+        # Check 3: Tenant validity
+        try:
+            response = self.session.get(
+                f"{self.fineract_url}/fineract-provider/api/v1/offices",
+                headers={'Fineract-Platform-TenantId': self.tenant},
+                timeout=10
+            )
+            response.raise_for_status()
+            logger.info(f"✓ Tenant '{self.tenant}' is valid")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code in [400, 404]:
+                raise ValueError(
+                    f"Invalid tenant: '{self.tenant}'\n"
+                    f"Please check tenant configuration in Fineract."
+                )
+
+        logger.info("✓ All pre-flight validation checks passed")
 
     def _obtain_oauth2_token(self):
         """
@@ -692,12 +791,22 @@ class BaseLoader:
 
             # Handle different response formats
             if isinstance(entities, list) and entities:
-                return entities[0].get('id')
+                # Search for entity with matching identifier field
+                for entity in entities:
+                    if entity.get(identifier_field) == identifier:
+                        return entity.get('id')
+                return None  # No match found
             elif isinstance(entities, dict):
                 if 'pageItems' in entities and entities['pageItems']:
-                    return entities['pageItems'][0].get('id')
+                    # Search for entity with matching identifier field in paginated results
+                    for entity in entities['pageItems']:
+                        if entity.get(identifier_field) == identifier:
+                            return entity.get('id')
+                    return None  # No match found
                 elif 'id' in entities:
-                    return entities.get('id')
+                    # Single entity response - check if it matches
+                    if entities.get(identifier_field) == identifier:
+                        return entities.get('id')
 
             return None
         except Exception as e:
@@ -758,8 +867,45 @@ class BaseLoader:
             )
         }
 
+    def record_error(self, entity_name: str, error_type: str, error_message: str, details: dict = None):
+        """
+        Record detailed error information for an entity
+
+        Args:
+            entity_name: Name or filename of the entity
+            error_type: Category of error (validation, reference, api, etc.)
+            error_message: Human-readable error message
+            details: Additional context (field names, expected values, etc.)
+        """
+        self.error_details[entity_name] = {
+            'type': error_type,
+            'message': error_message,
+            'details': details or {}
+        }
+
+    def _categorize_error(self, error_info: dict) -> str:
+        """
+        Categorize error type for grouping
+
+        Args:
+            error_info: Error information dict
+
+        Returns:
+            Error category string
+        """
+        error_type = error_info.get('type', 'unknown')
+        category_map = {
+            'validation': '📋 Validation Errors',
+            'reference': '🔗 Reference Resolution Errors',
+            'api': '🌐 API Errors',
+            'permission': '🔐 Permission Errors',
+            'network': '📡 Network Errors',
+            'unknown': '❓ Unknown Errors'
+        }
+        return category_map.get(error_type, '❓ Unknown Errors')
+
     def print_summary(self):
-        """Print loading summary"""
+        """Print loading summary with enhanced error reporting"""
         summary = self.get_summary()
 
         logger.info("=" * 80)
@@ -790,6 +936,44 @@ class BaseLoader:
             logger.info(f"\nFailed Entities:")
             for entity in summary['failed_entities']:
                 logger.info(f"  ✗ {entity}")
+
+            # Enhanced error reporting: Group by error type
+            if self.error_details:
+                logger.info(f"\n{'=' * 80}")
+                logger.info("DETAILED ERROR REPORT")
+                logger.info("=" * 80)
+
+                # Group errors by category
+                error_groups = {}
+                for entity_name, error_info in self.error_details.items():
+                    category = self._categorize_error(error_info)
+                    if category not in error_groups:
+                        error_groups[category] = []
+                    error_groups[category].append((entity_name, error_info))
+
+                # Print errors by category
+                for category, errors in sorted(error_groups.items()):
+                    logger.info(f"\n{category} ({len(errors)})")
+                    for entity_name, error_info in errors:
+                        logger.info(f"\n  Entity: {entity_name}")
+                        logger.info(f"  Error: {error_info['message']}")
+                        if error_info.get('details'):
+                            for key, value in error_info['details'].items():
+                                logger.info(f"    {key}: {value}")
+
+                # Provide actionable suggestions
+                logger.info(f"\n{'=' * 80}")
+                logger.info("SUGGESTED ACTIONS")
+                logger.info("=" * 80)
+                for category in error_groups.keys():
+                    if 'Reference' in category:
+                        logger.info("• Reference Errors: Check that referenced entities exist and names/codes match")
+                    elif 'Validation' in category:
+                        logger.info("• Validation Errors: Review YAML structure and field values")
+                    elif 'API' in category:
+                        logger.info("• API Errors: Check Fineract API documentation and field requirements")
+                    elif 'Permission' in category:
+                        logger.info("• Permission Errors: Verify permission codes against Fineract API")
 
         logger.info("=" * 80)
 
@@ -906,8 +1090,17 @@ class BaseLoader:
         except Exception as e:
             logger.error(f"Error looking up GL account '{gl_code_or_name}': {e}")
 
-        logger.error(f"Could not resolve GL account '{gl_code_or_name}'")
-        return None
+        error_msg = f"Could not resolve GL account '{gl_code_or_name}'"
+        if self.strict_mode:
+            logger.error(f"{error_msg} - failing in strict mode")
+            raise ValueError(
+                f"GL account '{gl_code_or_name}' not found. "
+                f"Please create the GL account first or check the GL code/name. "
+                f"To skip missing GL accounts, set STRICT_REFERENCE_RESOLUTION=false"
+            )
+        else:
+            logger.warning(f"{error_msg} - skipping (strict mode disabled)")
+            return None
 
     def _resolve_office(self, office_ref: str) -> Optional[int]:
         """
@@ -950,12 +1143,17 @@ class BaseLoader:
         except Exception as e:
             logger.error(f"Error looking up office '{office_ref}': {e}")
 
-        logger.error(f"Could not resolve office '{office_ref}' - office must exist before loading data")
-        raise ValueError(
-            f"Office '{office_ref}' not found. "
-            f"Please create the office first or check the office name/externalId. "
-            f"Available offices can be listed with: GET /offices"
-        )
+        error_msg = f"Could not resolve office '{office_ref}'"
+        if self.strict_mode:
+            logger.error(f"{error_msg} - failing in strict mode")
+            raise ValueError(
+                f"Office '{office_ref}' not found. "
+                f"Please create the office first or check the office name/externalId. "
+                f"Available offices can be listed with: GET /offices"
+            )
+        else:
+            logger.warning(f"{error_msg} - skipping (strict mode disabled)")
+            return None
 
     def _resolve_product(self, product_name_or_short_name: str, product_type: str = 'savings') -> Optional[int]:
         """

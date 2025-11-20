@@ -9,6 +9,7 @@ spec:
   lastName: Nkeng
   officeId: Bamenda Branch
   isLoanOfficer: true
+  joiningDate: '2024-01-01'
   externalId: STF-010
   mobileNo: +237 677 01 23 45
   emailAddress: p.nkeng@mfi.cm

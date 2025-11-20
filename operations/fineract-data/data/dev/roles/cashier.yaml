@@ -9,15 +9,19 @@ spec:
   description: View client information only
   disabled: false
   permissions:
-  - grouping: Client
-    code: Client_READ
-  - grouping: Loan
-    code: Loan_READ
-  - grouping: Savings
-    code: Savings_TRANSACTION
-  - grouping: Transaction
-    code: Transaction_CREATE_READ
-  - grouping: Report
-    code: Report_READ
-  - grouping: Maker-Checker
-    code: Maker-Checker_CREATE
+  # Client - read only
+  - grouping: portfolio
+    code: READ_CLIENT
+  # Loan - read only
+  - grouping: portfolio
+    code: READ_LOAN
+  # Savings account - read + transaction permissions
+  - grouping: portfolio
+    code: READ_SAVINGSACCOUNT
+  - grouping: portfolio
+    code: DEPOSIT_SAVINGSACCOUNT
+  - grouping: portfolio
+    code: WITHDRAWAL_SAVINGSACCOUNT
+  # Reporting - read only access
+  - grouping: special
+    code: ALL_FUNCTIONS_READ
