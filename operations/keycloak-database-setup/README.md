@@ -35,7 +35,7 @@ Before running this job:
 
 ```bash
 # Apply the job
-kubectl apply -f operations/database-setup/create-keycloak-db-job.yaml
+kubectl apply -f operations/keycloak-database-setup/create-keycloak-db-job.yaml
 
 # Watch job progress
 kubectl get jobs -n fineract-dev -w
@@ -53,7 +53,7 @@ This job can be integrated into your deployment pipeline:
 
 ```bash
 # In post-terraform-setup.sh or similar
-kubectl apply -f operations/database-setup/create-keycloak-db-job.yaml
+kubectl apply -f operations/keycloak-database-setup/create-keycloak-db-job.yaml
 kubectl wait --for=condition=complete --timeout=120s job/create-keycloak-db -n fineract-dev
 ```
 
