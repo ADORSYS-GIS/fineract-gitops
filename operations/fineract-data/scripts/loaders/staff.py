@@ -69,9 +69,16 @@ class StaffLoader(BaseLoader):
             'locale': 'en'
         }
 
-        # Resolve office ID
-        office_ref = spec.get('officeId', 'head-office')
-        api_data['officeId'] = self._resolve_office_id(office_ref)
+        # Resolve office ID using base class method (respects strict mode)
+        office_ref = spec.get('officeId', 'Head Office')  # Default to Fineract's default office
+        office_id = self._resolve_office(office_ref)
+        if office_id:
+            api_data['officeId'] = office_id
+        elif not self.strict_mode:
+            # Fallback to ID 1 only if strict mode is disabled
+            logger.warning(f"Office '{office_ref}' not found, defaulting to ID 1 (Head Office)")
+            api_data['officeId'] = 1
+        # If strict mode and office_id is None, _resolve_office already raised an error
 
         # Optional fields
         if spec.get('externalId'):
@@ -88,19 +95,6 @@ class StaffLoader(BaseLoader):
             api_data['joiningDate'] = date_obj.strftime('%d %B %Y')
 
         return api_data
-
-    def _resolve_office_id(self, office_ref: str) -> int:
-        """Resolve office reference to ID"""
-        try:
-            response = self.get('/offices')
-            if response:
-                for office in response:
-                    if office.get('name') == office_ref or office.get('externalId') == office_ref:
-                        return office['id']
-        except Exception as e:
-            logger.warning(f"Error resolving office '{office_ref}': {e}")
-
-        return 1  # Default to head office (ID 1)
 
     def entity_exists(self, api_data: Dict[str, Any], yaml_data: Dict[str, Any]) -> Optional[int]:
         """Check if staff member already exists"""

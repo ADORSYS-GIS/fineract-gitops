@@ -1,0 +1,63 @@
+name: Fineract Data Quality Tests
+
+on:
+  pull_request:
+    paths:
+      - 'operations/fineract-data/data/**/*.yaml'
+      - 'operations/fineract-data/tests/**'
+  push:
+    branches:
+      - main
+      - develop
+      - deploy-key
+    paths:
+      - 'operations/fineract-data/data/**/*.yaml'
+      - 'operations/fineract-data/tests/**'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test-data-quality:
+    name: Validate YAML Data Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Test Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r operations/fineract-data/tests/requirements-test.txt
+
+      - name: Run Data Quality Tests
+        run: |
+          cd operations/fineract-data
+          pytest tests/test_data_quality.py \
+            -v \
+            --tb=short \
+            --color=yes \
+            --junit-xml=test-results.xml
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: operations/fineract-data/test-results.xml
+          check_name: Data Quality Test Results
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## Data Quality Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f operations/fineract-data/test-results.xml ]; then
+            echo "✅ Tests completed. Check results above." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Test execution failed." >> $GITHUB_STEP_SUMMARY
+          fi

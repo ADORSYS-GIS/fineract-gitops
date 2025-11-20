@@ -38,6 +38,14 @@ class BaseLoader:
         self.tenant = tenant
         self.dry_run = dry_run
 
+        # Strict mode: Fail on reference resolution errors (default: True)
+        # Set STRICT_REFERENCE_RESOLUTION=false to allow missing references
+        self.strict_mode = os.getenv('STRICT_REFERENCE_RESOLUTION', 'true').lower() == 'true'
+        if self.strict_mode:
+            logger.info("Strict reference resolution enabled - will fail on missing references")
+        else:
+            logger.warning("Strict reference resolution disabled - missing references will be skipped")
+
         # ====================================================================
         # SENSITIVE DATA IN ENVIRONMENT VARIABLES
         # ====================================================================
@@ -916,8 +924,17 @@ class BaseLoader:
         except Exception as e:
             logger.error(f"Error looking up GL account '{gl_code_or_name}': {e}")
 
-        logger.error(f"Could not resolve GL account '{gl_code_or_name}'")
-        return None
+        error_msg = f"Could not resolve GL account '{gl_code_or_name}'"
+        if self.strict_mode:
+            logger.error(f"{error_msg} - failing in strict mode")
+            raise ValueError(
+                f"GL account '{gl_code_or_name}' not found. "
+                f"Please create the GL account first or check the GL code/name. "
+                f"To skip missing GL accounts, set STRICT_REFERENCE_RESOLUTION=false"
+            )
+        else:
+            logger.warning(f"{error_msg} - skipping (strict mode disabled)")
+            return None
 
     def _resolve_office(self, office_ref: str) -> Optional[int]:
         """
@@ -960,12 +977,17 @@ class BaseLoader:
         except Exception as e:
             logger.error(f"Error looking up office '{office_ref}': {e}")
 
-        logger.error(f"Could not resolve office '{office_ref}' - office must exist before loading data")
-        raise ValueError(
-            f"Office '{office_ref}' not found. "
-            f"Please create the office first or check the office name/externalId. "
-            f"Available offices can be listed with: GET /offices"
-        )
+        error_msg = f"Could not resolve office '{office_ref}'"
+        if self.strict_mode:
+            logger.error(f"{error_msg} - failing in strict mode")
+            raise ValueError(
+                f"Office '{office_ref}' not found. "
+                f"Please create the office first or check the office name/externalId. "
+                f"Available offices can be listed with: GET /offices"
+            )
+        else:
+            logger.warning(f"{error_msg} - skipping (strict mode disabled)")
+            return None
 
     def _resolve_product(self, product_name_or_short_name: str, product_type: str = 'savings') -> Optional[int]:
         """
