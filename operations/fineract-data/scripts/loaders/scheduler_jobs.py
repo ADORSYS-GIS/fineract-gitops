@@ -77,7 +77,7 @@ class SchedulerJobsLoader(BaseLoader):
             if not existing_id:
                 logger.warning(f"  Scheduler job not found in Fineract: {job_name}")
                 logger.warning(f"  Skipping (scheduler jobs are pre-configured in Fineract)")
-                self.skipped_entities.append(job_name)
+                self.skipped_entities[job_name] = None
                 continue
 
             # Update the scheduler job configuration

@@ -57,23 +57,17 @@ class RolesLoader(BaseLoader):
                 elif perm_code:
                     invalid_perms.append(perm_code)
 
-            # Strict validation: Fail on invalid permission codes
+            # Validation: Warn on invalid permission codes but continue
             if invalid_perms:
                 role_name = spec.get('name', 'unknown')
                 error_msg = f"Invalid permission codes in role '{role_name}': {invalid_perms}"
-                logger.error(f"  {error_msg}")
+                logger.warning(f"  {error_msg}")
+                logger.warning(f"  These permissions will be skipped. Role will be created with valid permissions only.")
 
                 # Show sample of available permissions for debugging
                 available_perms = sorted(permission_map.keys())[:20]
                 logger.info(f"  Available permissions (first 20): {available_perms}")
                 logger.info(f"  Total available permissions: {len(permission_map)}")
-
-                raise ValueError(
-                    f"{error_msg}\n"
-                    f"Please check permission codes in YAML file.\n"
-                    f"Total available permissions: {len(permission_map)}\n"
-                    f"Sample permissions: {', '.join(available_perms[:10])}"
-                )
 
             if permission_ids:
                 payload['permissions'] = permission_ids
