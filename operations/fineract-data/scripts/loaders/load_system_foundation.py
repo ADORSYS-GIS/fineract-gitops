@@ -17,15 +17,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Entity loaders to run in order (matching wave sequence)
+# IMPORTANT: maker_checker must run BEFORE roles so that maker-checker permissions
+# are enabled before roles with those permissions are created
 ENTITY_LOADERS = [
     ('code_values', 'CodeValuesLoader'),
     ('offices', 'OfficesLoader'),
     ('staff', 'StaffLoader'),
+    ('maker_checker', 'MakerCheckerLoader'),  # Enable maker-checker permissions BEFORE roles
     ('roles', 'RolesLoader'),
     ('currency_config', 'CurrencyConfigLoader'),
     ('working_days', 'WorkingDaysLoader'),
     ('account_number_formats', 'AccountNumberFormatsLoader'),
-    ('maker_checker', 'MakerCheckerLoader'),  # Stub - skips all configurations
     ('scheduler_jobs', 'SchedulerJobsLoader'),
 ]
 
