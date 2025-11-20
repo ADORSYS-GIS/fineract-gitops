@@ -143,7 +143,6 @@ configMapGenerator:
   - system-config__base-currency.yaml=data/dev/system-config/base-currency.yaml
   - system-config__centers-account-format.yaml=data/dev/system-config/centers-account-format.yaml
   - system-config__client-account-format.yaml=data/dev/system-config/client-account-format.yaml
-  - system-config__client-activation.yaml=data/dev/system-config/client-activation.yaml
   - system-config__close-savings-account.yaml=data/dev/system-config/close-savings-account.yaml
   - system-config__create-loan-reschedule-request.yaml=data/dev/system-config/create-loan-reschedule-request.yaml
   - system-config__create-manual-journal-entry.yaml=data/dev/system-config/create-manual-journal-entry.yaml
