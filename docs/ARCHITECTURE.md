@@ -739,6 +739,377 @@ graph TB
 
 ---
 
+## Security Architecture Diagrams
+
+### Sealed Secrets Key Management Flow
+
+This diagram shows the complete lifecycle of Sealed Secrets encryption keys:
+
+```mermaid
+sequenceDiagram
+    participant Admin as Administrator
+    participant Cluster as Kubernetes Cluster
+    participant Controller as Sealed Secrets Controller
+    participant Backup as AWS Secrets Manager
+    participant Git as Git Repository
+
+    Note over Admin,Git: Initial Setup
+    Admin->>Cluster: Install Sealed Secrets Controller
+    Cluster->>Controller: Generate RSA-2048 key pair
+    Controller->>Controller: Store private key as Secret
+    Controller->>Backup: Backup private key (manual)
+
+    Note over Admin,Git: Secret Encryption
+    Admin->>Controller: Fetch public key (kubeseal --fetch-cert)
+    Controller-->>Admin: Return public certificate
+    Admin->>Admin: Create secret YAML (kubectl create --dry-run)
+    Admin->>Admin: Encrypt with kubeseal CLI
+    Admin->>Git: Commit SealedSecret (encrypted)
+
+    Note over Admin,Git: Deployment
+    Git->>Cluster: ArgoCD syncs SealedSecret
+    Controller->>Controller: Decrypt with private key
+    Controller->>Cluster: Create plaintext Secret
+
+    Note over Admin,Git: Disaster Recovery
+    Backup->>Admin: Retrieve backed-up private key
+    Admin->>Cluster: Restore key to new cluster
+    Admin->>Controller: Restart controller pod
+    Controller->>Controller: Load restored private key
+    Note over Controller: Can now decrypt existing<br/>SealedSecrets from Git
+```
+
+**Key Points:**
+- Public key is safe to share (used for encryption only)
+- Private key must be backed up securely (AWS Secrets Manager recommended)
+- Kubeseal CLI version must match controller version (v0.27.0)
+- See [SECRETS_MANAGEMENT.md](SECRETS_MANAGEMENT.md) for detailed procedures
+
+---
+
+### Network Security Zones
+
+This diagram shows the network security architecture with NetworkPolicies:
+
+```mermaid
+graph TB
+    subgraph "Public Zone (Internet)"
+        Users[External Users]
+        Internet[Internet]
+    end
+
+    subgraph "DMZ Zone (Load Balancer)"
+        NLB[Network Load Balancer<br/>AWS NLB]
+        IngressCtrl[Ingress Controller<br/>nginx-ingress<br/>Public subnet]
+    end
+
+    subgraph "Application Zone (Private Subnet)"
+        subgraph "Authentication Tier"
+            OAuth2[OAuth2 Proxy<br/>Port 4180]
+            Keycloak[Keycloak<br/>Port 8080]
+        end
+
+        subgraph "Application Tier"
+            FineractRead[Fineract Read<br/>Port 8443]
+            FineractWrite[Fineract Write<br/>Port 8443]
+            FineractBatch[Fineract Batch<br/>Port 8443]
+        end
+
+        subgraph "Frontend Tier"
+            WebApp[Web App<br/>Port 4200]
+            AccountingApp[Accounting App<br/>Port 4200]
+        end
+    end
+
+    subgraph "Data Zone (Private Subnet)"
+        PostgreSQL[(PostgreSQL RDS<br/>Port 5432<br/>Private subnet)]
+        Redis[(Redis<br/>Port 6379)]
+        S3[(S3 Bucket<br/>VPC Endpoint)]
+    end
+
+    subgraph "Management Zone"
+        ArgoCD[ArgoCD<br/>Port 8080]
+        Prometheus[Prometheus<br/>Port 9090]
+        Grafana[Grafana<br/>Port 3000]
+    end
+
+    %% Traffic Flow
+    Users -->|HTTPS:443| Internet
+    Internet -->|HTTPS:443| NLB
+    NLB -->|HTTP:80<br/>HTTPS:443| IngressCtrl
+
+    IngressCtrl -->|HTTPS:4180| OAuth2
+    IngressCtrl -->|HTTPS:8080| Keycloak
+    IngressCtrl -->|HTTPS:4200| WebApp
+    IngressCtrl -->|HTTPS:4200| AccountingApp
+
+    OAuth2 -->|HTTP:8443| FineractRead
+    OAuth2 -->|HTTP:8443| FineractWrite
+    OAuth2 -->|HTTP:8080| Keycloak
+
+    FineractRead -->|TCP:5432| PostgreSQL
+    FineractWrite -->|TCP:5432| PostgreSQL
+    FineractBatch -->|TCP:5432| PostgreSQL
+
+    FineractRead -->|TCP:6379| Redis
+    FineractWrite -->|TCP:6379| Redis
+
+    FineractWrite -->|HTTPS:443| S3
+    FineractBatch -->|HTTPS:443| S3
+
+    Keycloak -->|TCP:5432| PostgreSQL
+
+    WebApp -->|HTTP:8443| FineractRead
+    AccountingApp -->|HTTP:8443| FineractRead
+
+    %% NetworkPolicy Rules
+    classDef publicZone fill:#ff6b6b
+    classDef dmzZone fill:#ffd93d
+    classDef appZone fill:#6bcf7f
+    classDef dataZone fill:#4d96ff
+    classDef mgmtZone fill:#a29bfe
+
+    class Users,Internet publicZone
+    class NLB,IngressCtrl dmzZone
+    class OAuth2,Keycloak,FineractRead,FineractWrite,FineractBatch,WebApp,AccountingApp appZone
+    class PostgreSQL,Redis,S3 dataZone
+    class ArgoCD,Prometheus,Grafana mgmtZone
+```
+
+**NetworkPolicy Rules:**
+- **DMZ Zone:** Only accepts traffic from Internet (ports 80, 443)
+- **Application Zone:** Only accepts traffic from Ingress and internal services
+- **Data Zone:** Only accepts traffic from Application Zone (no direct external access)
+- **Management Zone:** Only accessible via kubectl port-forward (no external ingress)
+
+See [Kubernetes NetworkPolicies](../apps/network-policies/) for implementation.
+
+---
+
+## Operational Workflows
+
+### Disaster Recovery Workflow
+
+Complete disaster recovery procedure from failure to full recovery:
+
+```mermaid
+flowchart TD
+    Start([Disaster Detected]) --> Assess{Assess Damage}
+
+    Assess -->|Total Loss| TotalDR[Total Disaster Recovery]
+    Assess -->|Partial Loss| PartialDR[Partial Recovery]
+    Assess -->|Data Corruption| DataRestore[Data Restore Only]
+
+    TotalDR --> CreateCluster[1. Create New EKS Cluster]
+    CreateCluster --> RestoreInfra[2. Restore Infrastructure<br/>Components]
+
+    RestoreInfra --> InstallSealedSecrets[3. Install Sealed Secrets<br/>Controller v0.27.0]
+    InstallSealedSecrets --> RestoreKeys[4. Restore Private Keys<br/>from AWS Secrets Manager]
+    RestoreKeys --> InstallArgoCD[5. Install ArgoCD]
+
+    InstallArgoCD --> ConfigureArgoCD[6. Configure ArgoCD<br/>Repository Connection]
+    ConfigureArgoCD --> DeployApps[7. Deploy app-of-apps]
+
+    DeployApps --> WaitSync[8. Wait for ArgoCD Sync<br/>All Applications]
+
+    WaitSync --> RestoreDB{Database<br/>Backup Available?}
+    RestoreDB -->|Yes| RestoreRDS[9a. Restore RDS from<br/>Automated Backup]
+    RestoreDB -->|No| NewDB[9b. Initialize New Database]
+
+    RestoreRDS --> RestoreS3[10. Verify S3 Data<br/>Document Bucket]
+    NewDB --> RestoreS3
+
+    RestoreS3 --> Verify[11. Verification Tests]
+
+    Verify --> VerifyAuth[11a. Test Authentication<br/>Keycloak Login]
+    VerifyAuth --> VerifyRead[11b. Test Read Operations<br/>GET /clients]
+    VerifyRead --> VerifyWrite[11c. Test Write Operations<br/>POST /clients]
+    VerifyWrite --> VerifyMonitoring[11d. Verify Monitoring<br/>Prometheus/Grafana]
+
+    VerifyMonitoring --> Cutover{All Tests<br/>Passed?}
+    Cutover -->|No| Debug[Debug Issues]
+    Debug --> Verify
+
+    Cutover -->|Yes| UpdateDNS[12. Update DNS Records]
+    UpdateDNS --> EnableProd[13. Enable Production Traffic]
+
+    EnableProd --> Monitor[14. Monitor for 24 Hours]
+    Monitor --> Complete([Recovery Complete])
+
+    PartialDR --> IdentifyFailed[Identify Failed Components]
+    IdentifyFailed --> RedeployFailed[Redeploy via ArgoCD Sync]
+    RedeployFailed --> Verify
+
+    DataRestore --> StopWrites[Stop Write Operations]
+    StopWrites --> RestoreDBOnly[Restore Database from<br/>Point-in-Time]
+    RestoreDBOnly --> ResumeWrites[Resume Operations]
+    ResumeWrites --> Complete
+
+    style Start fill:#ff6b6b
+    style Complete fill:#6bcf7f
+    style Cutover fill:#ffd93d
+    style Verify fill:#a29bfe
+```
+
+**Recovery Time Objectives (RTO):**
+- Total DR: 2-4 hours
+- Partial Recovery: 30 minutes - 2 hours
+- Data Restore: 15 minutes - 1 hour
+
+**Recovery Point Objectives (RPO):**
+- Database: 5 minutes (automated backups)
+- Configuration: 0 (stored in Git)
+- Documents: 0 (versioned in S3)
+
+See [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md) for detailed runbook.
+
+---
+
+### CI/CD Pipeline
+
+GitHub Actions workflow for continuous deployment:
+
+```mermaid
+flowchart LR
+    subgraph "Developer Workflow"
+        Dev[Developer] -->|1. Commit & Push| Branch[Feature Branch]
+        Branch -->|2. Create PR| PR[Pull Request]
+    end
+
+    subgraph "CI Pipeline (GitHub Actions)"
+        PR -->|3. Trigger| Validate[Validate YAML<br/>kustomize build]
+        Validate -->|4. Run| Tests[Integration Tests<br/>Python scripts]
+        Tests -->|5. Check| Lint[Lint & Format<br/>yamllint, prettier]
+        Lint -->|6. Scan| Security[Security Scan<br/>trivy, kubesec]
+
+        Security -->|7. Post Results| PRComment[Comment on PR]
+
+        PRComment --> Review{Code Review<br/>Approved?}
+        Review -->|Rejected| Dev
+        Review -->|Approved| Merge[Merge to develop]
+    end
+
+    subgraph "CD Pipeline (ArgoCD)"
+        Merge -->|8. Detect Change| ArgoDetect[ArgoCD Detects<br/>Git Change]
+        ArgoDetect -->|9. Generate| Manifests[Generate K8s<br/>Manifests]
+        Manifests -->|10. Compare| Diff[Compare with<br/>Cluster State]
+
+        Diff -->|11a. Auto-Sync<br/>Dev Only| AutoDeploy[Auto Deploy<br/>to Dev Cluster]
+        Diff -->|11b. Manual Sync<br/>UAT/Prod| ManualApprove{Manual<br/>Approval}
+
+        ManualApprove -->|Approved| ManualDeploy[Deploy to<br/>UAT/Prod]
+        ManualApprove -->|Rejected| Rollback[Revert Commit]
+
+        AutoDeploy --> SyncWave[Execute Sync Waves<br/>0, 5, 10, 15, 20]
+        ManualDeploy --> SyncWave
+
+        SyncWave --> HealthCheck[Health Checks<br/>Readiness Probes]
+        HealthCheck --> Progressive{Progressive<br/>Delivery?}
+
+        Progressive -->|Yes| Canary[Canary 10%<br/>Analysis 5min]
+        Canary --> CanaryOK{Metrics<br/>Healthy?}
+        CanaryOK -->|No| AutoRollback[Automatic Rollback]
+        CanaryOK -->|Yes| Promote[Promote to 100%]
+
+        Progressive -->|No| Complete[Deployment Complete]
+        Promote --> Complete
+
+        AutoRollback --> Alert[Send Alert<br/>Slack/Email]
+        Rollback --> Alert
+    end
+
+    subgraph "Monitoring"
+        Complete --> Monitor[Prometheus Metrics]
+        Monitor --> Dashboard[Grafana Dashboard]
+        Dashboard --> OnCall[On-Call Engineer]
+    end
+
+    style Dev fill:#a29bfe
+    style Complete fill:#6bcf7f
+    style AutoRollback fill:#ff6b6b
+    style CanaryOK fill:#ffd93d
+```
+
+**Pipeline Stages:**
+1. **Validation:** YAML syntax, kustomize build
+2. **Testing:** Unit tests, integration tests
+3. **Security:** Container scanning, secret detection
+4. **Review:** Code review approval required
+5. **Deployment:** ArgoCD sync (auto for dev, manual for prod)
+6. **Progressive Delivery:** Canary rollout with analysis (optional)
+7. **Monitoring:** Continuous health checks
+
+See [operations/CI_CD_INTEGRATION.md](../operations/CI_CD_INTEGRATION.md) for pipeline configuration.
+
+---
+
+### ArgoCD Sync Wave Timeline
+
+Deployment sequence using ArgoCD sync waves:
+
+```mermaid
+gantt
+    title ArgoCD Deployment Sync Waves
+    dateFormat X
+    axisFormat %S s
+
+    section Wave 0 (Core Infrastructure)
+    Namespaces           :0, 5
+    Sealed Secrets Keys  :0, 10
+    Network Policies     :5, 10
+    Service Accounts     :10, 5
+
+    section Wave 5 (Databases & Cache)
+    PostgreSQL RDS Secret    :15, 5
+    Redis StatefulSet        :20, 30
+    Redis Service            :25, 5
+    Database Init Jobs       :30, 20
+
+    section Wave 10 (Identity)
+    Keycloak Deployment      :50, 40
+    Keycloak Service         :55, 5
+    Keycloak Config Job      :90, 30
+
+    section Wave 15 (Application Core)
+    Fineract ConfigMaps      :120, 5
+    Fineract Write           :125, 50
+    Fineract Read            :130, 45
+    Fineract Batch           :135, 40
+    Fineract Services        :140, 10
+
+    section Wave 20 (Frontend)
+    Web App Deployment       :175, 30
+    Accounting App           :180, 30
+    Reporting App            :185, 30
+    Frontend Services        :190, 10
+
+    section Wave 25 (Gateway)
+    OAuth2 Proxy             :205, 25
+    Ingress Resources        :210, 20
+    TLS Certificates         :215, 30
+
+    section Wave 30 (Monitoring)
+    Prometheus               :245, 20
+    Grafana                  :250, 20
+    Loki                     :255, 20
+    ServiceMonitors          :265, 10
+```
+
+**Sync Wave Strategy:**
+- **Wave 0** (0-15s): Core infrastructure must be ready first
+- **Wave 5** (15-50s): Databases available before applications
+- **Wave 10** (50-120s): Identity provider before OAuth2 Proxy
+- **Wave 15** (120-175s): Backend applications start
+- **Wave 20** (175-205s): Frontend applications after backend
+- **Wave 25** (205-245s): Gateway after all apps are healthy
+- **Wave 30** (245-275s): Monitoring comes last
+
+**Total Deployment Time:** ~4-5 minutes for full stack
+
+See [ARGOCD_SYNC_WAVES.md](../argocd/ARGOCD_SYNC_WAVES.md) for wave configuration.
+
+---
+
 ## Related Documentation
 
 - [AWS Quick-Start Guide](./AWS_QUICK_START.md) - Deploy to AWS in 30 minutes

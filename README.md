@@ -30,6 +30,9 @@ Complete, production-ready GitOps infrastructure for deploying Apache Fineract (
 
 ## 🚀 Quick Start
 
+> 📋 **Prerequisites:** See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for complete tool installation guide
+> 🔧 **Versions:** Check [docs/VERSION_MATRIX.md](docs/VERSION_MATRIX.md) for version requirements
+
 ### GitOps Deployment (Recommended)
 
 For step-by-step deployment with validation and user confirmation:
@@ -49,9 +52,12 @@ make deploy-gitops
 - Individual step execution (run steps independently)
 - Troubleshooting and verification
 
-### Alternative Guides
+### Essential Guides
 
-- **[End-to-End Automation Guide](docs/E2E_AUTOMATION_GUIDE.md)** - Complete infrastructure provisioning and deployment
+- **[Prerequisites Guide](docs/PREREQUISITES.md)** - Complete tool installation and setup
+- **[Version Matrix](docs/VERSION_MATRIX.md)** - Authoritative version requirements
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete walkthrough
+- **[End-to-End Automation Guide](docs/E2E_AUTOMATION_GUIDE.md)** - Full infrastructure provisioning and deployment
 - **[Quick Reference](docs/QUICK_REFERENCE.md)** - Common commands and operations
 
 ### High-Level Steps
