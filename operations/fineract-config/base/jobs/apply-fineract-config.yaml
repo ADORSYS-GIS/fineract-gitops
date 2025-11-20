@@ -1,0 +1,242 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-fineract-config
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 3600  # Keep job for 1 hour for debugging
+  backoffLimit: 4  # Retry up to 4 times on failure
+  template:
+    metadata:
+      name: fineract-config-cli
+      labels:
+        app: fineract-config-cli
+        component: config-loader
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: fineract-config-loader
+
+      initContainers:
+        # Wait for Fineract to be fully ready
+        - name: wait-for-fineract
+          image: curlimages/curl:8.4.0
+          command:
+            - sh
+            - -c
+            - |
+              echo "⏳ Waiting for Fineract to be ready..."
+              MAX_RETRIES=120  # 10 minutes
+              RETRY_COUNT=0
+
+              until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+                # Check Fineract actuator health endpoint
+                if curl -k -f -s https://fineract-write-service:8443/fineract-provider/actuator/health > /dev/null 2>&1; then
+                  echo "✓ Fineract is ready!"
+                  exit 0
+                fi
+
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                echo "Fineract not ready (attempt $RETRY_COUNT/$MAX_RETRIES), waiting 5s..."
+                sleep 5
+              done
+
+              echo "❌ Fineract did not become ready in time"
+              exit 1
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+
+        # Substitute environment variables in config files
+        - name: substitute-variables
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              echo "📝 Processing configuration files with environment variables..."
+              apk add --no-cache gettext > /dev/null 2>&1
+
+              # Check if config directory exists and has files
+              if [ -z "$(ls -A /config-templates 2>/dev/null)" ]; then
+                echo "⚠️  No configuration files found in /config-templates"
+                echo "Creating empty marker file to prevent job failure"
+                echo "# No configuration files provided" > /config-processed/.gitkeep
+                exit 0
+              fi
+
+              # Process each YAML file with envsubst
+              for file in /config-templates/*; do
+                if [ -f "$file" ]; then
+                  filename=$(basename "$file")
+                  echo "  → Processing: $filename"
+                  envsubst < "$file" > "/config-processed/$filename"
+                fi
+              done
+
+              echo "✓ Configuration files processed successfully"
+              ls -lh /config-processed/
+          env:
+            # OAuth2 client credentials (fineract-data-loader)
+            - name: FINERACT_DATA_LOADER_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: fineract-data-loader-client-id
+            - name: FINERACT_DATA_LOADER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: fineract-data-loader-client-secret
+            # Domain for URL construction
+            - name: DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: fineract-config-vars
+                  key: domain
+                  optional: true
+            # Auth hostname for OAuth2 token URL
+            - name: AUTH_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fineract-config-vars
+                  key: auth-hostname
+                  optional: true
+          volumeMounts:
+            - name: fineract-config-templates
+              mountPath: /config-templates
+              readOnly: true
+            - name: fineract-config-processed
+              mountPath: /config-processed
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+
+      containers:
+        - name: fineract-config-cli
+          image: ghcr.io/adorsys-gis/fineract-config-cli:latest
+          imagePullPolicy: Always
+
+          env:
+            # Fineract API connection
+            - name: FINERACT_BASE_URL
+              value: "https://fineract-write-service:8443/fineract-provider"
+            - name: FINERACT_TENANT
+              value: "default"
+            - name: FINERACT_SSL_VERIFY
+              value: "false"  # Internal service, self-signed cert
+
+            # OAuth2 authentication
+            - name: FINERACT_AUTH_TYPE
+              value: "oauth2"
+            - name: FINERACT_AUTH_OAUTH2_TOKEN_URL
+              value: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/token"
+            - name: FINERACT_AUTH_OAUTH2_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: fineract-data-loader-client-id
+            - name: FINERACT_AUTH_OAUTH2_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: fineract-data-loader-client-secret
+            - name: FINERACT_AUTH_OAUTH2_GRANT_TYPE
+              value: "client_credentials"
+
+            # Import configuration
+            - name: IMPORT_FILES_LOCATIONS
+              value: "/config-processed/*.yml"
+            - name: IMPORT_VALIDATE
+              value: "true"
+            - name: IMPORT_PARALLEL
+              value: "false"
+            - name: IMPORT_FORCE
+              value: "false"
+            - name: IMPORT_DRY_RUN
+              value: "false"
+
+            # State management
+            - name: IMPORT_REMOTE_STATE_ENABLED
+              value: "true"
+            - name: IMPORT_REMOTE_STATE_CHECKSUM_BEHAVIOR
+              value: "continue"  # Continue if checksum unchanged (idempotent)
+
+            # Variable substitution (already done by init container)
+            - name: IMPORT_VAR_SUBSTITUTION_ENABLED
+              value: "false"
+
+            # Managed resource modes (no-delete for all entities)
+            - name: IMPORT_MANAGED_OFFICE
+              value: "no-delete"
+            - name: IMPORT_MANAGED_ROLE
+              value: "no-delete"
+            - name: IMPORT_MANAGED_STAFF
+              value: "no-delete"
+            - name: IMPORT_MANAGED_CLIENT
+              value: "no-delete"
+            - name: IMPORT_MANAGED_LOANPRODUCT
+              value: "no-delete"
+            - name: IMPORT_MANAGED_SAVINGSPRODUCT
+              value: "no-delete"
+
+            # Logging
+            - name: LOGGING_LEVEL_ROOT
+              value: "INFO"
+            - name: LOGGING_LEVEL_ORG_APACHE_FINERACT_CONFIG
+              value: "DEBUG"
+
+            # Java options
+            - name: JAVA_OPTS
+              value: "-Xmx512m -Xms256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+          volumeMounts:
+            - name: fineract-config-processed
+              mountPath: /config-processed
+              readOnly: true
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Security context - run as non-root
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false  # CLI needs to write logs
+
+      volumes:
+        # Configuration files from ConfigMap
+        - name: fineract-config-templates
+          configMap:
+            name: fineract-config-data
+            optional: true  # Allow job to run even if no config files
+
+        # Temporary storage for processed configs
+        - name: fineract-config-processed
+          emptyDir: {}
+
+      # Security context for pod
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault

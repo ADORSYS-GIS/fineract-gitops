@@ -12,6 +12,7 @@ resources:
   - fineract-ingress.yaml
   - fineract-redis.yaml
   - fineract.yaml
+  - fineract-config.yaml  # New - Fineract configuration management
   - keycloak-config.yaml  # New - creates Fineract realm
   - keycloak.yaml
   - network-policies.yaml

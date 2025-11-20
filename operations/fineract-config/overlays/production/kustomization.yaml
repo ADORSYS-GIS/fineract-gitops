@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-prod
+
+# Base configuration
+resources:
+  - ../../base
+
+# Environment-specific ConfigMap for variables
+configMapGenerator:
+  - name: fineract-config-vars
+    literals:
+      - domain=fineract.com
+      - auth-hostname=auth.fineract.com
+
+# Environment-specific patches
+patchesStrategicMerge:
+  - patches/job-config.yaml
+
+# Labels for production environment
+labels:
+  - pairs:
+      environment: production
+      managed-by: argocd

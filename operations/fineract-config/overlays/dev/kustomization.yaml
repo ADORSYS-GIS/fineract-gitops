@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+# Base configuration
+resources:
+  - ../../base
+
+# Note: Sealed secrets (keycloak-client-secrets) are deployed separately
+# via secrets/dev/ and do not need to be included here.
+# The apply-fineract-config job references these secrets from the cluster.
+
+# Environment-specific ConfigMap for variables
+configMapGenerator:
+  - name: fineract-config-vars
+    literals:
+      - domain=dev.fineract.com
+      - auth-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
+
+# Environment-specific patches
+patchesStrategicMerge:
+  - patches/job-config.yaml
+
+# Labels for dev environment
+labels:
+  - pairs:
+      environment: dev
+      managed-by: argocd

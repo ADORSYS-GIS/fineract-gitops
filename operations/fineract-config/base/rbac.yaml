@@ -1,0 +1,48 @@
+---
+# ServiceAccount for fineract-config-cli job
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fineract-config-loader
+  labels:
+    app.kubernetes.io/name: fineract-config-cli
+    app.kubernetes.io/component: config-loader
+
+---
+# Role - permissions needed by the job
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fineract-config-loader
+  labels:
+    app.kubernetes.io/name: fineract-config-cli
+    app.kubernetes.io/component: config-loader
+rules:
+  # Read secrets for OAuth2 client credentials
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - keycloak-client-secrets
+    verbs: ["get"]
+
+  # Read ConfigMaps for configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+
+---
+# RoleBinding - bind role to service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fineract-config-loader
+  labels:
+    app.kubernetes.io/name: fineract-config-cli
+    app.kubernetes.io/component: config-loader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fineract-config-loader
+subjects:
+  - kind: ServiceAccount
+    name: fineract-config-loader
