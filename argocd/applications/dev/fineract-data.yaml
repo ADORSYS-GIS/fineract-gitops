@@ -13,7 +13,7 @@ spec:
 
   source:
     repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: HEAD
+    targetRevision: deploy-key
     path: operations/fineract-data
 
   destination:
