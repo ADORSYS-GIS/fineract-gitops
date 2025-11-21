@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: keycloak-config-cli
-        image: adorsys/keycloak-config-cli:5.9.0
+        image: adorsys/keycloak-config-cli:6.0.0
         env:
         # Keycloak Connection
         # KEYCLOAK_URL should be set via ConfigMap in environment overlays
