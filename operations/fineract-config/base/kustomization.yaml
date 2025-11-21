@@ -16,7 +16,7 @@ resources:
 configMapGenerator:
   - name: fineract-config-data
     files:
-      - config/.gitkeep  # Placeholder - add actual YAML files here
+      - config/demo-config-fixed.yml
     options:
       disableNameSuffixHash: false  # Enable hash for change detection
 
