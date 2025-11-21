@@ -166,6 +166,14 @@ spec:
             - name: IMPORT_DRY_RUN
               value: "false"
 
+            # Startup auto-import settings
+            - name: IMPORT_AUTO_IMPORT_ENABLED
+              value: "true"
+            - name: IMPORT_EXIT_AFTER_IMPORT
+              value: "true"
+            - name: IMPORT_FAIL_ON_ERROR
+              value: "false"
+
             # State management
             - name: IMPORT_REMOTE_STATE_ENABLED
               value: "true"
