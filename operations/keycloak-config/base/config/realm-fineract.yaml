@@ -601,3 +601,27 @@ users:
       employee_id: ["EMP002"]
       office_id: ["1"]
       department: ["Lending"]
+
+  # ============================================================================
+  # Service Account Users - Role Assignments
+  # ============================================================================
+  # Service accounts are automatically created by Keycloak when a client has
+  # serviceAccountsEnabled: true. We define them here to assign realm roles
+  # via keycloak-config-cli, making role assignment GitOps-native and idempotent.
+  #
+  # Naming Convention: service-account-{client-id}
+  # ============================================================================
+
+  # Fineract Data Loader Service Account
+  # Used by: fineract-config-cli for automated data loading operations
+  # Requires: admin role (Super User equivalent) for full CRUD access to Fineract entities
+  - username: service-account-${FINERACT_DATA_LOADER_CLIENT_ID}
+    enabled: true
+    serviceAccountClientId: "${FINERACT_DATA_LOADER_CLIENT_ID}"
+    realmRoles:
+      - admin
+      - staff
+    attributes:
+      description: ["Service account for fineract-config-cli automated data loading"]
+      managed_by: ["keycloak-config-cli"]
+      purpose: ["Automated Fineract configuration and data loading via fineract-config-cli"]
