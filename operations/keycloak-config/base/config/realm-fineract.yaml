@@ -326,6 +326,10 @@ roles:
       description: Full administrative access (Super user)
       composite: false
 
+    - name: Super User
+      description: Full administrative access (Fineract native role name)
+      composite: false
+
     - name: staff
       description: Generic staff member with operational access
       composite: false
@@ -614,12 +618,13 @@ users:
 
   # Fineract Data Loader Service Account
   # Used by: fineract-config-cli for automated data loading operations
-  # Requires: admin role (Super User equivalent) for full CRUD access to Fineract entities
+  # Requires: admin and Super User roles for full CRUD access to Fineract entities
   - username: service-account-${FINERACT_DATA_LOADER_CLIENT_ID}
     enabled: true
     serviceAccountClientId: "${FINERACT_DATA_LOADER_CLIENT_ID}"
     realmRoles:
       - admin
+      - Super User
       - staff
     attributes:
       description: ["Service account for fineract-config-cli automated data loading"]
