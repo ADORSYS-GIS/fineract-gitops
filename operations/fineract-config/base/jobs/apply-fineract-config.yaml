@@ -124,7 +124,7 @@ spec:
 
       containers:
         - name: fineract-config-cli
-          image: ghcr.io/adorsys-gis/fineract/fineract-config-cli:yaml-data-e25718c
+          image: ghcr.io/adorsys-gis/fineract/fineract-config-cli:yaml-data-c0e455e
           imagePullPolicy: Always
 
           env:
