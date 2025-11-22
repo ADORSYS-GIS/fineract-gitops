@@ -11,64 +11,40 @@ systemConfig:
   globalConfig:
   - name: maker-checker
     enabled: true
-    value: 'true'
   - name: reschedule-future-repayments
     enabled: true
-    value: 'true'
   - name: allow-backdated-transaction-before-interest-posting
     enabled: false
-    value: 'false'
   - name: allow-transactions-on-non-workingday
     enabled: false
-    value: 'false'
   - name: allow-transactions-on-holiday
     enabled: false
-    value: 'false'
   - name: financial-year-beginning-month
     enabled: true
-    value: '1'
-  - name: repayment-strategy-order
-    enabled: true
-    value: '1'
-  - name: arrears-tolerance-amount
-    enabled: true
-    value: '0'
+    value: 1
   - name: days-before-repayment-is-due
     enabled: true
-    value: '3'
+    value: 3
   - name: days-after-repayment-is-overdue
     enabled: true
-    value: '3'
-  - name: Enable-Address
-    enabled: true
-    value: 'true'
+    value: 3
   - name: sub-rates
     enabled: false
-    value: 'false'
   - name: is-interest-to-be-recovered-first-when-greater-than-emi
     enabled: false
-    value: 'false'
   - name: is-principal-compounding-disabled-for-overdue-loans
     enabled: false
-    value: 'false'
   - name: enable-business-date
     enabled: true
-    value: 'false'
   - name: enable-auto-generated-external-id
     enabled: true
-    value: 'true'
   - name: meetings-mandatory-for-jlg-loans
     enabled: false
-    value: 'false'
   - name: enable-same-maker-checker
     enabled: false
-    value: 'false'
-  - name: fixed-deposit-auto-renewal
-    enabled: false
-    value: 'false'
   - name: penalty-wait-period
     enabled: true
-    value: '0'
+    value: 0
   codes:
   - name: Gender
     values:
@@ -221,15 +197,15 @@ systemConfig:
       isActive: true
   accountNumberPreferences:
   - accountType: CLIENT
-    prefixType: 2
+    prefixType: 1
   - accountType: LOAN
-    prefixType: 3
+    prefixType: 201
   - accountType: SAVINGS
-    prefixType: 3
-  - accountType: GROUPS
-    prefixType: 2
-  - accountType: CENTERS
-    prefixType: 2
+    prefixType: 301
+  - accountType: GROUP
+    prefixType: 1
+  - accountType: CENTER
+    prefixType: 1
   notificationTemplates:
   - name: Client Activation
     channel: SMS
@@ -371,13 +347,8 @@ systemConfig:
     multiRow: false
     columns:
     - name: id_type
-      type: Dropdown
+      type: String
       mandatory: true
-      values:
-      - National ID
-      - Passport
-      - Voter Card
-      - Driver License
       length: 100
     - name: id_number
       type: String
@@ -395,15 +366,8 @@ systemConfig:
       mandatory: true
       length: 200
     - name: next_of_kin_relationship
-      type: Dropdown
+      type: String
       mandatory: true
-      values:
-      - Spouse
-      - Parent
-      - Sibling
-      - Child
-      - Friend
-      - Other
       length: 100
     - name: employer_name
       type: String
@@ -422,23 +386,12 @@ systemConfig:
       mandatory: false
       length: 200
     - name: home_ownership
-      type: Dropdown
+      type: String
       mandatory: false
-      values:
-      - Owned
-      - Rented
-      - Family Home
-      - Other
       length: 100
     - name: disability_status
-      type: Dropdown
+      type: String
       mandatory: false
-      values:
-      - None
-      - Physical
-      - Visual
-      - Hearing
-      - Other
       length: 100
     - name: address
       type: String
@@ -449,14 +402,8 @@ systemConfig:
       mandatory: false
       length: 200
     - name: marital_status
-      type: Dropdown
+      type: String
       mandatory: false
-      values:
-      - Single
-      - Married
-      - Divorced
-      - Widow
-      - Widower
       length: 100
     - name: number_of_dependents
       type: Number
@@ -475,14 +422,10 @@ systemConfig:
       mandatory: false
       length: 19
     - name: risk_rating
-      type: Dropdown
+      type: String
       mandatory: false
-      values:
-      - A
-      - B
-      - C
-      - D
-      length: 100
+      length: 10
+    entitySubType: PERSON
   - name: loan_additional_info
     appTableName: m_loan
     multiRow: false
@@ -508,22 +451,12 @@ systemConfig:
       mandatory: false
       length: 10
     - name: repayment_source
-      type: Dropdown
+      type: String
       mandatory: true
-      values:
-      - Business Income
-      - Salary
-      - Remittances
-      - Other
       length: 100
     - name: previous_loan_history
-      type: Dropdown
+      type: String
       mandatory: false
-      values:
-      - First Loan
-      - Good History
-      - Some Delays
-      - Defaulted Before
       length: 100
   - name: savings_additional_info
     appTableName: m_savings_account
@@ -545,13 +478,8 @@ systemConfig:
       mandatory: false
       length: 19
     - name: preferred_transaction_channel
-      type: Dropdown
+      type: String
       mandatory: false
-      values:
-      - Branch
-      - Mobile Money
-      - Bank Transfer
-      - Agent
       length: 100
   schedulerJobs:
   - name: Post Interest For Savings
@@ -709,17 +637,173 @@ systemConfig:
     description: Delay between retry attempts (minutes)
   holidays:
   - name: New Year's Day
+    fromDate:
+    - 2024
+    - 1
+    - 1
+    toDate:
+    - 2024
+    - 1
+    - 1
+    repaymentsRescheduledTo:
+    - 2024
+    - 1
+    - 2
+    description: New Year Holiday
   - name: Youth Day
+    fromDate:
+    - 2024
+    - 2
+    - 11
+    toDate:
+    - 2024
+    - 2
+    - 11
+    repaymentsRescheduledTo:
+    - 2024
+    - 2
+    - 12
+    description: Youth Day Holiday
   - name: Labour Day
+    fromDate:
+    - 2024
+    - 5
+    - 1
+    toDate:
+    - 2024
+    - 5
+    - 1
+    repaymentsRescheduledTo:
+    - 2024
+    - 5
+    - 2
+    description: International Labour Day
   - name: National Day
+    fromDate:
+    - 2024
+    - 5
+    - 20
+    toDate:
+    - 2024
+    - 5
+    - 20
+    repaymentsRescheduledTo:
+    - 2024
+    - 5
+    - 21
+    description: Cameroon National Day
   - name: Assumption Day
+    fromDate:
+    - 2024
+    - 8
+    - 15
+    toDate:
+    - 2024
+    - 8
+    - 15
+    repaymentsRescheduledTo:
+    - 2024
+    - 8
+    - 16
+    description: Assumption of Mary
   - name: Christmas Day
+    fromDate:
+    - 2024
+    - 12
+    - 25
+    toDate:
+    - 2024
+    - 12
+    - 25
+    repaymentsRescheduledTo:
+    - 2024
+    - 12
+    - 26
+    description: Christmas Holiday
   - name: New Year's Day
+    fromDate:
+    - 2025
+    - 1
+    - 1
+    toDate:
+    - 2025
+    - 1
+    - 1
+    repaymentsRescheduledTo:
+    - 2025
+    - 1
+    - 2
+    description: New Year Holiday
   - name: Youth Day
+    fromDate:
+    - 2025
+    - 2
+    - 11
+    toDate:
+    - 2025
+    - 2
+    - 11
+    repaymentsRescheduledTo:
+    - 2025
+    - 2
+    - 12
+    description: Youth Day Holiday
   - name: Labour Day
+    fromDate:
+    - 2025
+    - 5
+    - 1
+    toDate:
+    - 2025
+    - 5
+    - 1
+    repaymentsRescheduledTo:
+    - 2025
+    - 5
+    - 2
+    description: International Labour Day
   - name: National Day
+    fromDate:
+    - 2025
+    - 5
+    - 20
+    toDate:
+    - 2025
+    - 5
+    - 20
+    repaymentsRescheduledTo:
+    - 2025
+    - 5
+    - 21
+    description: Cameroon National Day
   - name: Assumption Day
+    fromDate:
+    - 2025
+    - 8
+    - 15
+    toDate:
+    - 2025
+    - 8
+    - 15
+    repaymentsRescheduledTo:
+    - 2025
+    - 8
+    - 18
+    description: Assumption of Mary
   - name: Christmas Day
+    fromDate:
+    - 2025
+    - 12
+    - 25
+    toDate:
+    - 2025
+    - 12
+    - 25
+    repaymentsRescheduledTo:
+    - 2025
+    - 12
+    - 26
+    description: Christmas Holiday
 offices:
 - name: Yaounde Branch
   openingDate:
@@ -763,7 +847,7 @@ roles:
   - READ
   - CREATE_READ
   - ALL_FUNCTIONS
-  - APPROVE
+  - CHECKER_SUPER_USER
 - name: Loan Officer
   description: Create and update clients
   disabled: false
@@ -776,7 +860,6 @@ roles:
   - CREATE_READ
   - READ
   - READ
-  - CREATE
 - name: Cashier
   description: View client information only
   disabled: false
@@ -787,7 +870,6 @@ roles:
   - CREATE_READ
   - READ
   - READ
-  - CREATE
 - name: System Administrator
   description: Create and manage offices/branches
   disabled: false
@@ -801,7 +883,7 @@ roles:
   - READ
   - READ
   - READ
-  - CREATE
+  - ENABLE_MAKERCHECKER
 - name: Accountant
   description: Create and manage GL accounts and journal entries
   disabled: false
@@ -813,7 +895,7 @@ roles:
   - READ
   - READ
   - READ
-  - APPROVE
+  - CHECKER_SUPER_USER
 staff:
 - firstName: Thomas
   lastName: Ndongo
@@ -983,6 +1065,134 @@ staff:
   - 2024
   - 2
   - 20
+users:
+- username: admin.system
+  firstname: Thomas
+  lastname: Ndongo
+  email: t.ndongo@mfi.cm
+  officeName: Head Office
+  roles:
+  - System Administrator
+  password: Adm1n$yst3m@2024
+  staffName: Thomas Ndongo
+  passwordNeverExpires: true
+- username: accountant
+  firstname: Christine
+  lastname: Biaka
+  email: c.biaka@mfi.cm
+  officeName: Head Office
+  roles:
+  - Accountant
+  password: Ac0untant@2024!
+  staffName: Christine Biaka
+- username: manager.yaounde
+  firstname: Jean
+  lastname: Mbarga
+  email: j.mbarga@mfi.cm
+  officeName: Yaounde Branch
+  roles:
+  - Branch Manager
+  password: Man4ger@Yde2024
+  staffName: Jean Mbarga
+- username: loan.yaounde
+  firstname: Marie
+  lastname: Ngo Balla
+  email: m.ngoballa@mfi.cm
+  officeName: Yaounde Branch
+  roles:
+  - Loan Officer
+  password: Lo4n0ficer@Yde1
+  staffName: Marie Ngo Balla
+- username: cashier.yaounde
+  firstname: Paul
+  lastname: Atangana
+  email: p.atangana@mfi.cm
+  officeName: Yaounde Branch
+  roles:
+  - Cashier
+  password: Cash1er@Yde2024
+  staffName: Paul Atangana
+- username: manager.douala
+  firstname: Grace
+  lastname: Douala
+  email: g.douala@mfi.cm
+  officeName: Douala Branch
+  roles:
+  - Branch Manager
+  password: Man4ger@Dla2024
+  staffName: Grace Douala
+- username: loan.douala
+  firstname: Emmanuel
+  lastname: Ewondo
+  email: e.ewondo@mfi.cm
+  officeName: Douala Branch
+  roles:
+  - Loan Officer
+  password: Lo4n0ficer@Dla1
+  staffName: Emmanuel Ewondo
+- username: cashier.douala
+  firstname: Francine
+  lastname: Makang
+  email: f.makang@mfi.cm
+  officeName: Douala Branch
+  roles:
+  - Cashier
+  password: Cash1er@Dla2024
+  staffName: Francine Makang
+- username: manager.bafoussam
+  firstname: Bernard
+  lastname: Kamga
+  email: b.kamga@mfi.cm
+  officeName: Bafoussam Branch
+  roles:
+  - Branch Manager
+  password: Man4ger@Baf2024
+  staffName: Bernard Kamga
+- username: loan.bafoussam
+  firstname: Justine
+  lastname: Tchuente
+  email: j.tchuente@mfi.cm
+  officeName: Bafoussam Branch
+  roles:
+  - Loan Officer
+  password: Lo4n0ficer@Baf1
+  staffName: Justine Tchuente
+- username: cashier.bafoussam
+  firstname: David
+  lastname: Fotso
+  email: d.fotso@mfi.cm
+  officeName: Bafoussam Branch
+  roles:
+  - Cashier
+  password: Cash1er@Baf2024
+  staffName: David Fotso
+- username: manager.bamenda
+  firstname: Peter
+  lastname: Nkeng
+  email: p.nkeng@mfi.cm
+  officeName: Bamenda Branch
+  roles:
+  - Branch Manager
+  password: Man4ger@Bam2024
+  staffName: Peter Nkeng
+- username: loan.bamenda
+  firstname: Alice
+  lastname: Fon
+  email: a.fon@mfi.cm
+  officeName: Bamenda Branch
+  roles:
+  - Loan Officer
+  password: Lo4n0ficer@Bam1
+  staffName: Alice Fon
+- username: cashier.bamenda
+  firstname: Joseph
+  lastname: Tanyi
+  email: j.tanyi@mfi.cm
+  officeName: Bamenda Branch
+  roles:
+  - Cashier
+  password: Cash1er@Bam2024
+  staffName: Joseph Tanyi
 chartOfAccounts:
 - name: Banks - Current Accounts
   glCode: 41
@@ -1290,13 +1500,17 @@ tellers:
   - 31
   status: Active
 tellerCashierMappings:
-- tellerName: Teller - Yaounde
+- tellerName: Teller 1 - Yaounde
+  staffExternalId: STF-003
   description: Yaounde branch teller and vault configuration
-- tellerName: Teller - Douala
+- tellerName: Teller 1 - Douala
+  staffExternalId: STF-006
   description: Douala branch teller and vault configuration
-- tellerName: Teller - Bafoussam
+- tellerName: Teller 1 - Bafoussam
+  staffExternalId: STF-009
   description: Bafoussam branch teller and vault configuration
-- tellerName: Teller - Bamenda
+- tellerName: Teller 1 - Bamenda
+  staffExternalId: STF-012
   description: Bamenda branch teller and vault configuration
 charges:
 - name: Loan Processing Fee
@@ -1308,7 +1522,7 @@ charges:
   active: true
 - name: Late Payment Penalty
   chargeAppliesTo: Loan
-  chargeTimeType: Overdue Installment
+  chargeTimeType: Specified Due Date
   chargeCalculationType: Percentage of Amount
   amount: 5.0
   currencyCode: XAF
@@ -1320,44 +1534,6 @@ charges:
   amount: 1.5
   currencyCode: XAF
   active: true
-- name: Account Opening Fee
-  chargeAppliesTo: Savings
-  chargeTimeType: Activation
-  chargeCalculationType: Flat
-  amount: 1000.0
-  currencyCode: XAF
-  active: true
-- name: Monthly Account Maintenance
-  chargeAppliesTo: Savings
-  chargeTimeType: Specified Due Date
-  chargeCalculationType: Flat
-  amount: 500.0
-  currencyCode: XAF
-  active: true
-  feeFrequency: Monthly
-- name: Withdrawal Fee
-  chargeAppliesTo: Savings
-  chargeTimeType: Withdrawal
-  chargeCalculationType: Flat
-  amount: 200.0
-  currencyCode: XAF
-  active: true
-- name: ATM Card Fee
-  chargeAppliesTo: Savings
-  chargeTimeType: Specified Due Date
-  chargeCalculationType: Flat
-  amount: 5000.0
-  currencyCode: XAF
-  active: true
-  feeFrequency: Yearly
-- name: Weekly Service Charge
-  chargeAppliesTo: Savings
-  chargeTimeType: Specified Due Date
-  chargeCalculationType: Flat
-  amount: 100.0
-  currencyCode: XAF
-  active: true
-  feeFrequency: Weekly
 - name: Loan Restructuring Fee
   chargeAppliesTo: Loan
   chargeTimeType: Specified Due Date
@@ -1372,9 +1548,16 @@ charges:
   amount: 3.0
   currencyCode: XAF
   active: false
+- name: Account Opening Fee
+  chargeAppliesTo: Savings
+  chargeTimeType: Savings Activation
+  chargeCalculationType: Flat
+  amount: 1000.0
+  currencyCode: XAF
+  active: true
 - name: Dormant Account Reactivation
   chargeAppliesTo: Savings
-  chargeTimeType: Activation
+  chargeTimeType: Savings Activation
   chargeCalculationType: Flat
   amount: 2000.0
   currencyCode: XAF
@@ -1391,7 +1574,12 @@ loanProducts:
   minNumberOfRepayments: 3
   numberOfRepayments: 6
   maxNumberOfRepayments: 12
+  repaymentEvery: 1
   repaymentFrequencyType: Monthly
+  digitsAfterDecimal: 0
+  daysInYearType: 365
+  daysInMonthType: 30
+  isInterestRecalculationEnabled: false
   minInterestRatePerPeriod: 18.0
   interestRatePerPeriod: 24.0
   maxInterestRatePerPeriod: 30.0
@@ -1403,20 +1591,19 @@ loanProducts:
   insurancePercent: 1.5
   minimumGapBetweenInstallments: 30
   allowPartialPeriodInterestCalculation: false
-  accounting:
-    fundSourceAccountId: 42
-    loanPortfolioAccountId: 51
-    receivableInterestAccountId: 52
-    receivableFeeAccountId: 53
-    receivablePenaltyAccountId: 54
-    transfersInSuspenseAccountId: 122
-    interestOnLoanAccountId: 81
-    incomeFromFeeAccountId: 82
-    incomeFromPenaltyAccountId: 83
-    writeOffAccountId: 93
-    goodwillCreditAccountId: 81
-    incomeFromRecoveryAccountId: 81
-    overpaymentLiabilityAccountId: 64
+  fundSourceAccountCode: '42'
+  loanPortfolioAccountCode: '51'
+  receivableInterestAccountCode: '52'
+  receivableFeeAccountCode: '53'
+  receivablePenaltyAccountCode: '54'
+  transfersInSuspenseAccountCode: '122'
+  interestOnLoansAccountCode: '81'
+  incomeFromFeesAccountCode: '82'
+  incomeFromPenaltiesAccountCode: '83'
+  writeOffAccountCode: '93'
+  goodwillCreditAccountCode: '93'
+  incomeFromRecoveryAccountCode: '81'
+  overpaymentLiabilityAccountCode: '64'
 - name: SME Business Loan
   shortName: SBIZ
   currencyCode: XAF
@@ -1428,7 +1615,12 @@ loanProducts:
   minNumberOfRepayments: 6
   numberOfRepayments: 12
   maxNumberOfRepayments: 24
+  repaymentEvery: 1
   repaymentFrequencyType: Monthly
+  digitsAfterDecimal: 0
+  daysInYearType: 365
+  daysInMonthType: 30
+  isInterestRecalculationEnabled: false
   minInterestRatePerPeriod: 15.0
   interestRatePerPeriod: 20.0
   maxInterestRatePerPeriod: 25.0
@@ -1441,20 +1633,19 @@ loanProducts:
   insurancePercent: 1.0
   minimumGapBetweenInstallments: 30
   allowPartialPeriodInterestCalculation: false
-  accounting:
-    fundSourceAccountId: 42
-    loanPortfolioAccountId: 51
-    receivableInterestAccountId: 52
-    receivableFeeAccountId: 53
-    receivablePenaltyAccountId: 54
-    transfersInSuspenseAccountId: 122
-    interestOnLoanAccountId: 81
-    incomeFromFeeAccountId: 82
-    incomeFromPenaltyAccountId: 83
-    writeOffAccountId: 93
-    goodwillCreditAccountId: 81
-    incomeFromRecoveryAccountId: 81
-    overpaymentLiabilityAccountId: 64
+  fundSourceAccountCode: '42'
+  loanPortfolioAccountCode: '51'
+  receivableInterestAccountCode: '52'
+  receivableFeeAccountCode: '53'
+  receivablePenaltyAccountCode: '54'
+  transfersInSuspenseAccountCode: '122'
+  interestOnLoansAccountCode: '81'
+  incomeFromFeesAccountCode: '82'
+  incomeFromPenaltiesAccountCode: '83'
+  writeOffAccountCode: '93'
+  goodwillCreditAccountCode: '93'
+  incomeFromRecoveryAccountCode: '81'
+  overpaymentLiabilityAccountCode: '64'
 - name: Agricultural Seasonal Loan
   shortName: ASEA
   currencyCode: XAF
@@ -1466,7 +1657,12 @@ loanProducts:
   minNumberOfRepayments: 3
   numberOfRepayments: 6
   maxNumberOfRepayments: 9
+  repaymentEvery: 1
   repaymentFrequencyType: Monthly
+  digitsAfterDecimal: 0
+  daysInYearType: 365
+  daysInMonthType: 30
+  isInterestRecalculationEnabled: false
   minInterestRatePerPeriod: 12.0
   interestRatePerPeriod: 18.0
   maxInterestRatePerPeriod: 22.0
@@ -1480,24 +1676,24 @@ loanProducts:
   insurancePercent: 1.5
   minimumGapBetweenInstallments: 30
   allowPartialPeriodInterestCalculation: true
-  accounting:
-    fundSourceAccountId: 42
-    loanPortfolioAccountId: 51
-    receivableInterestAccountId: 52
-    receivableFeeAccountId: 53
-    receivablePenaltyAccountId: 54
-    transfersInSuspenseAccountId: 122
-    interestOnLoanAccountId: 81
-    incomeFromFeeAccountId: 82
-    incomeFromPenaltyAccountId: 83
-    writeOffAccountId: 93
-    goodwillCreditAccountId: 81
-    incomeFromRecoveryAccountId: 81
-    overpaymentLiabilityAccountId: 64
+  fundSourceAccountCode: '42'
+  loanPortfolioAccountCode: '51'
+  receivableInterestAccountCode: '52'
+  receivableFeeAccountCode: '53'
+  receivablePenaltyAccountCode: '54'
+  transfersInSuspenseAccountCode: '122'
+  interestOnLoansAccountCode: '81'
+  incomeFromFeesAccountCode: '82'
+  incomeFromPenaltiesAccountCode: '83'
+  writeOffAccountCode: '93'
+  goodwillCreditAccountCode: '93'
+  incomeFromRecoveryAccountCode: '81'
+  overpaymentLiabilityAccountCode: '64'
 savingsProducts:
 - name: Voluntary Savings Account
   shortName: VSAV
   currencyCode: XAF
+  digitsAfterDecimal: 0
   nominalAnnualInterestRate: 3.0
   interestCompoundingPeriodType: Monthly
   interestPostingPeriodType: Monthly
@@ -1512,17 +1708,19 @@ savingsProducts:
   allowDormancyTracking: true
   daysToInactive: 180
   daysToDormancy: 365
-  accounting:
-    savingsReferenceAccountId: 42
-    savingsControlAccountId: 61
-    incomeFromFeeAccountId: 84
-    incomeFromPenaltyAccountId: 84
-    overdraftPortfolioControlAccountId: 51
-    escheatLiabilityAccountId: 61
-    transfersInSuspenseAccountId: 131
+  savingsReferenceAccountCode: '42'
+  savingsControlAccountCode: '61'
+  interestOnSavingsAccountCode: '91'
+  incomeFromFeesAccountCode: '84'
+  incomeFromPenaltiesAccountCode: '84'
+  overdraftPortfolioControlAccountCode: '51'
+  incomeFromInterestAccountCode: '81'
+  writeOffAccountCode: '93'
+  transfersInSuspenseAccountCode: '131'
 - name: Fixed Deposit Account
   shortName: FDEP
   currencyCode: XAF
+  digitsAfterDecimal: 0
   nominalAnnualInterestRate: 6.0
   interestCompoundingPeriodType: Monthly
   interestPostingPeriodType: Monthly
@@ -1536,17 +1734,19 @@ savingsProducts:
   withdrawalFeeForTransfers: false
   allowDormancyTracking: false
   lockinPeriodFrequency: 180
-  accounting:
-    savingsReferenceAccountId: 42
-    savingsControlAccountId: 62
-    incomeFromFeeAccountId: 84
-    incomeFromPenaltyAccountId: 84
-    overdraftPortfolioControlAccountId: 51
-    escheatLiabilityAccountId: 62
-    transfersInSuspenseAccountId: 131
+  savingsReferenceAccountCode: '42'
+  savingsControlAccountCode: '62'
+  interestOnSavingsAccountCode: '91'
+  incomeFromFeesAccountCode: '84'
+  incomeFromPenaltiesAccountCode: '84'
+  overdraftPortfolioControlAccountCode: '51'
+  incomeFromInterestAccountCode: '81'
+  writeOffAccountCode: '93'
+  transfersInSuspenseAccountCode: '131'
 - name: Mandatory Group Savings
   shortName: MGRP
   currencyCode: XAF
+  digitsAfterDecimal: 0
   nominalAnnualInterestRate: 2.0
   interestCompoundingPeriodType: Monthly
   interestPostingPeriodType: Monthly
@@ -1559,14 +1759,15 @@ savingsProducts:
   overdraftAllowed: false
   withdrawalFeeForTransfers: false
   allowDormancyTracking: false
-  accounting:
-    savingsReferenceAccountId: 42
-    savingsControlAccountId: 63
-    incomeFromFeeAccountId: 84
-    incomeFromPenaltyAccountId: 84
-    overdraftPortfolioControlAccountId: 51
-    escheatLiabilityAccountId: 63
-    transfersInSuspenseAccountId: 131
+  savingsReferenceAccountCode: '42'
+  savingsControlAccountCode: '63'
+  interestOnSavingsAccountCode: '91'
+  incomeFromFeesAccountCode: '84'
+  incomeFromPenaltiesAccountCode: '84'
+  overdraftPortfolioControlAccountCode: '51'
+  incomeFromInterestAccountCode: '81'
+  writeOffAccountCode: '93'
+  transfersInSuspenseAccountCode: '131'
 delinquencyBuckets:
 - name: Early Stage Delinquency
   classification: Early Stage
@@ -1658,6 +1859,7 @@ clients:
   emailAddress: a.ngono@gmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Douala
 - firstName: Ibrahim
   lastName: Mahamat
@@ -1677,6 +1879,7 @@ clients:
   emailAddress: i.mahamat@yahoo.fr
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Douala
 - firstName: Marie Claire
   lastName: Tchouta
@@ -1696,6 +1899,7 @@ clients:
   emailAddress: m.tchouta@gmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Yaounde
 - firstName: Jean Paul
   lastName: Kamdem
@@ -1715,6 +1919,7 @@ clients:
   emailAddress: jp.kamdem@yahoo.fr
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Bafoussam
 - firstName: Claudine
   lastName: Ekotto
@@ -1734,6 +1939,7 @@ clients:
   emailAddress: c.ekotto@gmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Douala
 - firstName: Patrick
   lastName: Ndongo
@@ -1753,6 +1959,7 @@ clients:
   emailAddress: p.ndongo@hotmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Yaounde
 - firstName: Beatrice
   lastName: Nana
@@ -1772,6 +1979,7 @@ clients:
   emailAddress: b.nana@gmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Bamenda
 - firstName: Samuel
   lastName: Ebong
@@ -1791,6 +1999,7 @@ clients:
   emailAddress: s.ebong@yahoo.fr
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Douala
 - firstName: Bernadette
   lastName: Fotso
@@ -1810,6 +2019,7 @@ clients:
   emailAddress: b.fotso@gmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Bafoussam
 - firstName: Francois
   lastName: Manga
@@ -1829,6 +2039,7 @@ clients:
   emailAddress: f.manga@hotmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Yaounde
 - firstName: Agnes
   lastName: Fon
@@ -1848,6 +2059,7 @@ clients:
   emailAddress: a.fon@gmail.com
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Bamenda
 - firstName: Robert
   lastName: Essomba
@@ -1867,6 +2079,7 @@ clients:
   emailAddress: r.essomba@yahoo.fr
   clientType: Individual
   clientClassification: Active
+  legalFormId: 1
   city: Douala
 groups:
 - name: Femmes Solidaires Douala
@@ -1876,11 +2089,11 @@ groups:
   activationDate:
   - 2024
   - 1
-  - 15
+  - 25
   submittedOnDate:
   - 2024
   - 1
-  - 10
+  - 20
   staffName: loan.douala
   centerName: Centre Commercial Douala
   clientExternalIds:
@@ -1894,11 +2107,11 @@ groups:
   activationDate:
   - 2024
   - 1
-  - 22
+  - 25
   submittedOnDate:
   - 2024
   - 1
-  - 18
+  - 20
   staffName: loan.yaounde
   centerName: Centre Melen Yaounde
   clientExternalIds:
@@ -1912,11 +2125,11 @@ groups:
   activationDate:
   - 2024
   - 2
-  - 1
+  - 10
   submittedOnDate:
   - 2024
-  - 1
-  - 25
+  - 2
+  - 5
   staffName: loan.bafoussam
   clientExternalIds:
   - CLI-004
@@ -1928,11 +2141,11 @@ groups:
   activationDate:
   - 2024
   - 2
-  - 10
+  - 20
   submittedOnDate:
   - 2024
   - 2
-  - 5
+  - 16
   staffName: loan.bamenda
   clientExternalIds:
   - CLI-007
@@ -1944,11 +2157,11 @@ groups:
   activationDate:
   - 2024
   - 2
-  - 15
+  - 20
   submittedOnDate:
   - 2024
   - 2
-  - 12
+  - 16
   staffName: loan.douala
   centerName: Centre Commercial Douala
   clientExternalIds:
@@ -1962,11 +2175,11 @@ centers:
   activationDate:
   - 2024
   - 1
-  - 10
+  - 20
   submittedOnDate:
   - 2024
   - 1
-  - 5
+  - 16
   staffName: loan.douala
 - name: Centre Melen Yaounde
   officeName: Yaounde Branch
@@ -1975,11 +2188,11 @@ centers:
   activationDate:
   - 2024
   - 1
-  - 15
+  - 20
   submittedOnDate:
   - 2024
   - 1
-  - 12
+  - 16
   staffName: loan.yaounde
 - name: Centre Tamdja Bafoussam
   officeName: Bafoussam Branch
@@ -1987,10 +2200,410 @@ centers:
   externalId: CTR-003
   activationDate:
   - 2024
+  - 2
+  - 5
+  submittedOnDate:
+  - 2024
+  - 2
+  - 2
+  staffName: loan.bafoussam
+loanAccounts:
+- clientExternalId: CLI-001
+  productShortName: MSOL
+  submittedOnDate:
+  - 2024
+  - 2
   - 1
-  - 20
+  principal: 200000.0
+  numberOfRepayments: 6
+  externalId: LOAN-001
+  workflowState: active
+  fundSourceName: Own Capital
+- clientExternalId: CLI-002
+  productShortName: SBIZ
+  submittedOnDate:
+  - 2024
+  - 2
+  - 5
+  principal: 2000000.0
+  numberOfRepayments: 12
+  externalId: LOAN-002
+  workflowState: pending_approval
+  fundSourceName: Bank Loan - Ecobank
+- clientExternalId: CLI-003
+  productShortName: MSOL
+  submittedOnDate:
+  - 2024
+  - 2
+  - 10
+  principal: 150000.0
+  numberOfRepayments: 6
+  externalId: LOAN-003
+  workflowState: active
+  fundSourceName: Own Capital
+- clientExternalId: CLI-004
+  productShortName: ASEA
+  submittedOnDate:
+  - 2024
+  - 2
+  - 12
+  principal: 500000.0
+  numberOfRepayments: 6
+  externalId: LOAN-004
+  workflowState: active
+  fundSourceName: Donor - AfDB
+- clientExternalId: CLI-005
+  productShortName: MSOL
+  submittedOnDate:
+  - 2024
+  - 2
+  - 15
+  principal: 180000.0
+  numberOfRepayments: 6
+  externalId: LOAN-005
+  workflowState: active
+  fundSourceName: Own Capital
+- clientExternalId: CLI-006
+  productShortName: SBIZ
+  submittedOnDate:
+  - 2024
+  - 2
+  - 18
+  principal: 3000000.0
+  numberOfRepayments: 18
+  externalId: LOAN-006
+  workflowState: pending_disbursal
+  fundSourceName: Bank Loan - Ecobank
+savingsAccounts:
+- clientExternalId: CLI-001
+  productShortName: VSAV
   submittedOnDate:
   - 2024
   - 1
+  - 20
+  externalId: SAV-001
+  fieldOfficerName: loan.douala
+- clientExternalId: CLI-002
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 1
+  - 25
+  externalId: SAV-002
+  fieldOfficerName: loan.douala
+- clientExternalId: CLI-002
+  productShortName: FDEP
+  submittedOnDate:
+  - 2024
+  - 2
+  - 1
+  externalId: SAV-003
+  fieldOfficerName: loan.douala
+- clientExternalId: CLI-003
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 2
+  - 1
+  externalId: SAV-004
+  fieldOfficerName: loan.yaounde
+- clientExternalId: CLI-004
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 2
+  - 5
+  externalId: SAV-005
+  fieldOfficerName: loan.bafoussam
+- clientExternalId: CLI-005
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 2
+  - 10
+  externalId: SAV-006
+  fieldOfficerName: loan.douala
+- clientExternalId: CLI-006
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 2
+  - 15
+  externalId: SAV-007
+  fieldOfficerName: loan.yaounde
+- clientExternalId: CLI-006
+  productShortName: FDEP
+  submittedOnDate:
+  - 2024
+  - 2
+  - 20
+  externalId: SAV-008
+  fieldOfficerName: loan.yaounde
+- clientExternalId: CLI-007
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 2
+  - 20
+  externalId: SAV-009
+  fieldOfficerName: loan.bamenda
+- clientExternalId: CLI-008
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 3
+  - 1
+  externalId: SAV-010
+  fieldOfficerName: loan.douala
+- clientExternalId: CLI-009
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 3
+  - 5
+  externalId: SAV-011
+  fieldOfficerName: loan.bafoussam
+- clientExternalId: CLI-010
+  productShortName: VSAV
+  submittedOnDate:
+  - 2024
+  - 3
+  - 10
+  externalId: SAV-012
+  fieldOfficerName: loan.yaounde
+savingsTransactions:
+- accountExternalId: SAV-001
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 1
+  transactionAmount: 50000.0
+  paymentTypeName: Cash
+  note: Monthly deposit
+- accountExternalId: SAV-002
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 5
+  transactionAmount: 25000.0
+  paymentTypeName: Bank Transfer
+  note: Monthly savings
+- accountExternalId: SAV-004
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 2
+  transactionAmount: 30000.0
+  paymentTypeName: Cash
+  note: Weekly deposit
+- accountExternalId: SAV-005
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 10
+  transactionAmount: 15000.0
+  paymentTypeName: MTN Mobile Money
+  note: Mobile money deposit
+- accountExternalId: SAV-006
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 3
+  transactionAmount: 40000.0
+  paymentTypeName: Cash
+  note: Business savings
+- accountExternalId: SAV-007
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 12
+  transactionAmount: 35000.0
+  paymentTypeName: Cheque
+  note: Farm income deposit
+- accountExternalId: SAV-001
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 20
+  transactionAmount: 35000.0
+  paymentTypeName: Cash
+  note: Cross-branch deposit - Douala client depositing at Yaounde
+- accountExternalId: SAV-004
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 22
+  transactionAmount: 20000.0
+  paymentTypeName: Cash
+  note: Cross-branch deposit - Yaounde client depositing at Douala
+- accountExternalId: SAV-002
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 25
+  transactionAmount: 20000.0
+  paymentTypeName: Cash
+  note: Cross-branch deposit - Douala client depositing at Bafoussam
+- accountExternalId: SAV-005
+  transactionType: DEPOSIT
+  transactionDate:
+  - 2024
+  - 3
+  - 28
+  transactionAmount: 25000.0
+  paymentTypeName: Cash
+  note: Cross-branch deposit - Bafoussam client depositing at Yaounde
+- accountExternalId: SAV-001
+  transactionType: WITHDRAWAL
+  transactionDate:
+  - 2024
+  - 3
+  - 15
+  transactionAmount: 5000.0
+  paymentTypeName: Cash
+  note: Emergency withdrawal
+- accountExternalId: SAV-002
+  transactionType: WITHDRAWAL
+  transactionDate:
+  - 2024
+  - 3
   - 18
-  staffName: loan.bafoussam
+  transactionAmount: 5000.0
+  paymentTypeName: Cash
+  note: Cash withdrawal
+- accountExternalId: SAV-004
+  transactionType: WITHDRAWAL
+  transactionDate:
+  - 2024
+  - 3
+  - 16
+  transactionAmount: 5000.0
+  paymentTypeName: Cash
+  note: Personal expense
+- accountExternalId: SAV-005
+  transactionType: WITHDRAWAL
+  transactionDate:
+  - 2024
+  - 3
+  - 20
+  transactionAmount: 5000.0
+  paymentTypeName: Bank Transfer
+  note: Supplier payment
+- accountExternalId: SAV-011
+  transactionType: WITHDRAWAL
+  transactionDate:
+  - 2024
+  - 3
+  - 17
+  transactionAmount: 5000.0
+  paymentTypeName: Cash
+  note: School fees
+- accountExternalId: SAV-012
+  transactionType: WITHDRAWAL
+  transactionDate:
+  - 2024
+  - 3
+  - 22
+  transactionAmount: 5000.0
+  paymentTypeName: Cash
+  note: Medical expenses
+loanTransactions:
+- loanExternalId: LOAN-001
+  transactionType: REPAYMENT
+  transactionDate:
+  - 2024
+  - 3
+  - 15
+  transactionAmount: 25000.0
+  paymentTypeName: Cash
+  note: Monthly repayment
+  receiptNumber: REP-001
+- loanExternalId: LOAN-003
+  transactionType: REPAYMENT
+  transactionDate:
+  - 2024
+  - 3
+  - 18
+  transactionAmount: 38000.0
+  paymentTypeName: Cash
+  note: Monthly repayment
+  receiptNumber: REP-003
+- loanExternalId: LOAN-004
+  transactionType: REPAYMENT
+  transactionDate:
+  - 2024
+  - 3
+  - 25
+  transactionAmount: 102000.0
+  paymentTypeName: Bank Transfer
+  note: Late payment with penalty
+  receiptNumber: REP-004
+- loanExternalId: LOAN-005
+  transactionType: REPAYMENT
+  transactionDate:
+  - 2024
+  - 3
+  - 22
+  transactionAmount: 31500.0
+  paymentTypeName: Cash
+  note: Monthly repayment
+  receiptNumber: REP-005
+loanCollaterals:
+- loanExternalId: LOAN-002
+  collateralTypeName: Land Title
+  value: 1000000.0
+  description: 'Residential plot in Bastos, Yaounde - Title deed #YDE-2023-001'
+- loanExternalId: LOAN-002
+  collateralTypeName: Shop/Business Equipment
+  value: 500000.0
+  description: Commercial sewing machines (5 units)
+- loanExternalId: LOAN-006
+  collateralTypeName: Vehicle Registration
+  value: 1200000.0
+  description: Toyota Hilux 2020 - Registration DLA-4567-AB
+- loanExternalId: LOAN-006
+  collateralTypeName: Household Goods
+  value: 300000.0
+  description: Furniture, appliances and household items
+loanGuarantors:
+- loanExternalId: LOAN-002
+  guarantorType: CLIENT
+  clientExternalId: CLI-003
+  amount: 250000.0
+- loanExternalId: LOAN-006
+  guarantorType: EXTERNAL
+  firstname: Jean
+  lastname: Kemayou
+  addressLine1: Centre Ville
+  city: Bafoussam
+  amount: 400000.0
+tellerAccountingRules:
+- tellerName: Teller 1 - Yaounde
+  cashInGlCode: '42'
+  cashOutGlCode: '42'
+  description: Cash accounting rule for Yaounde main teller
+  officeName: Yaounde Branch
+- tellerName: Teller 1 - Douala
+  cashInGlCode: '42'
+  cashOutGlCode: '42'
+  description: Cash accounting rule for Douala main teller
+  officeName: Douala Branch
+- tellerName: Teller 1 - Bafoussam
+  cashInGlCode: '42'
+  cashOutGlCode: '42'
+  description: Cash accounting rule for Bafoussam main teller
+  officeName: Bafoussam Branch
+- tellerName: Teller 1 - Bamenda
+  cashInGlCode: '42'
+  cashOutGlCode: '42'
+  description: Cash accounting rule for Bamenda main teller
+  officeName: Bamenda Branch
