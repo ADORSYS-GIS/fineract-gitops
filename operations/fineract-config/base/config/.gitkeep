@@ -1,0 +1,6 @@
+# Fineract Configuration Files
+#
+# Add your Fineract configuration YAML files here.
+# Files will be automatically loaded by the fineract-config-cli job.
+#
+# See README.md for examples and documentation.
