@@ -140,7 +140,7 @@ spec:
             - name: FINERACT_AUTH_TYPE
               value: "oauth2"
             - name: FINERACT_AUTH_OAUTH2_TOKEN_URL
-              value: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/token"
+              value: "http://keycloak-service:8080/auth/realms/fineract/protocol/openid-connect/token"
             - name: FINERACT_AUTH_OAUTH2_CLIENT_ID
               valueFrom:
                 secretKeyRef:
