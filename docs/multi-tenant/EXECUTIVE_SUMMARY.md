@@ -14,7 +14,7 @@ This document presents a comprehensive multi-tenant architecture for the Finerac
 
 ### Business Value
 
-- **Cost Reduction**: $25/tenant/month vs $150+/tenant/month (dedicated infrastructure)
+- **Cost Reduction**: $74/tenant/month vs $886/tenant/month (dedicated infrastructure) - **92% savings**
 - **Scalability**: Support 100+ tenants without infrastructure redesign
 - **Time to Market**: New tenant provisioned in 30-60 minutes vs 2-4 hours
 - **Operational Efficiency**: Centralized management, automated provisioning
@@ -28,96 +28,126 @@ This document presents a comprehensive multi-tenant architecture for the Finerac
 
 ```mermaid
 graph TB
-    subgraph "Current: Single Tenant"
-        U1[All Users] --> APP1[Fineract Application<br/>Tenant: default HARDCODED]
-        APP1 --> DB1[(Database<br/>fineract_default)]
-        APP1 --> KC1[Keycloak<br/>Single Realm]
+    subgraph "Users"
+        U1[All Users<br/>app.example.com]
     end
 
-    style APP1 fill:#ffcdd2,stroke:#c62828
-    style DB1 fill:#ffcdd2,stroke:#c62828
+    subgraph "Ingress & Auth"
+        ING[NGINX Ingress<br/>SSL Termination]
+        OAUTH[OAuth2 Proxy]
+        KC[Keycloak<br/>Single Realm<br/>Tenant: default HARDCODED]
+    end
+
+    subgraph "Fineract Application Layer"
+        FR_READ[READ Pods<br/>HPA Scaled<br/>GET requests]
+        FR_WRITE[WRITE Pod<br/>Single Replica<br/>POST/PUT/DELETE]
+        FR_BATCH[BATCH Pod<br/>COB & Jobs<br/>Scheduled tasks]
+    end
+
+    subgraph "Data Layer"
+        PG[(PostgreSQL<br/>fineract_default)]
+        REDIS[Redis<br/>Session Cache]
+        S3[S3/MinIO<br/>Documents]
+    end
+
+    U1 --> ING
+    ING --> OAUTH
+    OAUTH <--> KC
+    OAUTH --> FR_READ & FR_WRITE & FR_BATCH
+
+    FR_READ & FR_WRITE & FR_BATCH --> PG
+    FR_READ & FR_WRITE --> REDIS & S3
+
+    classDef ingressLayer fill:#fff9c4,stroke:#f57f17
+    classDef readPod fill:#e3f2fd,stroke:#1565c0
+    classDef writePod fill:#fff3e0,stroke:#e65100
+    classDef batchPod fill:#f3e5f5,stroke:#7b1fa2
+    classDef dataLayer fill:#ffcdd2,stroke:#c62828
+
+    class ING,OAUTH,KC ingressLayer
+    class FR_READ readPod
+    class FR_WRITE writePod
+    class FR_BATCH batchPod
+    class PG,REDIS,S3 dataLayer
 ```
+
+**Current Deployment:**
+- **READ Pods**: Handles all GET requests, horizontally scalable (HPA)
+- **WRITE Pod**: Handles mutations (POST/PUT/DELETE), single replica for consistency
+- **BATCH Pod**: Handles COB (Close of Business), reports, scheduled jobs
 
 **Limitations:**
 - Hardcoded tenant identifier ("default")
 - No tenant isolation
 - Not scalable for multiple customers
-- Requires separate deployment per customer
+- Requires separate deployment per customer (full stack per tenant)
 
 ### Proposed Architecture (Multi-Tenant)
 
 ```mermaid
 graph TB
     subgraph "Users by Tenant"
-        U1[Tenant 1 Users<br/>tenant1.app.example.com]
-        U2[Tenant 2 Users<br/>tenant2.app.example.com]
-        U3[Tenant N Users<br/>tenantN.app.example.com]
+        U1[Tenant 1<br/>tenant1.app.example.com]
+        U2[Tenant 2<br/>tenant2.app.example.com]
+        UN[Tenant N<br/>tenantN.app.example.com]
     end
 
-    subgraph "Routing Layer"
-        NGINX[NGINX Ingress<br/>Wildcard *.app.example.com<br/>Subdomain Extraction]
-        CERT[TLS Certificates<br/>Wildcard Certificate]
+    subgraph "Ingress & Auth"
+        NGINX[NGINX Ingress<br/>*.app.example.com<br/>+ TLS Wildcard]
+        OAUTH[OAuth2 Proxy]
+        KC[Keycloak Organizations<br/>JWT: tenant claim]
     end
 
-    subgraph "Authentication Layer"
-        OAUTH[OAuth2 Proxy<br/>Session Management]
-        KC[Keycloak<br/>Organizations Feature<br/>Single Realm]
+    subgraph "Fineract Application Layer"
+        FR_READ[READ Pods<br/>HPA Scaled<br/>GET requests]
+        FR_WRITE[WRITE Pod<br/>Single Replica<br/>POST/PUT/DELETE]
+        FR_BATCH[BATCH Pod<br/>COB & Jobs<br/>Per Tenant]
     end
 
-    subgraph "Application Layer"
-        FR[Fineract Pods<br/>Dynamic Tenant Resolution<br/>JWT-based Routing]
-    end
-
-    subgraph "Data Layer - Shared Infrastructure"
-        RDS[(PostgreSQL RDS<br/>Shared Instance)]
-        REDIS[Redis<br/>Tenant-Prefixed Keys]
-        S3[S3 Storage<br/>Tenant-Prefixed Paths]
-    end
-
-    subgraph "Tenant Databases"
+    subgraph "Shared Data Layer"
+        DBMETA[(Tenant Registry<br/>fineract_tenants)]
         DB1[(fineract_tenant1)]
         DB2[(fineract_tenant2)]
         DBN[(fineract_tenantN)]
-        DBMETA[(fineract_tenants<br/>Metadata)]
+        REDIS[Redis<br/>tenant:key:*]
+        S3[S3<br/>/tenant/docs/*]
     end
 
-    U1 --> NGINX
-    U2 --> NGINX
-    U3 --> NGINX
-    CERT -.->|Secures| NGINX
-
+    U1 & U2 & UN --> NGINX
     NGINX --> OAUTH
-    OAUTH --> KC
-    OAUTH --> FR
+    OAUTH <--> KC
+    OAUTH --> FR_READ & FR_WRITE & FR_BATCH
 
-    FR --> RDS
-    FR --> REDIS
-    FR --> S3
-
-    RDS --> DBMETA
-    RDS --> DB1
-    RDS --> DB2
-    RDS --> DBN
+    FR_READ & FR_WRITE & FR_BATCH --> DBMETA
+    DBMETA --> DB1 & DB2 & DBN
+    FR_READ & FR_WRITE --> REDIS & S3
 
     classDef userLayer fill:#e1f5ff,stroke:#01579b
-    classDef routingLayer fill:#fff9c4,stroke:#f57f17
-    classDef authLayer fill:#f3e5f5,stroke:#4a148c
-    classDef appLayer fill:#e8f5e9,stroke:#1b5e20
-    classDef dataLayer fill:#fce4ec,stroke:#880e4f
+    classDef ingressLayer fill:#fff9c4,stroke:#f57f17
+    classDef readPod fill:#e3f2fd,stroke:#1565c0
+    classDef writePod fill:#fff3e0,stroke:#e65100
+    classDef batchPod fill:#f3e5f5,stroke:#7b1fa2
+    classDef dataLayer fill:#c8e6c9,stroke:#2e7d32
 
-    class U1,U2,U3 userLayer
-    class NGINX,CERT routingLayer
-    class OAUTH,KC authLayer
-    class FR appLayer
-    class RDS,REDIS,S3,DB1,DB2,DBN,DBMETA dataLayer
+    class U1,U2,UN userLayer
+    class NGINX,OAUTH,KC ingressLayer
+    class FR_READ readPod
+    class FR_WRITE writePod
+    class FR_BATCH batchPod
+    class DBMETA,DB1,DB2,DBN,REDIS,S3 dataLayer
 ```
 
+**Multi-Tenant Pod Architecture:**
+- **READ Pods**: Horizontally scaled (HPA), handle GET requests for all tenants
+- **WRITE Pod**: Single replica per cluster, tenant routing via JWT claim
+- **BATCH Pod**: Executes COB and scheduled jobs for all tenants sequentially
+
 **Key Improvements:**
-- Dynamic tenant identification via subdomain
-- Strong tenant isolation (database, cache, storage)
-- Shared infrastructure for cost efficiency
-- Scalable to 100+ tenants
-- Automated provisioning
+- Dynamic tenant identification via subdomain → JWT claim
+- Strong tenant isolation (database per tenant, cache prefixes, storage paths)
+- Shared infrastructure for cost efficiency (one set of pods serves all tenants)
+- Scalable to 100+ tenants without infrastructure duplication
+- Automated tenant provisioning via Keycloak Organizations
 
 ---
 
@@ -329,24 +359,24 @@ graph TB
 ```mermaid
 graph TB
     subgraph "Model 1: Multi-Tenant"
-        MT_TOTAL["Total: $1,276/month<br/>Per Tenant: $25.52"]
-        MT_EKS["EKS: $533<br/>(1 cluster)"]
-        MT_RDS["RDS: $668<br/>(1 shared instance)"]
-        MT_OTHER["Other: $75<br/>(S3, ALB, etc)"]
+        MT_TOTAL["Total: $3,850/month<br/>Per Tenant: $77"]
+        MT_EKS["EKS + Nodes: $1,580<br/>(1 cluster, 3× m5.xlarge)"]
+        MT_RDS["RDS: $1,420<br/>(1× db.r5.xlarge Multi-AZ)"]
+        MT_OTHER["Other: $850<br/>(ALB, S3, CloudWatch, Redis)"]
     end
 
     subgraph "Model 2: Namespace per Tenant"
-        NS_TOTAL["Total: $4,250/month<br/>Per Tenant: $85"]
-        NS_EKS["EKS: $533<br/>(1 cluster)"]
-        NS_RDS["RDS: $3,400<br/>(50 small instances)"]
-        NS_OTHER["Other: $317<br/>(50× S3, etc)"]
+        NS_TOTAL["Total: $12,500/month<br/>Per Tenant: $250"]
+        NS_EKS["EKS + Nodes: $2,650<br/>(1 cluster, 6× m5.xlarge)"]
+        NS_RDS["RDS: $8,500<br/>(50× db.t3.medium)"]
+        NS_OTHER["Other: $1,350<br/>(50× resources)"]
     end
 
     subgraph "Model 3: Cluster per Tenant"
-        CL_TOTAL["Total: $10,650/month<br/>Per Tenant: $213"]
-        CL_EKS["EKS: $3,650<br/>(50 clusters)"]
-        CL_RDS["RDS: $5,600<br/>(50 instances)"]
-        CL_OTHER["Other: $1,400<br/>(50× S3, ALB, etc)"]
+        CL_TOTAL["Total: $32,500/month<br/>Per Tenant: $650"]
+        CL_EKS["EKS: $18,500<br/>(50 clusters + nodes)"]
+        CL_RDS["RDS: $11,000<br/>(50× db.t3.large)"]
+        CL_OTHER["Other: $3,000<br/>(50× ALB, S3, etc)"]
     end
 
     style MT_TOTAL fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
@@ -359,28 +389,33 @@ graph TB
 | Component | Multi-Tenant | Namespace per Tenant | Cluster per Tenant |
 |-----------|--------------|----------------------|---------------------|
 | **EKS Cluster** | $73 (1 cluster) | $73 (1 cluster) | $3,650 (50× $73) |
-| **EKS Worker Nodes** | $460 (3× m5.xlarge) | $920 (6× m5.xlarge) | $6,900 (50× 3× t3.medium) |
-| **RDS Instance** | $560 (1× db.m5.2xlarge) | $3,400 (50× db.t3.small) | $5,600 (50× db.t3.medium) |
-| **RDS Storage** | $60 (500 GB shared) | $500 (50× 10 GB) | $750 (50× 15 GB) |
-| **RDS Backups** | $48 (500 GB) | $350 (3.5 TB total) | $600 (6 TB total) |
-| **S3 Storage** | $2.30 (100 GB shared) | $115 (50× 2 GB) | $230 (50× 4 GB) |
-| **Load Balancers** | $23 (1 ALB) | $230 (1 ALB shared) | $1,150 (50× ALB) |
-| **CloudWatch** | $50 (aggregated) | $400 (per tenant) | $800 (per cluster) |
-| **Data Transfer** | Minimal (internal) | Moderate | High (cross-cluster) |
+| **EKS Worker Nodes** | $1,100 (3× m5.xlarge on-demand) | $2,200 (6× m5.xlarge) | $13,800 (50× 3× t3.large) |
+| **RDS Instance** | $980 (1× db.r5.xlarge Multi-AZ) | $5,900 (50× db.t3.medium) | $8,800 (50× db.t3.large) |
+| **RDS Storage** | $115 (1 TB gp3 shared) | $575 (50× 10 GB gp3) | $1,150 (50× 20 GB gp3) |
+| **RDS Backups** | $100 (1 TB) | $500 (5 TB total) | $1,000 (10 TB total) |
+| **ElastiCache Redis** | $220 (cache.r5.large) | $440 (cache.r5.large) | $2,200 (50× cache.t3.small) |
+| **S3 Storage** | $25 (500 GB shared) | $250 (50× 10 GB) | $500 (50× 20 GB) |
+| **Load Balancers** | $45 (1 ALB + NLB) | $90 (2 ALBs) | $2,250 (50× ALB) |
+| **CloudWatch** | $150 (aggregated logs/metrics) | $600 (per namespace) | $1,500 (per cluster) |
+| **NAT Gateway** | $100 (1× shared) | $100 (1× shared) | $500 (10× NAT GWs) |
+| **Secrets Manager** | $50 (shared secrets) | $250 (per tenant) | $500 (per cluster) |
+| **Data Transfer** | $100 (minimal internal) | $300 (moderate) | $800 (high cross-cluster) |
+| **Route53** | $5 (1 hosted zone) | $25 (5 zones) | $250 (50 zones) |
 | | | | |
-| **Total/Month** | **$1,276** | **$6,988** | **$19,680** |
-| **Per Tenant** | **$25.52** | **$139.76** | **$393.60** |
-| **Annual (50 tenants)** | **$15,312** | **$83,856** | **$236,160** |
+| **Total/Month** | **$3,063** | **$11,303** | **$36,898** |
+| **+ 20% Buffer** | **$3,676** | **$13,564** | **$44,278** |
+| **Per Tenant** | **$73.52** | **$271.27** | **$885.56** |
+| **Annual (50 tenants)** | **$44,107** | **$162,763** | **$531,331** |
 
 ### Cost Scaling by Tenant Count
 
 | Tenant Count | Multi-Tenant | Namespace/Tenant | Cluster/Tenant |
 |--------------|--------------|------------------|-----------------|
-| **10 tenants** | $100/tenant | $150/tenant | $350/tenant |
-| **25 tenants** | $40/tenant | $130/tenant | $320/tenant |
-| **50 tenants** | $26/tenant | $140/tenant | $394/tenant |
-| **100 tenants** | $18/tenant | $160/tenant | $400/tenant |
-| **200 tenants** | $14/tenant | $190/tenant | $410/tenant |
+| **10 tenants** | $250/tenant | $450/tenant | $950/tenant |
+| **25 tenants** | $120/tenant | $320/tenant | $900/tenant |
+| **50 tenants** | $74/tenant | $271/tenant | $886/tenant |
+| **100 tenants** | $52/tenant | $290/tenant | $900/tenant |
+| **200 tenants** | $38/tenant | $320/tenant | $920/tenant |
 
 **Key Insights:**
 - Multi-tenant model shows **economies of scale** (cost per tenant decreases)
@@ -395,18 +430,20 @@ graph TB
 
 | Component | AWS | Azure | GCP | Private Cloud |
 |-----------|-----|-------|-----|---------------|
-| **Kubernetes** | EKS: $73 | AKS: $73 | GKE: $73 | k8s: $0 |
-| **Worker Nodes** | EC2 m5.xlarge: $460 | D4s v3: $420 | n2-standard-4: $390 | VMs: $0* |
-| **Database** | RDS db.m5.2xlarge: $560 | Azure DB D8s: $650 | Cloud SQL db-n1-highmem-8: $580 | PostgreSQL: $0* |
-| **Storage (500GB)** | S3: $12 + EBS: $50 | Blob: $10 + Disk: $60 | GCS: $10 + PD: $50 | SAN: $0* |
-| **Load Balancer** | ALB: $23 | App Gateway: $130 | GCLB: $18 | HAProxy: $0* |
-| **Monitoring** | CloudWatch: $50 | Monitor: $45 | Operations: $40 | Prometheus: $0* |
-| **Backups** | S3 Glacier: $48 | Backup: $55 | Archive: $45 | Backups: $0* |
-| **Networking** | Data Transfer: $20 | Bandwidth: $30 | Egress: $25 | Network: $0* |
+| **Kubernetes** | EKS: $73 | AKS: Free tier | GKE: $73 | k8s: $0 |
+| **Worker Nodes** | EC2 m5.xlarge ×3: $1,100 | D4s v3 ×3: $980 | n2-standard-4 ×3: $920 | VMs: $0* |
+| **Database** | RDS db.r5.xlarge Multi-AZ: $980 | Azure DB D8s HA: $1,150 | Cloud SQL db-n2-standard-8 HA: $1,050 | PostgreSQL: $0* |
+| **Storage (1TB)** | S3: $25 + gp3: $90 | Blob: $22 + Premium: $115 | GCS: $23 + SSD: $95 | SAN: $0* |
+| **Load Balancer** | ALB: $45 | App Gateway: $180 | GCLB: $35 | HAProxy: $0* |
+| **Redis Cache** | ElastiCache: $220 | Azure Cache: $250 | Memorystore: $210 | Redis: $0* |
+| **Monitoring** | CloudWatch: $150 | Monitor: $145 | Operations: $130 | Prometheus: $0* |
+| **Backups** | S3 + Snapshots: $100 | Backup: $120 | Archive: $110 | Backups: $0* |
+| **Networking** | NAT GW + Transfer: $200 | Bandwidth: $180 | Egress: $190 | Network: $0* |
+| **Secrets/KMS** | Secrets Manager: $50 | Key Vault: $45 | Secret Manager: $40 | Vault: $0* |
 | | | | | |
-| **Total/Month** | **$1,296** | **$1,473** | **$1,231** | **$800-1,200*** |
-| **Per Tenant** | **$25.92** | **$29.46** | **$24.62** | **$16-24*** |
-| **Annual** | **$15,552** | **$17,676** | **$14,772** | **$9,600-14,400*** |
+| **Total/Month** | **$3,063** | **$3,365** | **$2,876** | **$1,500-2,500*** |
+| **Per Tenant** | **$61.26** | **$67.30** | **$57.52** | **$30-50*** |
+| **Annual** | **$36,756** | **$40,380** | **$34,512** | **$18,000-30,000*** |
 
 \* Private cloud costs assume existing hardware. Actual costs include:
 - Hardware amortization
@@ -672,30 +709,30 @@ Rate each factor (1-5) based on your requirements:
 ```mermaid
 graph TB
     subgraph "Multi-Tenant Model"
-        MT_Y1["Year 1: $21,600"]
-        MT_Y2["Year 2: $21,600"]
-        MT_Y3["Year 3: $21,600"]
-        MT_Y4["Year 4: $21,600"]
-        MT_Y5["Year 5: $21,600"]
-        MT_TOTAL["5-Year TCO: $108,000"]
+        MT_Y1["Year 1: $62,400"]
+        MT_Y2["Year 2: $62,400"]
+        MT_Y3["Year 3: $62,400"]
+        MT_Y4["Year 4: $62,400"]
+        MT_Y5["Year 5: $62,400"]
+        MT_TOTAL["5-Year TCO: $312,000"]
     end
 
     subgraph "Namespace per Tenant"
-        NS_Y1["Year 1: $167,712"]
-        NS_Y2["Year 2: $167,712"]
-        NS_Y3["Year 3: $167,712"]
-        NS_Y4["Year 4: $167,712"]
-        NS_Y5["Year 5: $167,712"]
-        NS_TOTAL["5-Year TCO: $838,560"]
+        NS_Y1["Year 1: $348,000"]
+        NS_Y2["Year 2: $348,000"]
+        NS_Y3["Year 3: $348,000"]
+        NS_Y4["Year 4: $348,000"]
+        NS_Y5["Year 5: $348,000"]
+        NS_TOTAL["5-Year TCO: $1,740,000"]
     end
 
     subgraph "Cluster per Tenant"
-        CL_Y1["Year 1: $472,320"]
-        CL_Y2["Year 2: $472,320"]
-        CL_Y3["Year 3: $472,320"]
-        CL_Y4["Year 4: $472,320"]
-        CL_Y5["Year 5: $472,320"]
-        CL_TOTAL["5-Year TCO: $2,361,600"]
+        CL_Y1["Year 1: $1,080,000"]
+        CL_Y2["Year 2: $1,080,000"]
+        CL_Y3["Year 3: $1,080,000"]
+        CL_Y4["Year 4: $1,080,000"]
+        CL_Y5["Year 5: $1,080,000"]
+        CL_TOTAL["5-Year TCO: $5,400,000"]
     end
 
     style MT_TOTAL fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
@@ -704,19 +741,19 @@ graph TB
 ```
 
 **Savings Analysis (100 tenants, 5 years):**
-- Multi-Tenant vs Namespace: **$730,560 saved (87% reduction)**
-- Multi-Tenant vs Cluster: **$2,253,600 saved (95% reduction)**
+- Multi-Tenant vs Namespace: **$1,428,000 saved (82% reduction)**
+- Multi-Tenant vs Cluster: **$5,088,000 saved (94% reduction)**
 
 ### Break-Even Analysis
 
-**Multi-Tenant Implementation Cost:** $50,000 (14-22 day project)
+**Multi-Tenant Implementation Cost:** $75,000 (14-22 day project + testing)
 
 | vs Model | Monthly Savings | Break-Even Point | ROI Year 1 |
 |----------|-----------------|------------------|------------|
-| **Namespace/Tenant** | $12,176 | 4.1 months | 192% |
-| **Cluster/Tenant** | $39,360 | 1.3 months | 844% |
+| **Namespace/Tenant** | $23,800 | 3.2 months | 281% |
+| **Cluster/Tenant** | $84,800 | 0.9 months | 1,257% |
 
-**Conclusion:** Multi-tenant investment pays back in **1-4 months**
+**Conclusion:** Multi-tenant investment pays back in **1-3 months**
 
 ---
 
@@ -727,11 +764,11 @@ graph TB
 **Based on the analysis, we recommend implementing the multi-tenant architecture for the following reasons:**
 
 #### Strategic Benefits
-1. **Cost Efficiency**: $25/tenant/month vs $394/tenant/month (94% reduction)
+1. **Cost Efficiency**: $52/tenant/month vs $900/tenant/month (94% reduction at 100 tenants)
 2. **Scalability**: Supports 100-200 tenants on shared infrastructure
 3. **Operational Simplicity**: Single deployment, centralized management
 4. **Fast Time to Market**: 30-60 minute tenant provisioning
-5. **ROI**: Implementation cost recovered in 1-4 months
+5. **ROI**: Implementation cost recovered in 1-3 months
 
 #### Technical Feasibility
 - ✅ Keycloak Organizations feature supports multi-tenant identity
@@ -841,9 +878,9 @@ The multi-tenant architecture presents a compelling business case for scaling th
 
 ### Financial Impact
 - **94% cost reduction** compared to cluster-per-tenant
-- **$25/tenant/month** at 50+ tenants
-- **1-4 month payback** period on implementation investment
-- **5-year savings: $2.25M** (100 tenants)
+- **$52/tenant/month** at 100 tenants (vs $900/tenant dedicated)
+- **1-3 month payback** period on implementation investment
+- **5-year savings: $5.1M** (100 tenants)
 
 ### Strategic Value
 - **Scalable SaaS platform** supporting 100-200 tenants
@@ -858,7 +895,7 @@ The multi-tenant architecture presents a compelling business case for scaling th
 - **Clear migration path** from single-tenant to multi-tenant
 
 ### Recommendation
-**Proceed with multi-tenant architecture implementation** with a 3-4 month timeline and $50K investment. Expected ROI: **844% in Year 1**.
+**Proceed with multi-tenant architecture implementation** with a 3-4 month timeline and $75K investment. Expected ROI: **1,257% in Year 1**.
 
 ---
 
