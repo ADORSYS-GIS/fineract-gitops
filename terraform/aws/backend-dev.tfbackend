@@ -1,14 +1,5 @@
-# Terraform S3 Backend Configuration - Development Environment
-#
-# Usage: terraform init -backend-config=backend-dev.tfbackend
-#
-# This file configures the S3 backend for the development environment's
-# Terraform state. Each environment uses a separate state file for isolation.
-
-bucket         = "fineract-gitops-terraform-state"
-key            = "dev/fineract/terraform.tfstate"
-region         = "us-east-2"
+bucket         = "fineract-gitops-terraform-state-2025"
+key            = "fineract/dev/terraform.tfstate"
+region         = "eu-central-1"
 dynamodb_table = "fineract-gitops-terraform-lock"
-
-# Additional recommended settings (inherited from main.tf if not specified)
-# encrypt        = true  # Already set in main.tf backend block
+encrypt        = true
