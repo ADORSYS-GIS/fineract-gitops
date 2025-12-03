@@ -15,8 +15,8 @@ configMapGenerator:
 - name: keycloak-config-vars
   literals:
   - domain=dev.fineract.com
-  - auth-hostname=aaa4f707406674be2804da9e4f81bbd9-dadefd29ad92d612.elb.eu-central-1.amazonaws.com
-  - apps-hostname=aaa4f707406674be2804da9e4f81bbd9-dadefd29ad92d612.elb.eu-central-1.amazonaws.com
+  - auth-hostname=a123d0139fd274847bfbc299bf46d5a1-2b50d5add0ed5850.elb.eu-central-1.amazonaws.com
+  - apps-hostname=a123d0139fd274847bfbc299bf46d5a1-2b50d5add0ed5850.elb.eu-central-1.amazonaws.com
   - keycloak-url=http://keycloak-service:8080/auth  # Internal service URL with /auth path
   - smtp-host=email-smtp.us-east-2.amazonaws.com
   - smtp-port=587
