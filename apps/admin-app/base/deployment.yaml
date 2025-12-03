@@ -95,6 +95,11 @@ spec:
             configMapKeyRef:
               name: admin-app-config
               key: sessionIdleTimeout
+        - name: USER_SYNC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: admin-app-config
+              key: USER_SYNC_API_URL
         resources:
           requests:
             memory: "128Mi"

@@ -24,6 +24,7 @@ resources:
   - cashier-app.yaml # Cashier frontend application
   - branch-manager-app.yaml # Branch Manager frontend application
   - admin-app.yaml # Admin frontend application
+  - user-sync-service.yaml # User Sync service
 
 # Replacements to inject environment-specific values into all Application manifests
 # This eliminates hardcoded repoURL, targetRevision, namespace, and project values

@@ -27,7 +27,19 @@ This app is intended for system administrators and supports critical configurati
 
 ## Components
 
-### Deployment (deployment.yaml)
+### User Sync Service Integration
+
+The Admin App is tightly integrated with the **User Sync Service** for all identity management operations. The frontend communicates with the User Sync Service's REST API to perform actions in Keycloak, making it a critical dependency for user management.
+
+**Key Interactions**:
+
+- **User Creation**: When a new user is created in the Admin App, it first creates the employee record in Fineract and then calls the `/sync/user` endpoint on the User Sync Service to create the corresponding user in Keycloak.
+- **Password Reset**: The password reset functionality is handled by calling the `/users/{username}/reset-password` endpoint, which triggers a password reset email from Keycloak.
+- **User Status**: The Admin App fetches the user's status from Keycloak by calling the `/users/{username}/keycloak-status` endpoint and can enable or disable the user via the `/users/{username}/status` endpoint.
+
+This integration ensures that all user identity operations are centralized and managed through Keycloak, while the Admin App remains the primary interface for user administration.
+
+### Deployment (`deployment.yaml`)
 
 **Image**: `ghcr.io/adorsys-gis/fineract-apps/admin-app:df657e7`
 - Built from fineract-apps repository

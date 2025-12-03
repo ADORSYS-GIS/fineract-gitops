@@ -10,6 +10,8 @@ resources:
   - fineract-oauth2-protected-write-canary.yaml
   - fineract-web-app-protected.yaml
   - keycloak-ingress.yaml
+  - user-sync-ingress.yaml
+
 
 patches:
   - patch: |-
