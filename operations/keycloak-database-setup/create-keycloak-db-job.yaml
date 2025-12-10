@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/part-of: fineract-platform
     app.kubernetes.io/component: database
 spec:
-  ttlSecondsAfterFinished: 300  # Auto-delete after 5 minutes
+  ttlSecondsAfterFinished: 3600  # Auto-delete after 1 hour (matches fineract db job)
   template:
     metadata:
       name: keycloak-db-setup
