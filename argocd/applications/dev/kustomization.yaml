@@ -21,11 +21,11 @@ resources:
   # - web-app.yaml
   # - reporting-app.yaml  # Reporting frontend application
   # - accounting-app.yaml  # Accounting frontend application
-  - account-manager-app.yaml # Account Manager frontend application
-  - cashier-app.yaml # Cashier frontend application
-  - branch-manager-app.yaml # Branch Manager frontend application
-  - admin-app.yaml # Admin frontend application
-  - user-sync-service.yaml # User Sync service
+  # - account-manager-app.yaml # Account Manager frontend application
+  # - cashier-app.yaml # Cashier frontend application
+  # - branch-manager-app.yaml # Branch Manager frontend application
+  # - admin-app.yaml # Admin frontend application
+  # - user-sync-service.yaml # User Sync service
 
 # Replacements to inject environment-specific values into all Application manifests
 # This eliminates hardcoded repoURL, targetRevision, namespace, and project values
