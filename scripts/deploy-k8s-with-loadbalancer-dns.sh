@@ -658,28 +658,6 @@ fi
 log "✓ Applications deployed successfully"
 echo
 # ============================================================================
-# PHASE 6.25: Force Sync Database Setup Apps to Run PreSync Hooks
-# ============================================================================
-
-echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}PHASE 6.25: Force Sync Database Setup (PreSync Hooks)${NC}"
-echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-echo
-
-log_info "Forcing sync of database setup applications to run PreSync hooks..."
-argocd app sync fineract-${ENV}-database-keycloak-setup --force --timeout 120 --core
-
-
-# Wait for Jobs to complete (they are created by the PreSync hooks)
-
-kubectl wait --for=condition=complete job/create-keycloak-db -n fineract-${ENV} --timeout=120s 2>/dev/null || {
-    log_warn "Keycloak DB Job did not complete (may have already succeeded or not needed)"
-}
-
-
-log "✓ Database setup hooks enforced"
-echo
-# ============================================================================
 # PHASE 6.5: Verify Keycloak Configuration
 # ============================================================================
 
