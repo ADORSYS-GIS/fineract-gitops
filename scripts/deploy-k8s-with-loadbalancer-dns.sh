@@ -667,17 +667,15 @@ echo -e "${BLUE}═════════════════════�
 echo
 
 log_info "Forcing sync of database setup applications to run PreSync hooks..."
-argocd app sync fineract-${ENV}-database-keycloak-setup --force --timeout 120
-argocd app sync fineract-${ENV}-database-fineract-init --force --timeout 120
+argocd app sync fineract-${ENV}-database-keycloak-setup --force --timeout 120 --core
+
 
 # Wait for Jobs to complete (they are created by the PreSync hooks)
-log_info "Waiting for database initialization Jobs to complete..."
+
 kubectl wait --for=condition=complete job/create-keycloak-db -n fineract-${ENV} --timeout=120s 2>/dev/null || {
     log_warn "Keycloak DB Job did not complete (may have already succeeded or not needed)"
 }
-kubectl wait --for=condition=complete job/create-fineract-db -n fineract-${ENV} --timeout=120s 2>/dev/null || {
-    log_warn "Fineract DB Job did not complete (may have already succeeded or not needed)"
-}
+
 
 log "✓ Database setup hooks enforced"
 echo
