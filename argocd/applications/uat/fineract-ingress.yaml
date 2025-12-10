@@ -16,7 +16,7 @@ spec:
   project: fineract-uat
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
     targetRevision: main  # UAT syncs from main branch
     path: apps/ingress/overlays/uat
 

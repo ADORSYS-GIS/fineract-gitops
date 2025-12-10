@@ -12,7 +12,7 @@ spec:
   project: fineract-uat
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
     targetRevision: main
     path: apps/network-policies
 
