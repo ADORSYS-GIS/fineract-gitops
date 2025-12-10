@@ -131,6 +131,11 @@ fineract-gitops/
 │   ├── web-app/               # Main frontend application
 │   ├── accounting-app/        # Accounting module frontend
 │   ├── reporting-app/         # Reporting module frontend
+│   ├── account-manager-app/   # Account manager frontend
+│   ├── cashier-app/           # Cashier/teller frontend
+│   ├── branch-manager-app/    # Branch manager frontend
+│   ├── admin-app/             # Admin frontend
+│   ├── user-sync-service/     # User synchronization service
 │   ├── ingress/               # Ingress resources
 │   ├── ingress-nginx/         # NGINX ingress controller
 │   ├── network-policies/      # Network security policies
