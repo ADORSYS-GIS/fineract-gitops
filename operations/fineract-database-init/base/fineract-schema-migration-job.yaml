@@ -59,7 +59,7 @@ spec:
 
           # Check if DATABASECHANGELOGLOCK table exists
           # (It won't exist on first migration run - Liquibase creates it)
-          TABLE_EXISTS=$(PGPASSWORD="${DB_PASSWORD}" psql \
+          TABLE_EXISTS=$(psql \
             -h "${DB_HOST}" \
             -U "${DB_USER}" \
             -d "fineract_default" \
@@ -76,7 +76,7 @@ spec:
             echo "DATABASECHANGELOGLOCK table exists - checking lock status..."
 
             # Show current lock status
-            PGPASSWORD="${DB_PASSWORD}" psql \
+            psql \
               -h "${DB_HOST}" \
               -U "${DB_USER}" \
               -d "fineract_default" \
@@ -94,7 +94,7 @@ spec:
               "
 
             echo "Clearing any stale locks..."
-            PGPASSWORD="${DB_PASSWORD}" psql \
+            psql \
               -h "${DB_HOST}" \
               -U "${DB_USER}" \
               -d "fineract_default" \
@@ -125,7 +125,7 @@ spec:
             secretKeyRef:
               name: fineract-db-credentials
               key: username
-        - name: DB_PASSWORD
+        - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
               name: fineract-db-credentials

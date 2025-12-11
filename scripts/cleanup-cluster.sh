@@ -673,6 +673,7 @@ cleanup_rds_databases() {
 
     echo -e "${YELLOW}  This will drop and recreate the following databases:${NC}"
     echo "    - keycloak (Keycloak identity management)"
+    echo "    - fineract_tenants (Fineract tenant store - contains tenant credentials)"
     echo "    - fineract_default (Fineract core banking)"
     echo ""
     echo -e "${YELLOW}  This ensures a clean state for the next deployment.${NC}"
@@ -725,19 +726,27 @@ spec:
           echo ""
 
           # Terminate connections to keycloak database
-          echo "1/4: Terminating connections to keycloak database..."
+          echo "1/6: Terminating connections to keycloak database..."
           psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'keycloak' AND pid <> pg_backend_pid();" || true
 
           # Drop keycloak database
-          echo "2/4: Dropping keycloak database..."
+          echo "2/6: Dropping keycloak database..."
           psql -c "DROP DATABASE IF EXISTS keycloak;" || echo "  (database may not exist)"
 
+          # Terminate connections to fineract_tenants database (tenant store with credentials)
+          echo "3/6: Terminating connections to fineract_tenants database..."
+          psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fineract_tenants' AND pid <> pg_backend_pid();" || true
+
+          # Drop fineract_tenants database (contains tenant credentials that must match secrets)
+          echo "4/6: Dropping fineract_tenants database..."
+          psql -c "DROP DATABASE IF EXISTS fineract_tenants;" || echo "  (database may not exist)"
+
           # Terminate connections to fineract_default database
-          echo "3/4: Terminating connections to fineract_default database..."
+          echo "5/6: Terminating connections to fineract_default database..."
           psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fineract_default' AND pid <> pg_backend_pid();" || true
 
           # Drop fineract_default database
-          echo "4/4: Dropping fineract_default database..."
+          echo "6/6: Dropping fineract_default database..."
           psql -c "DROP DATABASE IF EXISTS fineract_default;" || echo "  (database may not exist)"
 
           echo ""
