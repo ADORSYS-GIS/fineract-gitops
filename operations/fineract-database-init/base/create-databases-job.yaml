@@ -118,5 +118,41 @@ spec:
           echo "Database initialization complete. Current Fineract databases:"
           psql -c "\l" | grep fineract || echo "No Fineract databases found"
 
+          # Ensure tenant record has correct password (idempotent)
+          # The tenants table stores DB credentials that Fineract uses to connect to tenant DBs
+          echo ""
+          echo "Checking tenant configuration in fineract_tenants..."
+
+          TENANTS_TABLE_EXISTS=$(psql -d fineract_tenants -tAc "
+            SELECT EXISTS (
+              SELECT FROM information_schema.tables
+              WHERE table_schema = 'public'
+              AND table_name = 'tenants'
+            );
+          ")
+
+          if [ "$TENANTS_TABLE_EXISTS" = "t" ]; then
+            echo "Tenants table exists - ensuring default tenant has correct password..."
+
+            # Update the password for the default tenant to match current credentials
+            psql -d fineract_tenants -c "
+              UPDATE tenants
+              SET schema_password = '${PGPASSWORD}',
+                  schema_server = '${PGHOST}',
+                  schema_server_port = '${PGPORT}',
+                  schema_username = '${PGUSER}'
+              WHERE identifier = 'default';
+            "
+
+            ROWS_UPDATED=$(psql -d fineract_tenants -tAc "SELECT COUNT(*) FROM tenants WHERE identifier = 'default';")
+            if [ "$ROWS_UPDATED" = "1" ]; then
+              echo "✓ Default tenant credentials updated successfully"
+            else
+              echo "ℹ No default tenant record found (will be created by schema migration)"
+            fi
+          else
+            echo "ℹ Tenants table does not exist yet (will be created by schema migration)"
+          fi
+
           echo ""
           echo "✅ Database init job completed successfully (idempotent)"
