@@ -17,8 +17,8 @@ configMapGenerator:
   - name: ingress-config
     behavior: create
     literals:
-      - apps-hostname=aeb01d023d5c249b4b00ebce2cb14a9f-bfdb6606362d9b05.elb.eu-central-1.amazonaws.com
-      - auth-hostname=aeb01d023d5c249b4b00ebce2cb14a9f-bfdb6606362d9b05.elb.eu-central-1.amazonaws.com
+      - apps-hostname=a7dafc08e6d024db08a2e5038ef12159-4df77c854b58f3cd.elb.eu-central-1.amazonaws.com
+      - auth-hostname=a7dafc08e6d024db08a2e5038ef12159-4df77c854b58f3cd.elb.eu-central-1.amazonaws.com
 
   # Static configuration (realm name)
   # Use 'replace' behavior to override the base ConfigMap generator
