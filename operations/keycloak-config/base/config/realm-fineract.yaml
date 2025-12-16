@@ -561,72 +561,72 @@ attributes:
 # Default Users for Development
 # NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
 # Passwords are substituted from keycloak-default-users secret at runtime
-users:
-  # Admin user - Full administrative access
-  - username: admin
-    enabled: true
-    emailVerified: true
-    firstName: System
-    lastName: Administrator
-    email: admin@fineract.dev
-    credentials:
-      - type: password
-        userLabel: "initial"
-        value: "${ADMIN_PASSWORD}"
-        temporary: false
-    realmRoles:
-      - admin
-      - staff
-    groups:
-      - /head-office
-    attributes:
-      employee_id: ["EMP001"]
-      office_id: ["1"]
-      department: ["IT"]
+# users:
+#   # Admin user - Full administrative access
+#   - username: admin
+#     enabled: true
+#     emailVerified: true
+#     firstName: System
+#     lastName: Administrator
+#     email: admin@fineract.dev
+#     credentials:
+#       - type: password
+#         userLabel: "initial"
+#         value: "${ADMIN_PASSWORD}"
+#         temporary: false
+#     realmRoles:
+#       - admin
+#       - staff
+#     groups:
+#       - /head-office
+#     attributes:
+#       employee_id: ["EMP001"]
+#       office_id: ["1"]
+#       department: ["IT"]
 
-  # Mifos user - Standard staff user with loan officer permissions
-  - username: mifos
-    enabled: true
-    emailVerified: true
-    firstName: Mifos
-    lastName: User
-    email: mifos@fineract.dev
-    credentials:
-      - type: password
-        userLabel: "initial"
-        value: "${MIFOS_PASSWORD}"
-        temporary: false
-    realmRoles:
-      - loan-officer
-      - staff
-    groups:
-      - /loan-officers
-    attributes:
-      employee_id: ["EMP002"]
-      office_id: ["1"]
-      department: ["Lending"]
+#   # Mifos user - Standard staff user with loan officer permissions
+#   - username: mifos
+#     enabled: true
+#     emailVerified: true
+#     firstName: Mifos
+#     lastName: User
+#     email: mifos@fineract.dev
+#     credentials:
+#       - type: password
+#         userLabel: "initial"
+#         value: "${MIFOS_PASSWORD}"
+#         temporary: false
+#     realmRoles:
+#       - loan-officer
+#       - staff
+#     groups:
+#       - /loan-officers
+#     attributes:
+#       employee_id: ["EMP002"]
+#       office_id: ["1"]
+#       department: ["Lending"]
 
-  # ============================================================================
-  # Service Account Users - Role Assignments
-  # ============================================================================
-  # Service accounts are automatically created by Keycloak when a client has
-  # serviceAccountsEnabled: true. We define them here to assign realm roles
-  # via keycloak-config-cli, making role assignment GitOps-native and idempotent.
-  #
-  # Naming Convention: service-account-{client-id}
-  # ============================================================================
+#   # ============================================================================
+#   # Service Account Users - Role Assignments
+#   # ============================================================================
+#   # Service accounts are automatically created by Keycloak when a client has
+#   # serviceAccountsEnabled: true. We define them here to assign realm roles
+#   # via keycloak-config-cli, making role assignment GitOps-native and idempotent.
+#   #
+#   # Naming Convention: service-account-{client-id}
+#   # ============================================================================
 
-  # Fineract Data Loader Service Account
-  # Used by: fineract-config-cli for automated data loading operations
-  # Requires: admin and Super User roles for full CRUD access to Fineract entities
-  - username: service-account-${FINERACT_DATA_LOADER_CLIENT_ID}
-    enabled: true
-    serviceAccountClientId: "${FINERACT_DATA_LOADER_CLIENT_ID}"
-    realmRoles:
-      - admin
-      - Super User
-      - staff
-    attributes:
-      description: ["Service account for fineract-config-cli automated data loading"]
-      managed_by: ["keycloak-config-cli"]
-      purpose: ["Automated Fineract configuration and data loading via fineract-config-cli"]
+#   # Fineract Data Loader Service Account
+#   # Used by: fineract-config-cli for automated data loading operations
+#   # Requires: admin and Super User roles for full CRUD access to Fineract entities
+#   - username: service-account-${FINERACT_DATA_LOADER_CLIENT_ID}
+#     enabled: true
+#     serviceAccountClientId: "${FINERACT_DATA_LOADER_CLIENT_ID}"
+#     realmRoles:
+#       - admin
+#       - Super User
+#       - staff
+#     attributes:
+#       description: ["Service account for fineract-config-cli automated data loading"]
+#       managed_by: ["keycloak-config-cli"]
+#       purpose: ["Automated Fineract configuration and data loading via fineract-config-cli"]
