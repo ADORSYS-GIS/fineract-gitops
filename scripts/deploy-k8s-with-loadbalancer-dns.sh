@@ -547,6 +547,10 @@ declare -a CONFIG_FILES=(
     "apps/keycloak/overlays/${ENV}/kustomization.yaml"
     "apps/fineract/overlays/${ENV}/kustomization.yaml"
     "operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
+    "apps/ingress/overlays/${ENV}/ingress-config.yaml"
+    "environments/${ENV}/fineract-oauth2-config-patch.yaml"
+    "environments/${ENV}/loadbalancer-config.yaml"
+    "operations/fineract-config/overlays/${ENV}/kustomization.yaml" 
 )
 
 for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
@@ -557,12 +561,9 @@ for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
 
     log_info "Updating: $CONFIG_FILE"
 
-    # Update apps-hostname and auth-hostname with LoadBalancer DNS
-    # Use sed to replace the values in the configMapGenerator literals
-    sed -i.bak -E \
-        -e "s|apps-hostname=.*|apps-hostname=${LB_DNS}|g" \
-        -e "s|auth-hostname=.*|auth-hostname=${LB_DNS}|g" \
-        "$CONFIG_FILE"
+    # Replace any string that looks like an AWS ELB DNS name with the new one.
+    # This is more robust than just replacing specific keys.
+    sed -i.bak -E "s|[a-f0-9]{32}-[a-f0-9]{16}\.elb\.[a-z0-9-]+\.amazonaws\.com|${LB_DNS}|g" "$CONFIG_FILE"
 
     # Remove backup file
     rm -f "${CONFIG_FILE}.bak"
