@@ -21,51 +21,37 @@ patches:
     target:
       kind: Ingress
 
-replacements:
-  - source:
+vars:
+  - name: APPS_HOSTNAME
+    objref:
       kind: ConfigMap
       name: ingress-config
-      fieldPath: data.apps-hostname
-    targets:
-      - select:
-          kind: Ingress
-        fieldPaths:
-          - spec.rules.*.host
-          - spec.tls.*.hosts.*
-        options:
-          delimiter: '.'
-          index: 0
-      - select:
-          kind: Ingress
-        fieldPaths:
-          - metadata.annotations.[nginx.ingress.kubernetes.io/auth-signin]
-        options:
-          delimiter: '"'
-          index: 1
-  - source:
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.apps-hostname
+  - name: AUTH_HOSTNAME
+    objref:
       kind: ConfigMap
       name: ingress-config
-      fieldPath: data.auth-hostname
-    targets:
-      - select:
-          kind: Ingress
-          name: keycloak-ingress
-        fieldPaths:
-          - spec.rules.*.host
-          - spec.tls.*.hosts.*
-  - source:
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.auth-hostname
+  - name: CLUSTER_ISSUER
+    objref:
       kind: ConfigMap
       name: ingress-config
-      fieldPath: data.cluster-issuer
-    targets:
-      - select:
-          kind: Ingress
-        fieldPaths:
-          - metadata.annotations.[cert-manager.io/cluster-issuer]
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.cluster-issuer
+  - name: NAMESPACE
+    objref:
+      kind: Kustomization
+      apiVersion: kustomize.config.k8s.io/v1beta1
+    fieldref:
+      fieldpath: metadata.namespace
 
-labels:
-- pairs:
-    managed-by: argocd
+commonLabels:
+  managed-by: argocd
 
 commonAnnotations:
   component: "ingress"
