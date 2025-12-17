@@ -105,3 +105,31 @@ spec:
             name: web-app
             port:
               number: 80
+      - path: /admin(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: admin-app
+            port:
+              number: 80
+      - path: /account(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: account-manager-app
+            port:
+              number: 80
+      - path: /branch(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: branch-manager-app
+            port:
+              number: 80
+      - path: /cashier(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: cashier-app
+            port:
+              number: 80
