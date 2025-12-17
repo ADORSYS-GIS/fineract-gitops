@@ -14,7 +14,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
 
     # cert-manager - automatic certificate management
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
 
     # Backend protocol
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
@@ -47,11 +47,11 @@ spec:
 
   tls:
   - hosts:
-    - $(AUTH_HOSTNAME)
+    - auth-hostname
     secretName: keycloak-tls
 
   rules:
-  - host: $(AUTH_HOSTNAME)
+  - host: auth-hostname
     http:
       paths:
       - path: /auth

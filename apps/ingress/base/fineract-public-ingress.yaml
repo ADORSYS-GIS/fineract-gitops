@@ -14,7 +14,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
 
     # cert-manager - automatic certificate management
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
 
     # Backend protocol (Fineract services use HTTPS)
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
@@ -24,7 +24,7 @@ metadata:
 
     # CORS for public API
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "cors-allow-origin-url"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-Fineract-Platform-TenantId"
 
@@ -43,11 +43,11 @@ spec:
 
   tls:
   - hosts:
-    - $(APPS_HOSTNAME)
+    - apps-hostname
     secretName: fineract-tls
 
   rules:
-  - host: $(APPS_HOSTNAME)
+  - host: apps-hostname
     http:
       paths:
 

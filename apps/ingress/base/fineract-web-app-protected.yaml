@@ -13,8 +13,8 @@ metadata:
     # ============================================================================
     # OAuth2 Proxy Authentication
     # ============================================================================
-    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.$(NAMESPACE).svc.cluster.local:4180/oauth2/auth"
-    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-url: "auth-url"
+    nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
     nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
     nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
@@ -23,14 +23,14 @@ metadata:
     # CORS and SSL/TLS Configuration
     # ============================================================================
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "cors-allow-origin-url"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
     nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
     nginx.ingress.kubernetes.io/cors-max-age: "3600"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
 
     # ============================================================================
@@ -78,10 +78,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - $(APPS_HOSTNAME)
+    - apps-hostname
     secretName: fineract-tls
   rules:
-  - host: $(APPS_HOSTNAME)
+  - host: apps-hostname
     http:
       paths:
       - path: /reporting(/|$)(.*)

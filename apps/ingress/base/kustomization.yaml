@@ -13,46 +13,10 @@ resources:
   - user-sync-ingress.yaml
 
 
-patches:
-  - patch: |-
-      - op: replace
-        path: /metadata/namespace
-        value: $(NAMESPACE)
-    target:
-      kind: Ingress
-
-vars:
-  - name: APPS_HOSTNAME
-    objref:
-      kind: ConfigMap
-      name: ingress-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.apps-hostname
-  - name: AUTH_HOSTNAME
-    objref:
-      kind: ConfigMap
-      name: ingress-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.auth-hostname
-  - name: CLUSTER_ISSUER
-    objref:
-      kind: ConfigMap
-      name: ingress-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.cluster-issuer
-  - name: NAMESPACE
-    objref:
-      kind: Kustomization
-      apiVersion: kustomize.config.k8s.io/v1beta1
-    fieldref:
-      fieldpath: metadata.namespace
-
-commonLabels:
-  managed-by: argocd
-
+labels:
+- pairs:
+    managed-by: argocd
+  includeSelectors: true
 commonAnnotations:
   component: "ingress"
   purpose: "HTTPS ingress with Let's Encrypt certificates"

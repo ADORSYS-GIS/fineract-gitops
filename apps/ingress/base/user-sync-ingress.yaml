@@ -9,13 +9,13 @@ metadata:
     component: ingress
   annotations:
     # OAuth2 Proxy Authentication
-    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.$(NAMESPACE).svc.cluster.local:4180/oauth2/auth"
-    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-url: "auth-url"
+    nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
     
     # SSL/TLS Configuration
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
 
     # Proxy Settings
@@ -28,10 +28,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - $(APPS_HOSTNAME)
+    - apps-hostname
     secretName: fineract-tls
   rules:
-  - host: $(APPS_HOSTNAME)
+  - host: apps-hostname
     http:
       paths:
       - path: /api/user-sync

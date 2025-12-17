@@ -15,7 +15,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
 
     # cert-manager - automatic certificate management
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
 
     # Backend protocol
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
@@ -31,11 +31,11 @@ spec:
 
   tls:
   - hosts:
-    - $(APPS_HOSTNAME)
+    - apps-hostname
     secretName: fineract-tls
 
   rules:
-  - host: $(APPS_HOSTNAME)
+  - host: apps-hostname
     http:
       paths:
 
