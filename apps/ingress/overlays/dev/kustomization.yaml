@@ -4,8 +4,8 @@ kind: Kustomization
 namespace: fineract-dev
 
 resources:
-  - ../../base
   - ingress-config.yaml
+  - ../../base
 
 commonLabels:
   environment: dev
