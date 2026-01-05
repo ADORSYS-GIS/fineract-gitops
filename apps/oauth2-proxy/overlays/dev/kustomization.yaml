@@ -152,7 +152,7 @@ patches:
           skip_oidc_discovery = false
           insecure_oidc_skip_issuer_verification = true
           oidc_email_claim = "email"
-          oidc_groups_claim = "roles"
+          oidc_groups_claim = "realm_access.roles"
           extra_jwt_issuers = ""
 
           # ============================================================================

@@ -53,7 +53,7 @@ data:
     insecure_oidc_skip_issuer_verification = false
 
     oidc_email_claim = "email"
-    oidc_groups_claim = "roles"
+    oidc_groups_claim = "realm_access.roles"
 
     # Additional claims to extract
     extra_jwt_issuers = ""
