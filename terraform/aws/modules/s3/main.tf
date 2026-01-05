@@ -8,9 +8,12 @@ terraform {
   }
 }
 
-# Documents Bucket
+# Get current AWS account ID for unique bucket naming
+data "aws_caller_identity" "current" {}
+
+# Documents Bucket (with account ID suffix for global uniqueness)
 resource "aws_s3_bucket" "documents" {
-  bucket        = "${var.cluster_name}-${var.environment}-fineract-documents"
+  bucket        = "${var.cluster_name}-${var.environment}-docs-${data.aws_caller_identity.current.account_id}"
   force_destroy = var.force_destroy
 
   tags = merge(
@@ -24,9 +27,9 @@ resource "aws_s3_bucket" "documents" {
   )
 }
 
-# Backups Bucket
+# Backups Bucket (with account ID suffix for global uniqueness)
 resource "aws_s3_bucket" "backups" {
-  bucket        = "${var.cluster_name}-${var.environment}-fineract-backups"
+  bucket        = "${var.cluster_name}-${var.environment}-backups-${data.aws_caller_identity.current.account_id}"
   force_destroy = var.force_destroy
 
   tags = merge(
