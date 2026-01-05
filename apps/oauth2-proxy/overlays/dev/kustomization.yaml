@@ -155,6 +155,11 @@ patches:
           oidc_groups_claim = "realm_access.roles"
           extra_jwt_issuers = ""
 
+          # FIX: Extract realm_access.roles from JWT token directly
+          # This prevents 401 errors when calling the userinfo endpoint
+          # The token already contains realm_access.roles when 'roles' scope is requested
+          skip_claims_from_profile_url = true
+
           # ============================================================================
           # Redirect and Callback Configuration
           # ============================================================================
