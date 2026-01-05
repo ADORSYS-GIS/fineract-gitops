@@ -152,14 +152,10 @@ patches:
           skip_oidc_discovery = false
           insecure_oidc_skip_issuer_verification = true
           oidc_email_claim = "email"
-          oidc_groups_claim = "realm_access.roles"
+          # Disabled: oidc_groups_claim causes userinfo fetch even with skip_userinfo
+          # Roles are passed via JWT token and handled by backend apps
+          # oidc_groups_claim = "realm_access.roles"
           extra_jwt_issuers = ""
-
-          # FIX: Disable profile URL (userinfo endpoint) to extract realm_access.roles from JWT token directly
-          # This prevents 401 errors when calling the userinfo endpoint
-          # The token already contains realm_access.roles when 'roles' scope is requested
-          # Setting profile_url to empty string disables the userinfo call
-          profile_url = ""
 
           # ============================================================================
           # Redirect and Callback Configuration
