@@ -106,9 +106,15 @@ patches:
                 mountPath: /static-config
                 readOnly: true
 
-            # Update main container to use processed config
+            # Update main container to use processed config and add skip-claims flag
             containers:
             - name: oauth2-proxy
+              # Add --skip-claims-from-profile-url flag to prevent userinfo endpoint fetch
+              # This fixes the 401 error when oauth2-proxy tries to fetch groups from Keycloak's userinfo endpoint
+              args:
+              - --config=/etc/oauth2-proxy/oauth2_proxy.cfg
+              - --email-domain=*
+              - --skip-claims-from-profile-url=true
               volumeMounts:
               - name: config-processed
                 mountPath: /etc/oauth2-proxy
