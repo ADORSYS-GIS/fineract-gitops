@@ -11,6 +11,11 @@ commonLabels:
   infrastructure: aws
   provider: aws-managed
 
+# Override image to v7.6.0 which added --skip-claims-from-profile-url support
+images:
+- name: quay.io/oauth2-proxy/oauth2-proxy
+  newTag: v7.6.0
+
 # Generate ingress-config ConfigMap for oauth2-proxy
 # Contains domain configuration used by init container to build URLs
 configMapGenerator:
@@ -111,6 +116,7 @@ patches:
             - name: oauth2-proxy
               # Add --skip-claims-from-profile-url flag to prevent userinfo endpoint fetch
               # This fixes the 401 error when oauth2-proxy tries to fetch groups from Keycloak's userinfo endpoint
+              # Note: Requires v7.6.0+ (see images section at top of file)
               args:
               - --config=/etc/oauth2-proxy/oauth2_proxy.cfg
               - --email-domain=*
