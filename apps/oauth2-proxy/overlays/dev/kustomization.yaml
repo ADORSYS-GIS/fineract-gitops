@@ -121,6 +121,7 @@ patches:
               - --config=/etc/oauth2-proxy/oauth2_proxy.cfg
               - --email-domain=*
               - --skip-claims-from-profile-url=true
+              - --insecure-oidc-allow-unverified-email=true
               volumeMounts:
               - name: config-processed
                 mountPath: /etc/oauth2-proxy
