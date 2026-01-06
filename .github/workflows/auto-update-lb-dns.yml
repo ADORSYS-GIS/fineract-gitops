@@ -21,7 +21,7 @@ on:
 
   # Auto-trigger on schedule (check every 6 hours)
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */2 * * *'
 
   # Trigger on deployment completion (if added to pipeline)
   # repository_dispatch:
@@ -131,6 +131,13 @@ jobs:
 
           # Update files (without commit/push - we'll do that separately)
           ./scripts/auto-update-lb-dns.sh "$ENV"
+
+      - name: Validate DNS configuration
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+        run: |
+          chmod +x ./scripts/validate-ingress-dns.sh
+          ./scripts/validate-ingress-dns.sh "$ENV"
 
       - name: Check for changes
         id: check_changes
