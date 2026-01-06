@@ -11,6 +11,9 @@ data:
   fineractApiProvider: "/fineract-provider/api/v1"
   fineractApiVersion: ""
 
+  # Tenant Configuration
+  fineractPlatformTenantId: "default"
+
   # OAuth2-Proxy Configuration
   oauth2ProxyLogoutUrl: "/oauth2/sign_out"
 

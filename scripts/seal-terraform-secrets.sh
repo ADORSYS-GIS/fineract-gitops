@@ -289,6 +289,7 @@ FINERACT_API_SECRET=$(openssl rand -base64 32)
 # - Both client-id AND client-secret for all OAuth clients
 # - Renamed keys with -client-id and -client-secret suffixes for clarity
 # - Added oauth2-proxy-cookie-secret for completeness (also in oauth2-proxy-secrets for backward compatibility)
+# - Added fineract-data-loader keys for config loader job
 create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "oauth2-proxy-client-id=${OAUTH2_CLIENT_ID}" \
     "oauth2-proxy-client-secret=${OAUTH2_CLIENT_SECRET}" \
@@ -296,7 +297,9 @@ create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "admin-cli-client-id=admin-cli" \
     "admin-cli-client-secret=${ADMIN_CLI_SECRET}" \
     "fineract-api-client-id=fineract-api" \
-    "fineract-api-client-secret=${FINERACT_API_SECRET}"
+    "fineract-api-client-secret=${FINERACT_API_SECRET}" \
+    "fineract-data-loader-client-id=fineract-api" \
+    "fineract-data-loader-client-secret=${FINERACT_API_SECRET}"
 
 echo
 
