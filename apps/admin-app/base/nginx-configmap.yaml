@@ -24,6 +24,18 @@ data:
             add_header Access-Control-Allow-Origin "*";
         }
 
+        # Serve /assets/ when /dist/ is requested (for backward compatibility)
+        location ^~ /dist/ {
+            alias /usr/share/nginx/html/assets/;
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            add_header X-Content-Type-Options "nosniff" always;
+            access_log off;
+
+            # CORS headers for fonts and assets
+            add_header Access-Control-Allow-Origin "*";
+        }
+
         # HTML files - short cache with revalidation
         location ~* \.(html)$ {
             expires 1h;
