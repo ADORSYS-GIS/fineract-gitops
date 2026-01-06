@@ -36,12 +36,7 @@ data:
             add_header Access-Control-Allow-Origin "*";
         }
 
-        # HTML files - short cache with revalidation
-        location ~* \.(html)$ {
-            expires 1h;
-            add_header Cache-Control "public, must-revalidate";
-            add_header X-Content-Type-Options "nosniff" always;
-        }
+        
 
         # JSON files - no cache (API responses, config files)
         location ~* \.(json)$ {
