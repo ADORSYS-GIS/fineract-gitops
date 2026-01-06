@@ -71,14 +71,6 @@ metadata:
         proxy_set_header Host $host;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
       }
-      # Web app (mifosweb) static assets
-      location ~* ^/mifosweb/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
-        auth_request off;
-        rewrite ^/mifosweb/(.*)$ /$1 break;
-        proxy_pass http://web-app.fineract-dev.svc.cluster.local:80;
-        proxy_set_header Host $host;
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-      }
 
     # ============================================================================
     # CORS and SSL/TLS Configuration
