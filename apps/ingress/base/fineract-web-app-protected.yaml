@@ -18,6 +18,14 @@ metadata:
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
     nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
     nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+    # Server snippet to bypass OAuth2 for static assets
+    nginx.ingress.kubernetes.io/server-snippet: |
+      # Skip auth for static assets
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        proxy_pass http://upstream_balancer;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
 
     # ============================================================================
     # CORS and SSL/TLS Configuration
@@ -60,30 +68,14 @@ metadata:
     # Configuration Snippet
     # ============================================================================
     nginx.ingress.kubernetes.io/configuration-snippet: |
-      # Skip OAuth2 authentication for static assets
-      set $skip_auth "";
-      if ($request_uri ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$) {
-        set $skip_auth "true";
-      }
-
-      # Only run auth_request if not skipping
-      if ($skip_auth = "") {
-        auth_request_set $access_token $upstream_http_x_auth_request_access_token;
-        proxy_set_header Authorization "Bearer $access_token";
-      }
-
+      auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+      proxy_set_header Authorization "Bearer $access_token";
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
 
       # Add cache status header for debugging
       add_header X-Cache-Status $upstream_cache_status always;
-
-      # Cache-Control headers for static assets
-      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
-        auth_request off;  # Disable auth for static files
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-      }
 
 spec:
   ingressClassName: nginx
