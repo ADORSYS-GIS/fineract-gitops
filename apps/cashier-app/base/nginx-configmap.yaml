@@ -26,7 +26,8 @@ data:
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
         location ^~ /dist/ {
-            alias /usr/share/nginx/html/assets/;
+            # Try to serve from assets directory, fall back to index.html if not found
+            try_files /assets/$uri /assets/index.html /index.html;
             expires 1y;
             add_header Cache-Control "public, immutable";
             add_header X-Content-Type-Options "nosniff" always;
