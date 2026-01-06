@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: user-sync-service
-          image: ghcr.io/adorsys-gis/fineract-apps/user-sync-service:main
+          image: ghcr.io/adorsys-gis/fineract-apps/user-sync-service:main@sha256:942dde18dffd7f2239fa073ea0bb8299944ca58873c8d9d300147d96e7b161be
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
