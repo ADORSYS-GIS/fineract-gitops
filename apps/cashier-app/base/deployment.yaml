@@ -18,18 +18,15 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 101
-        runAsGroup: 101
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 2000
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-      - name: copy-original-app
+      - name: copy-assets
         image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
-        command:
-        - sh
-        - -c
-        - cp -r /usr/share/nginx/html/* /original-tmp/ || true
+        command: ['sh', '-c', 'cp -r /usr/share/nginx/html/assets/* /assets-tmp/ || true']
         resources:
           requests:
             memory: "64Mi"
@@ -38,8 +35,25 @@ spec:
             memory: "128Mi"
             cpu: "100m"
         volumeMounts:
-        - name: original-tmp
-          mountPath: /original-tmp
+        - name: assets
+          mountPath: /assets-tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
+      - name: create-symlinks
+        image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
+        command: ['sh', '-c', 'ln -sfn /usr/share/nginx/html/assets /usr/share/nginx/html/dist || true']
+        resources:
+          requests:
+            memory: "16Mi"
+            cpu: "10m"
+          limits:
+            memory: "32Mi"
+            cpu: "20m"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -49,25 +63,16 @@ spec:
           runAsUser: 1000
       containers:
       - name: cashier-app
-        image: nginx:1.25-alpine
+        image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
         imagePullPolicy: IfNotPresent
-        command:
-        - sh
-        - -c
-        - |
-          # Run rewrite script and start nginx
-          /scripts/rewrite-html.sh
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/bin/sh", "-c", "rm -rf /var/cache/nginx/*"]
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
+          readOnlyRootFilesystem: true
           runAsNonRoot: true
-          runAsUser: 101
+          runAsUser: 1000
         ports:
         - containerPort: 80
           protocol: TCP
@@ -127,8 +132,8 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         volumeMounts:
-        - name: html-volume
-          mountPath: /usr/share/nginx/html
+        - name: assets
+          mountPath: /usr/share/nginx/html/assets
         - name: nginx-cache
           mountPath: /var/cache/nginx
         - name: nginx-run
@@ -136,14 +141,8 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d
           readOnly: true
-        - name: original-volume
-          mountPath: /original-app
-          readOnly: true
-        - name: scripts-volume
-          mountPath: /scripts
-          readOnly: true
       volumes:
-      - name: html-volume
+      - name: assets
         emptyDir: {}
       - name: nginx-cache
         emptyDir: {}
@@ -152,8 +151,3 @@ spec:
       - name: nginx-config
         configMap:
           name: cashier-app-nginx-config
-      - name: original-volume
-        emptyDir: {}
-      - name: scripts-volume
-        configMap:
-          name: cashier-app-scripts
