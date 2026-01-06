@@ -52,6 +52,13 @@ data:
 
         # SPA fallback - all other routes serve index.html
         location / {
+            # Inject base href for subpath deployment
+            sub_filter_once off;
+            sub_filter_types text/html;
+            sub_filter '<base href="/">' '<base href="/account/">';
+            sub_filter 'href="/' 'href="/account/';
+            sub_filter "src=\"/" "src=\"/account/";
+
             try_files $uri $uri/ /index.html;
             expires 1h;
             add_header Cache-Control "public, must-revalidate";
