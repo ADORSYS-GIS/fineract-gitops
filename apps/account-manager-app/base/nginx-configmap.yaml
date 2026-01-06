@@ -16,7 +16,7 @@ data:
         # Cache-Control headers for static assets
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -29,7 +29,7 @@ data:
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -42,7 +42,7 @@ data:
             expires 1y;
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -55,7 +55,7 @@ data:
             add_header Cache-Control "public, immutable";
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -68,7 +68,7 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -81,7 +81,7 @@ data:
             access_log off;
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -94,7 +94,7 @@ data:
 
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -107,7 +107,7 @@ data:
             # CORS headers for fonts and assets
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
@@ -120,7 +120,7 @@ data:
             add_header Access-Control-Allow-Origin "*";
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
-        location ^~ /account/dist/ {
+        location \^~ /dist/ {
             alias /usr/share/nginx/html/assets/;
             expires 1y;
             add_header Cache-Control "public, immutable";
