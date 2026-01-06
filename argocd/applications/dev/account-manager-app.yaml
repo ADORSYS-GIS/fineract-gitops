@@ -11,7 +11,7 @@ spec:
   project: fineract-dev
 
   source:
-    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
     targetRevision: deploy-key
     path: apps/account-manager-app/base
 
