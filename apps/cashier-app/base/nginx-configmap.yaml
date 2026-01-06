@@ -24,12 +24,11 @@ data:
             add_header Access-Control-Allow-Origin "*";
         }
 
-        # Handle hardcoded /dist/styles.css by serving the actual hashed CSS file
-        location = /dist/styles.css {
-            # Find and serve the first CSS file in assets directory
-            default_type text/css;
-            alias /usr/share/nginx/html/assets/;
-            try_files index-*.css =404;
+        # Handle hardcoded styles.css by serving the actual hashed CSS file
+        # This needs to come before the general /assets/ location
+        location = /assets/styles.css {
+            # Serve the actual CSS file with the hash
+            alias /usr/share/nginx/html/assets/index-BH6RQkT-.css;
             expires 1y;
             add_header Cache-Control "public, immutable";
             add_header X-Content-Type-Options "nosniff" always;
@@ -38,14 +37,8 @@ data:
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
         location ^~ /dist/ {
-            alias /usr/share/nginx/html/assets/;
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-            add_header X-Content-Type-Options "nosniff" always;
-            access_log off;
-
-            # CORS headers for fonts and assets
-            add_header Access-Control-Allow-Origin "*";
+            # Internally rewrite /dist/* to /assets/*
+            rewrite ^/dist/(.*)$ /assets/$1 last;
         }
 
         
