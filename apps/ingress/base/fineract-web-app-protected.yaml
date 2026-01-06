@@ -11,19 +11,13 @@ metadata:
     purpose: web-app-oauth2-integration
   annotations:
     # ============================================================================
-    # OAuth2 Proxy Authentication
+    # OAuth2 Proxy Authentication (bypassed for static assets)
     # ============================================================================
     nginx.ingress.kubernetes.io/auth-url: "auth-url"
     nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
     nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
     nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
-    # Skip OAuth2 authentication for static assets to prevent 503 errors
-    nginx.ingress.kubernetes.io/auth-snippet: |
-      # Bypass authentication for static assets (js, css, images, fonts)
-      if ($request_uri ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$) {
-        return 200;
-      }
 
     # ============================================================================
     # CORS and SSL/TLS Configuration
@@ -66,8 +60,18 @@ metadata:
     # Configuration Snippet
     # ============================================================================
     nginx.ingress.kubernetes.io/configuration-snippet: |
-      auth_request_set $access_token $upstream_http_x_auth_request_access_token;
-      proxy_set_header Authorization "Bearer $access_token";
+      # Skip OAuth2 authentication for static assets
+      set $skip_auth "";
+      if ($request_uri ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$) {
+        set $skip_auth "true";
+      }
+
+      # Only run auth_request if not skipping
+      if ($skip_auth = "") {
+        auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+        proxy_set_header Authorization "Bearer $access_token";
+      }
+
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
@@ -76,7 +80,8 @@ metadata:
       add_header X-Cache-Status $upstream_cache_status always;
 
       # Cache-Control headers for static assets
-      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;  # Disable auth for static files
         add_header Cache-Control "public, max-age=31536000, immutable" always;
       }
 
