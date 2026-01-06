@@ -4,9 +4,9 @@ metadata:
   name: ingress-config
   namespace: fineract-dev
 data:
-  apps-hostname: a07aeb697903842c88211f203f81bd30-ba97476a7e017252.elb.eu-central-1.amazonaws.com
-  auth-hostname: a07aeb697903842c88211f203f81bd30-ba97476a7e017252.elb.eu-central-1.amazonaws.com
+  apps-hostname: a474a402ee44740318352fcea90bdae3-add5a3d80480d896.elb.eu-central-1.amazonaws.com
+  auth-hostname: a474a402ee44740318352fcea90bdae3-add5a3d80480d896.elb.eu-central-1.amazonaws.com
   cluster-issuer: selfsigned-issuer
-  auth-signin-url: https://a07aeb697903842c88211f203f81bd30-ba97476a7e017252.elb.eu-central-1.amazonaws.com/oauth2/start?rd=$escaped_request_uri
-  cors-allow-origin-url: https://a07aeb697903842c88211f203f81bd30-ba97476a7e017252.elb.eu-central-1.amazonaws.com
+  auth-signin-url: https://a474a402ee44740318352fcea90bdae3-add5a3d80480d896.elb.eu-central-1.amazonaws.com/oauth2/start?rd=$escaped_request_uri
+  cors-allow-origin-url: https://a474a402ee44740318352fcea90bdae3-add5a3d80480d896.elb.eu-central-1.amazonaws.com
   auth-url: http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth
