@@ -18,6 +18,12 @@ metadata:
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
     nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
     nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+    # Skip OAuth2 authentication for static assets to prevent 503 errors
+    nginx.ingress.kubernetes.io/auth-snippet: |
+      # Bypass authentication for static assets (js, css, images, fonts)
+      if ($request_uri ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$) {
+        return 200;
+      }
 
     # ============================================================================
     # CORS and SSL/TLS Configuration
