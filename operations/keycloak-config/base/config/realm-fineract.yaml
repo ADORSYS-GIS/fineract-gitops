@@ -36,10 +36,10 @@ accessCodeLifespanUserAction: 300
 accessCodeLifespanLogin: 1800
 
 # Themes - Using custom Webank theme for professional banking UI
-loginTheme: webank
-accountTheme: webank
+# loginTheme: webank
+# accountTheme: webank
 adminTheme: keycloak
-emailTheme: webank
+# emailTheme: webank
 
 # Security Defenses (Enhanced for Production)
 bruteForceProtected: true
