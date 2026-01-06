@@ -26,8 +26,10 @@ data:
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
         location ^~ /dist/ {
-            # Try to serve from assets directory, fall back to index.html if not found
-            try_files /assets/$uri /assets/index.html /index.html;
+            # Try to find a CSS file, or fallback to index.html
+            # This handles HTML that references /dist/styles.css (file doesn't exist in container)
+            # but actual CSS files have hashed names like index-*.css
+            try_files /assets/$uri $uri /index.html;
             expires 1y;
             add_header Cache-Control "public, immutable";
             add_header X-Content-Type-Options "nosniff" always;
