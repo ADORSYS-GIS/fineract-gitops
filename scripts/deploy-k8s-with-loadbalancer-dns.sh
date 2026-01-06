@@ -927,6 +927,29 @@ log "✓ Final health check complete"
 echo
 
 # ============================================================================
+# Final Ingress DNS Validation
+# ============================================================================
+
+echo -e "${BLUE}═════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}Final Ingress DNS Validation${NC}"
+echo -e "${BLUE}═════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Running final validation of Ingress DNS configuration..."
+echo
+
+if ! ./scripts/validate-ingress-dns.sh "$ENV"; then
+    log_warn "DNS validation failed"
+    log_warn "Applications may not be accessible"
+    log_info "Review the validation output above for remediation steps"
+    EXIT_CODE=1
+else
+    log "✓ Final Ingress DNS validation passed"
+fi
+
+echo
+
+# ============================================================================
 # Deployment Summary
 # ============================================================================
 

@@ -420,6 +420,23 @@ print_summary() {
     rm -f /tmp/lb-dns-${ENV}.txt
 }
 
+# Step 8: Validate Ingress DNS configuration
+validate_ingress_dns() {
+    log_step "Step 8/8: Validating Ingress DNS configuration..."
+    echo
+
+    # Run DNS validation script
+    if ! ./scripts/validate-ingress-dns.sh "$ENV"; then
+        log_warn "Ingress DNS validation failed"
+        log_warn "Review validation output above for remediation steps"
+        log_warn "Applications may not be accessible"
+        echo ""
+    else
+        log "✓ Ingress DNS validation passed"
+    fi
+    echo ""
+}
+
 # Main execution
 main() {
     # Execute steps
@@ -430,10 +447,11 @@ main() {
     wait_for_argocd_sync
     run_health_checks
     validate_endpoints
-
+    validate_ingress_dns
+ 
     # Print summary
     print_summary
-
+ 
     exit 0
 }
 
