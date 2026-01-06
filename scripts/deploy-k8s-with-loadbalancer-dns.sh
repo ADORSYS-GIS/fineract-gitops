@@ -550,7 +550,8 @@ declare -a CONFIG_FILES=(
     "apps/ingress/overlays/${ENV}/ingress-config.yaml"
     "environments/${ENV}/fineract-oauth2-config-patch.yaml"
     "environments/${ENV}/loadbalancer-config.yaml"
-    "operations/fineract-config/overlays/${ENV}/kustomization.yaml" 
+    "operations/fineract-config/overlays/${ENV}/kustomization.yaml"
+    "config/loadbalancer-dns-configmap.yaml"
 )
 
 for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
@@ -573,6 +574,38 @@ done
 
 echo
 log "✓ All configuration files updated"
+echo
+
+# Validate Ingress updates
+validate_ingress_updates() {
+    log_info "Validating Ingress DNS configuration..."
+    local actual_lb_dns=$LB_DNS
+    local ingress_host=$(kubectl get ingress -n "${NAMESPACE}" -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || echo "")
+
+    if [ -z "$ingress_host" ]; then
+        log_warn "Could not retrieve Ingress hostname (may not exist yet)"
+        log_info "This is normal on first deployment"
+        return 0
+    fi
+
+    if [ "$ingress_host" != "$actual_lb_dns" ]; then
+        log_error "Ingress hostname mismatch detected!"
+        log_error "  Expected: $actual_lb_dns"
+        log_error "  Actual:   $ingress_host"
+        echo ""
+        log_warn "Reapplying ingress configurations to fix..."
+        if kubectl apply -k "apps/ingress/overlays/${ENV}" --dry-run=client -o yaml | kubectl apply -f -; then
+            log "✓ Ingress configuration reapplied successfully"
+        else
+            log_warn "Failed to reapply ingress (may need manual intervention)"
+        fi
+    else
+        log "✓ Ingress DNS configuration is correct"
+    fi
+}
+
+# Run validation
+validate_ingress_updates
 echo
 
 # Verify changes

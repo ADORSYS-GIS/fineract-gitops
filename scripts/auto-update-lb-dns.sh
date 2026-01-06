@@ -150,13 +150,21 @@ get_loadbalancer_dns() {
 
     if [ "$SKIP_WAIT" = true ]; then
         log_info "Skipping wait, using current LoadBalancer DNS..."
-        LOADBALANCER_DNS=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get svc -n ingress-nginx ingress-nginx-controller \
+        LOADBALANCER_DNS=$(kubectl --kubeconfig="$KUBECONFIG_FILE" get svc -n ingress-nginx ingress-nginx-controller \
             -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
 
         # Fallback to IP if hostname is not available
         if [ -z "$LOADBALANCER_DNS" ]; then
-            LOADBALANCER_DNS=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get svc -n ingress-nginx ingress-nginx-controller \
+            LOADBALANCER_DNS=$(kubectl --kubeconfig="$KUBECONFIG_FILE" get svc -n ingress-nginx ingress-nginx-controller \
                 -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        fi
+
+        # Add validation
+        if [ -z "$LOADBALANCER_DNS" ]; then
+            log_error "LoadBalancer DNS not found even with --skip-wait"
+            log_info "Check that: 1) Cluster is accessible, 2) Ingress controller is deployed"
+            log_info "Run: kubectl --kubeconfig=$KUBECONFIG_FILE get svc -n ingress-nginx"
+            exit 1
         fi
     else
         log_info "Waiting for LoadBalancer DNS assignment..."
@@ -164,12 +172,12 @@ get_loadbalancer_dns() {
         local attempt=0
 
         while [ $attempt -lt $max_attempts ]; do
-            LOADBALANCER_DNS=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get svc -n ingress-nginx ingress-nginx-controller \
+            LOADBALANCER_DNS=$(kubectl --kubeconfig="$KUBECONFIG_FILE" get svc -n ingress-nginx ingress-nginx-controller \
                 -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
 
             # Fallback to IP if hostname is not available
             if [ -z "$LOADBALANCER_DNS" ]; then
-                LOADBALANCER_DNS=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get svc -n ingress-nginx ingress-nginx-controller \
+                LOADBALANCER_DNS=$(kubectl --kubeconfig="$KUBECONFIG_FILE" get svc -n ingress-nginx ingress-nginx-controller \
                     -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
             fi
 
