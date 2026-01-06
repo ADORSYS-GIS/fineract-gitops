@@ -56,8 +56,9 @@ data:
             sub_filter_once off;
             sub_filter_types text/html;
             sub_filter '<base href="/">' '<base href="/accounting/">';
-            sub_filter 'href="/' 'href="/accounting/';
-            sub_filter "src=\"/" "src=\"/accounting/";
+            sub_filter 'href="/dist/' 'href="/accounting/dist/';
+            sub_filter 'href="/assets/' 'href="/accounting/assets/';
+            sub_filter 'src="/assets/' 'src="/accounting/assets/';
 
             try_files $uri $uri/ /index.html;
             expires 1h;
