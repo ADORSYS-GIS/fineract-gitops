@@ -172,6 +172,17 @@ clients:
           claim.name: "sub"
           jsonType.label: "String"
 
+      - name: realm-roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        consentRequired: false
+        config:
+          claim.name: "realm_access.roles"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+          multivalued: "true"
+
 
 
   # 2. Admin CLI (Keycloak Config CLI + User Sync)
