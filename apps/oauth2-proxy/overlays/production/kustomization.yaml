@@ -12,11 +12,16 @@ commonLabels:
   provider: aws-managed
   criticality: high
 
-# No configMapGenerator needed - URLs are built dynamically from ingress-config
-# Domain values are centralized in apps/ingress/overlays/production/kustomization.yaml:
-#   - apps-hostname=apps.fineract.com
-#   - auth-hostname=auth.fineract.com
-# OAuth2 Proxy init container reads these and builds full URLs at runtime
+# Static configuration (realm name)
+# Use 'replace' behavior to override the base ConfigMap generator
+configMapGenerator:
+  - name: oauth2-proxy-config-static
+    behavior: replace
+    literals:
+      - REALM_NAME=fineract
+
+# Domain values are centralized in apps/ingress/overlays/production/kustomization.yaml
+# and will be updated automatically by scripts/auto-update-lb-dns.sh
 
 # Patch deployment to build URLs dynamically from ingress-config domains
 patches:
@@ -53,7 +58,7 @@ patches:
 
                   # Build full URLs from domain components
                   # Use internal Kubernetes service URL for OIDC discovery (no dependency on ingress/DNS)
-                  export OIDC_ISSUER_URL="http://keycloak-service:8080/realms/${REALM_NAME}"
+                  export OIDC_ISSUER_URL="http://keycloak-service:8080/auth/realms/${REALM_NAME}"
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"

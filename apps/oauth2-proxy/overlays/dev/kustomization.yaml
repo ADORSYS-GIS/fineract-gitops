@@ -16,17 +16,14 @@ images:
 - name: quay.io/oauth2-proxy/oauth2-proxy
   newTag: v7.6.0
 
-# Generate ingress-config ConfigMap for oauth2-proxy
-# Contains domain configuration used by init container to build URLs
-configMapGenerator:
-  - name: ingress-config
-    behavior: create
-    literals:
-      - apps-hostname=a07aeb697903842c88211f203f81bd30-ba97476a7e017252.elb.eu-central-1.amazonaws.com
-      - auth-hostname=a07aeb697903842c88211f203f81bd30-ba97476a7e017252.elb.eu-central-1.amazonaws.com
+# No configMapGenerator needed for ingress-config
+# Domain values are centralized in apps/ingress/overlays/dev/kustomization.yaml
+# and automatically updated by scripts/auto-update-lb-dns.sh
+# OAuth2 Proxy init container reads these and builds full URLs at runtime
 
-  # Static configuration (realm name)
-  # Use 'replace' behavior to override the base ConfigMap generator
+# Static configuration (realm name)
+# Use 'replace' behavior to override the base ConfigMap generator
+configMapGenerator:
   - name: oauth2-proxy-config-static
     behavior: replace
     literals:

@@ -180,48 +180,21 @@ create_secrets() {
     log "All secrets created successfully!"
 }
 
-# Step 6: Update hostnames in kustomization files
+# Step 6: Update Load Balancer DNS (CENTRALIZED APPROACH)
 update_hostnames() {
-    log "Updating hostnames in kustomization files..."
+    log "Updating Load Balancer DNS (using centralized approach)..."
 
     local kubeconfig_path="$HOME/.kube/config-fineract-${ENV}-${ENV}"
-    local namespace="ingress-nginx"
-    local service_name="ingress-nginx-controller"
-    local max_attempts=30
-    local attempt=0
-    local load_balancer_hostname=""
 
-    log_info "Waiting for LoadBalancer hostname..."
-    while [ $attempt -lt $max_attempts ]; do
-        load_balancer_hostname=$(KUBECONFIG="$kubeconfig_path" kubectl get svc -n "$namespace" "$service_name" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
-        if [ -n "$load_balancer_hostname" ]; then
-            log "LoadBalancer hostname found: $load_balancer_hostname"
-            break
-        fi
+    # Use the centralized auto-update script
+    log_info "Using centralized Load Balancer DNS management..."
+    log_info "This will update ALL configuration files consistently"
 
-        attempt=$((attempt + 1))
-        log_info "Waiting for LoadBalancer hostname... (attempt $attempt/$max_attempts)"
-        sleep 10
-    done
-
-    if [ -z "$load_balancer_hostname" ]; then
-        error_exit "Failed to get LoadBalancer hostname"
+    if ! "$SCRIPT_DIR/auto-update-lb-dns.sh" "$ENV"; then
+        error_exit "Failed to update Load Balancer DNS using centralized script"
     fi
 
-    log_info "Updating apps/ingress/overlays/dev/kustomization.yaml..."
-    sed -i.bak "s/apps-hostname=.*/apps-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/ingress/overlays/dev/kustomization.yaml"
-    sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/ingress/overlays/dev/kustomization.yaml"
-
-    log_info "Updating apps/keycloak/overlays/dev/kustomization.yaml..."
-    sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
-    # Also update the KC_HOSTNAME value in the patch (match any AWS ELB hostname pattern)
-    sed -i.bak "s/value: .*\.elb\..*\.amazonaws\.com/value: ${load_balancer_hostname}/" "$REPO_ROOT/apps/keycloak/overlays/dev/kustomization.yaml"
-
-    log_info "Updating operations/keycloak-config/overlays/dev/kustomization.yaml..."
-    sed -i.bak "s/apps-hostname=.*/apps-hostname=${load_balancer_hostname}/" "$REPO_ROOT/operations/keycloak-config/overlays/dev/kustomization.yaml"
-    sed -i.bak "s/auth-hostname=.*/auth-hostname=${load_balancer_hostname}/" "$REPO_ROOT/operations/keycloak-config/overlays/dev/kustomization.yaml"
-
-    log "Hostnames updated successfully!"
+    log "Load Balancer DNS updated successfully in all files!"
 }
 
 # Main execution

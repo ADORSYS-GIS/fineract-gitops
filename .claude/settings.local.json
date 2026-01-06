@@ -56,7 +56,12 @@
       "Bash(do kubectl annotate ingress \"$INGRESS\" -n fineract-dev nginx.ingress.kubernetes.io/cors-allow-origin=\"https://$CORRECT_HOST\" --overwrite)",
       "Bash(git fetch:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(while read file)",
+      "Bash(do sed -i '' 's/ae236f3783cac47928b7559158f6f5c4-5941149f506864a2/a07aeb697903842c88211f203f81bd30-ba97476a7e017252/g' \"$file\" echo \"Updated: $file\" done)",
+      "Bash(kubectl run:*)",
+      "Bash(python3:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

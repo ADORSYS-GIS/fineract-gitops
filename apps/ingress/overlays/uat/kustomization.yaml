@@ -7,12 +7,13 @@ resources:
   - ../../base
 
 # Override hostname and certificate configuration for UAT environment
+# Load Balancer DNS is automatically updated by: scripts/auto-update-lb-dns.sh
 configMapGenerator:
   - name: ingress-config
     namespace: fineract-uat
     literals:
-      - apps-hostname=apps.uat.fineract.com
-      - auth-hostname=auth.uat.fineract.com
+      - apps-hostname=PENDING_UPDATE  # Auto-updated by scripts/auto-update-lb-dns.sh
+      - auth-hostname=PENDING_UPDATE  # Auto-updated by scripts/auto-update-lb-dns.sh
       - cluster-issuer=letsencrypt-staging  # UAT uses Let's Encrypt staging for testing
 
 commonLabels:

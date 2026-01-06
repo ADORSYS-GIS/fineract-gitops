@@ -1,0 +1,213 @@
+name: Auto-Update Load Balancer DNS
+
+on:
+  # Manual trigger for immediate update
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to update'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - uat
+          - production
+      commit_and_push:
+        description: 'Commit and push changes'
+        required: false
+        default: true
+        type: boolean
+
+  # Auto-trigger on schedule (check every 6 hours)
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Trigger on deployment completion (if added to pipeline)
+  # repository_dispatch:
+  #   types: [deployment-complete]
+
+jobs:
+  update-lb-dns:
+    name: 'Update Load Balancer DNS'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
+
+      - name: Install required tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gettext-base
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "env=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            # Default to dev for scheduled runs
+            echo "env=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup kubectl config
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+        run: |
+          aws eks update-kubeconfig \
+            --name apache-fineract-${ENV} \
+            --region ${{ vars.AWS_REGION }} \
+            --kubeconfig ~/.kube/config-fineract-${ENV}
+
+      - name: Wait for Ingress Controller
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+        run: |
+          echo "Waiting for ingress-nginx controller to be ready..."
+          KUBECONFIG=~/.kube/config-fineract-${ENV} kubectl wait \
+            --for=condition=available \
+            --timeout=600s \
+            deployment/ingress-nginx-controller \
+            -n ingress-nginx
+
+      - name: Wait for LoadBalancer DNS
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+        run: |
+          echo "Waiting for LoadBalancer to get DNS assignment..."
+          timeout 600 bash -c '
+            while true; do
+              LB_DNS=$(KUBECONFIG=~/.kube/config-fineract-${ENV} kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].hostname}" 2>/dev/null || echo "")
+
+              if [ -n "$LB_DNS" ]; then
+                echo "✓ LoadBalancer DNS: $LB_DNS"
+                echo "lb_dns=$LB_DNS" >> $GITHUB_ENV
+                exit 0
+              fi
+
+              # Fallback to IP
+              LB_IP=$(KUBECONFIG=~/.kube/config-fineract-${ENV} kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
+              if [ -n "$LB_IP" ]; then
+                echo "✓ LoadBalancer IP: $LB_IP"
+                echo "lb_dns=$LB_IP" >> $GITHUB_ENV
+                exit 0
+              fi
+
+              echo "Waiting for LoadBalancer..."
+              sleep 10
+            done
+          ' || echo "Timed out waiting for LoadBalancer"
+
+      - name: Verify LoadBalancer DNS was found
+        run: |
+          if [ -z "${{ env.lb_dns }}" ]; then
+            echo "❌ LoadBalancer DNS not found"
+            exit 1
+          fi
+          echo "✓ LoadBalancer DNS: ${{ env.lb_dns }}"
+
+      - name: Update configuration files
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+          LB_DNS: ${{ env.lb_dns }}
+        run: |
+          echo "Updating configuration files with LoadBalancer DNS: $LB_DNS"
+          chmod +x ./scripts/auto-update-lb-dns.sh
+
+          # Update files (without commit/push - we'll do that separately)
+          ./scripts/auto-update-lb-dns.sh "$ENV"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes detected"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "Files changed:"
+          git diff --name-only
+
+      - name: Commit changes
+        if: |
+          steps.check_changes.outputs.has_changes == 'true' &&
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.commit_and_push == 'true' || github.event_name == 'schedule')
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add config/loadbalancer-dns-configmap.yaml
+          git add environments/${ENV}/loadbalancer-config.yaml
+          git add environments/${ENV}/fineract-oauth2-config-patch.yaml
+          git add apps/ingress/overlays/${ENV}/ingress-config.yaml
+          git add apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml
+          git add apps/keycloak/overlays/${ENV}/kustomization.yaml
+          git add operations/keycloak-config/overlays/${ENV}/kustomization.yaml
+
+          git commit -m "chore: auto-update LoadBalancer DNS for ${ENV} environment (${{ env.lb_dns }})"
+
+      - name: Push changes
+        if: |
+          steps.check_changes.outputs.has_changes == 'true' &&
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.commit_and_push == 'true' || github.event_name == 'schedule')
+        run: |
+          git push
+
+      - name: Create summary
+        run: |
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          # Load Balancer DNS Update Summary
+
+          **Environment:** ${{ steps.env.outputs.env }}
+          **LoadBalancer DNS:** ${{ env.lb_dns }}
+          **Changes Made:** ${{ steps.check_changes.outputs.has_changes }}
+
+          **Files Updated:**
+          - config/loadbalancer-dns-configmap.yaml
+          - environments/${{ steps.env.outputs.env }}/loadbalancer-config.yaml
+          - environments/${{ steps.env.outputs.env }}/fineract-oauth2-config-patch.yaml
+          - apps/ingress/overlays/${{ steps.env.outputs.env }}/ingress-config.yaml
+          - apps/oauth2-proxy/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
+          - apps/keycloak/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
+          - operations/keycloak-config/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
+
+          **Next Steps:**
+          1. ArgoCD will automatically detect and sync the changes
+          2. Monitor deployment: \`kubectl get applications -n argocd\`
+          3. Verify access: \`curl -k https://${{ env.lb_dns }}\`
+          EOF
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Load Balancer DNS Update Failed**\n\nEnvironment: ${{ steps.env.outputs.env }}\n\nPlease check the workflow logs for details.'
+            })
