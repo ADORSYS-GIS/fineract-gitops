@@ -18,10 +18,10 @@ metadata:
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
     nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
     nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
-    # Server snippet to bypass OAuth2 for static assets
+    # Server snippet to bypass OAuth2 for static assets in frontend app paths only
     nginx.ingress.kubernetes.io/server-snippet: |
-      # Skip auth for static assets
-      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+      # Skip auth for static assets in frontend app paths (not /auth for Keycloak)
+      location ~* ^/(cashier|account|admin|branch|reporting|accounting|mifosweb)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
         auth_request off;
         proxy_pass http://upstream_balancer;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
