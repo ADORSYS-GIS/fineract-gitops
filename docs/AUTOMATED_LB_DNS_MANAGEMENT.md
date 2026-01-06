@@ -499,6 +499,39 @@ schedule:
 
 ---
 
+### 4. Pre-Deployment Validation
+
+**❌ Don't:**
+```bash
+# Deploy without validating DNS configuration
+make deploy-k8s-with-loadbalancer-dns-dev
+# Assume everything is correct
+```
+
+**✅ Do:**
+```bash
+# Always validate before deploying
+./scripts/validate-ingress-dns.sh dev
+
+# If validation fails, deployment will likely result in 404 errors
+# Fix it before proceeding:
+./scripts/auto-update-lb-dns.sh dev --commit --push
+```
+
+**Automatic Validation:**
+The validation script now runs automatically after deployment:
+- `make deploy-k8s-with-loadbalancer-dns-dev` - Validates at end of deployment
+- `./scripts/wait-for-lb-and-sync.sh` - Validates after health checks
+- GitHub Actions workflow - Validates before committing changes
+
+**Benefits:**
+- Catches DNS mismatches immediately after deployment
+- Provides clear error messages and remediation steps
+- Prevents 404 errors from reaching users
+- Can be run independently for troubleshooting: `make validate-ingress-dns ENV=dev`
+
+---
+
 ### 4. Use Environment-Specific Configurations
 
 **❌ Don't:**
