@@ -44,6 +44,23 @@ spec:
             - ALL
           runAsNonRoot: true
           runAsUser: 1000
+      - name: create-symlinks
+        image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
+        command: ['sh', '-c', 'ln -sfn /usr/share/nginx/html/assets /usr/share/nginx/html/dist || true']
+        resources:
+          requests:
+            memory: "16Mi"
+            cpu: "10m"
+          limits:
+            memory: "32Mi"
+            cpu: "20m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
       containers:
       - name: cashier-app
         image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
