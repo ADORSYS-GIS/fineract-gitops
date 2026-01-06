@@ -18,8 +18,8 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
+        runAsUser: 101
+        runAsGroup: 101
         fsGroup: 2000
         seccompProfile:
           type: RuntimeDefault
@@ -32,34 +32,14 @@ spec:
         - cp -r /usr/share/nginx/html/assets/* /assets-tmp/ || true
         resources:
           requests:
-            memory: 64Mi
-            cpu: 50m
+            memory: "64Mi"
+            cpu: "50m"
           limits:
-            memory: 128Mi
-            cpu: 100m
+            memory: "128Mi"
+            cpu: "100m"
         volumeMounts:
         - name: assets
           mountPath: /assets-tmp
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          runAsNonRoot: true
-          runAsUser: 1000
-      - name: create-symlinks
-        image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
-        command:
-        - sh
-        - -c
-        - ln -sfn /usr/share/nginx/html/assets /usr/share/nginx/html/dist || true
-        resources:
-          requests:
-            memory: 16Mi
-            cpu: 10m
-          limits:
-            memory: 32Mi
-            cpu: 20m
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -71,13 +51,31 @@ spec:
       - name: cashier-app
         image: nginx:1.25-alpine
         imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |
+          # Copy original app files to nginx directory
+          cp -r /original-app/usr/share/nginx/html/* /usr/share/nginx/html/ 2>/dev/null || true
+          
+          # Rewrite HTML to fix asset paths
+          find /usr/share/nginx/html -name "index.html" -exec sed -i '' 's|href="/dist/|href="/cashier/dist/|g' {} \;
+          find /usr/share/nginx/html -name "index.html" -exec sed -i '' 's|href="/assets/|href="/cashier/assets/|g' {} \;
+          find /usr/share/nginx/html -name "index.html" -exec sed -i '' 's|src="/assets/|src="/cashier/assets/|g' {} \;
+          
+          # Start nginx
+          exec nginx -g 'daemon off;'
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -rf /tmp/cache/*"]
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
             - ALL
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 101
         ports:
         - containerPort: 80
           protocol: TCP
@@ -119,11 +117,11 @@ spec:
               key: sessionIdleTimeout
         resources:
           requests:
-            memory: 128Mi
-            cpu: 50m
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: 256Mi
-            cpu: 200m
+            memory: "256Mi"
+            cpu: "200m"
         livenessProbe:
           httpGet:
             path: /
@@ -148,18 +146,9 @@ spec:
           readOnly: true
         - name: html-volume
           mountPath: /usr/share/nginx/html
-        command:
-        - sh
-        - -c
-        args:
-        - "\n            # Rewrite HTML to fix asset paths\n            find /usr/share/nginx/html\
-          \ -name \"index.html\" -exec sed -i 's|href=\"/dist/|href=\"/cashier/dist/|g'\
-          \ {} \\\\;\n            find /usr/share/nginx/html -name \"index.html\"\
-          \ -exec sed -i 's|href=\"/assets/|href=\"/cashier/assets/|g' {} \\\\;\n\
-          \            find /usr/share/nginx/html -name \"index.html\" -exec sed -i\
-          \ 's|src=\"/assets/|src=\"/cashier/assets/|g' {} \\\\;\n            \n \
-          \           # Start nginx\n            exec nginx -g 'daemon off;'\n   \
-          \         "
+        - name: original-app
+          mountPath: /original-app
+          readOnly: true
       volumes:
       - name: assets
         emptyDir: {}
@@ -171,4 +160,6 @@ spec:
         configMap:
           name: cashier-app-nginx-config
       - name: html-volume
+        emptyDir: {}
+      - name: original-app
         emptyDir: {}
