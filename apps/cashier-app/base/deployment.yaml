@@ -24,12 +24,12 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-      - name: copy-assets
+      - name: copy-original-app
         image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
         command:
         - sh
         - -c
-        - cp -r /usr/share/nginx/html/assets/* /assets-tmp/ || true
+        - cp -r /usr/share/nginx/html/* /original-tmp/ || true
         resources:
           requests:
             memory: "64Mi"
@@ -38,8 +38,8 @@ spec:
             memory: "128Mi"
             cpu: "100m"
         volumeMounts:
-        - name: assets
-          mountPath: /assets-tmp
+        - name: original-tmp
+          mountPath: /original-tmp
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -55,20 +55,12 @@ spec:
         - sh
         - -c
         - |
-          # Copy original app files to nginx directory
-          cp -r /original-app/usr/share/nginx/html/* /usr/share/nginx/html/ 2>/dev/null || true
-          
-          # Rewrite HTML to fix asset paths
-          find /usr/share/nginx/html -name "index.html" -exec sed -i '' 's|href="/dist/|href="/cashier/dist/|g' {} \;
-          find /usr/share/nginx/html -name "index.html" -exec sed -i '' 's|href="/assets/|href="/cashier/assets/|g' {} \;
-          find /usr/share/nginx/html -name "index.html" -exec sed -i '' 's|src="/assets/|src="/cashier/assets/|g' {} \;
-          
-          # Start nginx
-          exec nginx -g 'daemon off;'
+          # Run rewrite script and start nginx
+          /scripts/rewrite-html.sh
         lifecycle:
           preStop:
             exec:
-              command: ["/bin/sh", "-c", "rm -rf /tmp/cache/*"]
+              command: ["/bin/sh", "-c", "rm -rf /var/cache/nginx/*"]
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -135,8 +127,8 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         volumeMounts:
-        - name: assets
-          mountPath: /usr/share/nginx/html/assets
+        - name: html-volume
+          mountPath: /usr/share/nginx/html
         - name: nginx-cache
           mountPath: /var/cache/nginx
         - name: nginx-run
@@ -144,13 +136,14 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d
           readOnly: true
-        - name: html-volume
-          mountPath: /usr/share/nginx/html
-        - name: original-app
+        - name: original-volume
           mountPath: /original-app
           readOnly: true
+        - name: scripts-volume
+          mountPath: /scripts
+          readOnly: true
       volumes:
-      - name: assets
+      - name: html-volume
         emptyDir: {}
       - name: nginx-cache
         emptyDir: {}
@@ -159,7 +152,8 @@ spec:
       - name: nginx-config
         configMap:
           name: cashier-app-nginx-config
-      - name: html-volume
+      - name: original-volume
         emptyDir: {}
-      - name: original-app
-        emptyDir: {}
+      - name: scripts-volume
+        configMap:
+          name: cashier-app-scripts
