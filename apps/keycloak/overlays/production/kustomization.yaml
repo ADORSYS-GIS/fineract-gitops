@@ -1,0 +1,62 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-production
+
+resources:
+  - ../../base
+
+# Use labels instead of commonLabels to avoid affecting Service selectors
+labels:
+  - pairs:
+      environment: production
+      deployment-type: aws
+      managed-by: argocd
+      criticality: high
+    includeSelectors: false
+
+# Override hostname configuration for production environment
+# This will be automatically updated by scripts/auto-update-lb-dns.sh
+configMapGenerator:
+  - name: ingress-config
+    behavior: merge
+    literals:
+      - auth-hostname=PRODUCTION_ELB_HOSTNAME_PENDING
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: keycloak
+      spec:
+        template:
+          spec:
+            containers:
+            - name: keycloak
+              env:
+              - name: KC_HOSTNAME
+                value: PRODUCTION_ELB_HOSTNAME_PENDING
+              - name: KC_HOSTNAME_STRICT
+                value: "true"
+              - name: KC_HOSTNAME_STRICT_HTTPS
+                value: "true"
+              - name: KC_HTTP_ENABLED
+                value: "true"
+              - name: KC_PROXY
+                value: "edge"
+    target:
+      kind: Deployment
+      name: keycloak
+  # Fix service selector to match pod labels (override commonLabels)
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: keycloak-service
+      spec:
+        selector:
+          app: keycloak
+    target:
+      kind: Service
+      name: keycloak-service

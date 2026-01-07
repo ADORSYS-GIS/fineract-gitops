@@ -166,14 +166,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add config/loadbalancer-dns-configmap.yaml
-          git add environments/${ENV}/loadbalancer-config.yaml
-          git add environments/${ENV}/fineract-oauth2-config-patch.yaml
-          git add apps/ingress/overlays/${ENV}/ingress-config.yaml
-          git add apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml
-          git add apps/keycloak/overlays/${ENV}/kustomization.yaml
-          git add operations/keycloak-config/overlays/${ENV}/kustomization.yaml
-          git add operations/fineract-config/overlays/${ENV}/kustomization.yaml
+          # Add changed files (conditionally, skip if not present)
+          git add config/loadbalancer-dns-configmap.yaml || true
+          git add environments/${ENV}/loadbalancer-config.yaml || true
+          git add environments/${ENV}/fineract-oauth2-config-patch.yaml || true
+          git add apps/ingress/overlays/${ENV}/ingress-config.yaml || true
+          git add apps/ingress/overlays/${ENV}/kustomization.yaml || true
+          git add apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml || true
+          git add apps/keycloak/overlays/${ENV}/kustomization.yaml || true
+          git add operations/keycloak-config/overlays/${ENV}/kustomization.yaml || true
+          git add operations/fineract-config/overlays/${ENV}/kustomization.yaml || true
 
           git commit -m "chore: auto-update LoadBalancer DNS for ${ENV} environment (${{ env.lb_dns }})"
 

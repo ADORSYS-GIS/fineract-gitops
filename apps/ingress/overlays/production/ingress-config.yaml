@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-config
+  namespace: fineract-production
+data:
+  # AWS ELB hostname - used for all ingress routing
+  # IMPORTANT: This hostname will be automatically updated by auto-update-lb-dns.sh
+  # after deploying ingress-nginx controller. Do not manually edit.
+  apps-hostname: PRODUCTION_ELB_HOSTNAME_PENDING
+  auth-hostname: PRODUCTION_ELB_HOSTNAME_PENDING
+  cluster-issuer: letsencrypt-prod
+  auth-signin-url: https://PRODUCTION_ELB_HOSTNAME_PENDING/oauth2/start?rd=$escaped_request_uri
+  cors-allow-origin-url: https://PRODUCTION_ELB_HOSTNAME_PENDING
+  auth-url: http://oauth2-proxy.fineract-production.svc.cluster.local:4180/oauth2/auth

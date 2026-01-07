@@ -279,19 +279,20 @@ update_app_overlays() {
     local files_updated=0
 
     # Update ingress config
-    # Check if ingress-config.yaml exists (Dev environment)
+    # Check if ingress-config.yaml exists (All environments now use this format)
     local ingress_config_yaml="${REPO_ROOT}/apps/ingress/overlays/${ENV}/ingress-config.yaml"
     if [ -f "$ingress_config_yaml" ]; then
         cp "$ingress_config_yaml" "${ingress_config_yaml}.backup.$(date +%Y%m%d_%H%M%S)}"
         sed -i.tmp "s|apps-hostname: .*|apps-hostname: ${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
         sed -i.tmp "s|auth-hostname: .*|auth-hostname: ${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
-        sed -i.tmp "s|auth-signin-url: https://.*\.elb\.|auth-signin-url: https://${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
-        sed -i.tmp "s|cors-allow-origin-url: https://.*\.elb\.|cors-allow-origin-url: https://${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
+        # Match both ELB hostnames and PENDING placeholders
+        sed -i.tmp "s|auth-signin-url: https://[^/]*/oauth2/start|auth-signin-url: https://${LOADBALANCER_DNS}/oauth2/start|g" "$ingress_config_yaml"
+        sed -i.tmp "s|cors-allow-origin-url: https://.*|cors-allow-origin-url: https://${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
         rm -f "${ingress_config_yaml}.tmp"
         log "  ✓ Updated: apps/ingress/overlays/${ENV}/ingress-config.yaml"
         ((files_updated++))
     else
-        # UAT/Production: Update configMapGenerator in kustomization.yaml
+        # Fallback: This should not be needed anymore as all environments use ingress-config.yaml
         local ingress_kustomization="${REPO_ROOT}/apps/ingress/overlays/${ENV}/kustomization.yaml"
         if [ -f "$ingress_kustomization" ]; then
             cp "$ingress_kustomization" "${ingress_kustomization}.backup.$(date +%Y%m%d_%H%M%S)}"
@@ -327,7 +328,8 @@ update_app_overlays() {
     if [ -f "$keycloak_config" ]; then
         cp "$keycloak_config" "${keycloak_config}.backup.$(date +%Y%m%d_%H%M%S)"
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$keycloak_config"
-        sed -i.tmp "s|value: .*\.elb\.|value: ${LOADBALANCER_DNS}|g" "$keycloak_config"
+        # Match both ELB hostnames and PENDING placeholders in KC_HOSTNAME value
+        sed -i.tmp "s|value: [A-Za-z0-9._-]*|value: ${LOADBALANCER_DNS}|g" "$keycloak_config"
         rm -f "${keycloak_config}.tmp"
         log "  ✓ Updated: apps/keycloak/overlays/${ENV}/kustomization.yaml"
         ((files_updated++))
