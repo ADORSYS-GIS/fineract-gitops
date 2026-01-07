@@ -79,6 +79,38 @@ metadata:
         proxy_set_header Host $host;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
       }
+      # Authentication endpoint - NO OAuth2 required to authenticate!
+      location = /fineract-provider/api/v1/authentication {
+        # CORS configuration (allow request origin)
+        if ($http_origin != '') { set $cors 'true'; }
+        if ($request_method = 'OPTIONS') { set $cors ${cors}options; }
+        if ($cors = "true") {
+          more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+          more_set_headers 'Access-Control-Allow-Credentials: true';
+          more_set_headers 'Access-Control-Allow-Methods: GET, POST, OPTIONS';
+          more_set_headers 'Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId';
+          more_set_headers 'Access-Control-Max-Age: 3600';
+        }
+        if ($cors = "trueoptions") {
+          more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+          more_set_headers 'Access-Control-Allow-Credentials: true';
+          more_set_headers 'Access-Control-Allow-Methods: GET, POST, OPTIONS';
+          more_set_headers 'Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId';
+          more_set_headers 'Access-Control-Max-Age: 3600';
+          more_set_headers 'Content-Type: text/plain charset=UTF-8';
+          more_set_headers 'Content-Length: 0';
+          return 204;
+        }
+        # Proxy to write service (NO auth_request here!)
+        proxy_pass https://fineract-write-service.fineract-dev.svc.cluster.local:8443;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port 443;
+      }
 
     # ============================================================================
     # CORS and SSL/TLS Configuration
