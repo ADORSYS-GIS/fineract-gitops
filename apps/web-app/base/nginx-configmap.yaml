@@ -21,7 +21,9 @@ data:
             # Replace hardcoded localhost URLs in JavaScript with empty string (relative URLs)
             sub_filter_once off;
             sub_filter_types application/javascript text/javascript;
+            sub_filter 'https://localhost:8443' '';
             sub_filter 'https://localhost' '';
+            sub_filter ':8443/' '/';
             sub_filter '"localhost"' '""';
 
             expires 1y;
