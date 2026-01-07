@@ -17,18 +17,21 @@ metadata:
     # Enable canary deployment
     nginx.ingress.kubernetes.io/canary: "true"
 
-    # Route 100% of POST/PUT/DELETE/PATCH requests to this backend (write service)
-    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary-Method"
-    nginx.ingress.kubernetes.io/canary-by-header-value: "write"
+    # Use weight-based routing with conditional logic
+    # Set weight to 0 by default, will be overridden by configuration-snippet
+    nginx.ingress.kubernetes.io/canary-weight: "0"
 
-    # Use Lua to set header based on request method
+    # Override canary decision based on request method
+    nginx.ingress.kubernetes.io/canary-weight-header: "X-Canary-Weight"
+
+    # Set canary weight to 100 for write methods in configuration snippet
     nginx.ingress.kubernetes.io/server-snippet: |
-      set $canary_method "";
+      # Route POST/PUT/DELETE/PATCH to write service (canary weight 100)
+      set $canary_weight_header "0";
       if ($request_method ~* ^(POST|PUT|DELETE|PATCH)$) {
-        set $canary_method "write";
+        set $canary_weight_header "100";
       }
-      # Inject header for canary matching
-      more_set_input_headers "X-Canary-Method: $canary_method";
+      more_set_input_headers "X-Canary-Weight: $canary_weight_header";
 
     # ============================================================================
     # OAuth2 Proxy Authentication (same as main ingress)
