@@ -258,9 +258,8 @@ spec:
           value: "DEBUG"
 
         # OAuth2 Configuration
-        # Enable BOTH Basic auth (for /api/v1/authentication endpoint) AND OAuth2 (for all other endpoints)
         - name: FINERACT_SECURITY_BASICAUTH_ENABLED
-          value: "true"
+          value: "false"
         - name: FINERACT_SECURITY_OAUTH_ENABLED
           value: "true"
         # Fineract OAuth Resource URL - REQUIRED for OAuth2 to work
