@@ -1,0 +1,62 @@
+---
+# Fineract Authentication Endpoint (NO OAuth2 Protection)
+# This endpoint must be accessible without authentication to allow users to authenticate
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-authentication
+  namespace: fineract-dev
+  labels:
+    app: fineract
+    component: ingress
+    purpose: authentication-endpoint
+  annotations:
+    # NO OAuth2 authentication for this endpoint!
+    # Users need to access this to GET authentication
+
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # CORS Configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "cors-allow-origin-url"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "3600"
+
+    # TLS
+    cert-manager.io/cluster-issuer: "cluster-issuer"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # Proxy settings
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+    # Configuration snippet for headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";
+
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - apps-hostname
+    secretName: fineract-tls
+  rules:
+  - host: apps-hostname
+    http:
+      paths:
+      # Exact match for authentication endpoint - NO OAuth2 protection
+      - path: /fineract-provider/api/v1/authentication
+        pathType: Exact
+        backend:
+          service:
+            name: fineract-write-service
+            port:
+              number: 8443
