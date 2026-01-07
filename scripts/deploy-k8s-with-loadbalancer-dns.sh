@@ -541,39 +541,15 @@ echo
 log_info "Updating configuration files with LoadBalancer DNS: $LB_DNS"
 echo
 
-# Files to update (ingress-config ConfigMaps in Kustomize overlays)
-declare -a CONFIG_FILES=(
-    "apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml"
-    "apps/keycloak/overlays/${ENV}/kustomization.yaml"
-    "apps/fineract/overlays/${ENV}/kustomization.yaml"
-    "operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
-    "apps/ingress/overlays/${ENV}/ingress-config.yaml"
-    "environments/${ENV}/fineract-oauth2-config-patch.yaml"
-    "environments/${ENV}/loadbalancer-config.yaml"
-    "operations/fineract-config/overlays/${ENV}/kustomization.yaml"
-    "config/loadbalancer-dns-configmap.yaml"
-)
-
-for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
-    if [ ! -f "$CONFIG_FILE" ]; then
-        log_warn "Config file not found: $CONFIG_FILE (skipping)"
-        continue
-    fi
-
-    log_info "Updating: $CONFIG_FILE"
-
-    # Replace any string that looks like an AWS ELB DNS name with the new one.
-    # This is more robust than just replacing specific keys.
-    sed -i.bak -E "s|[a-f0-9]{32}-[a-f0-9]{16}\.elb\.[a-z0-9-]+\.amazonaws\.com|${LB_DNS}|g" "$CONFIG_FILE"
-
-    # Remove backup file
-    rm -f "${CONFIG_FILE}.bak"
-
-    log "  ✓ Updated: $CONFIG_FILE"
-done
-
-echo
-log "✓ All configuration files updated"
+# Use the centralized auto-update-lb-dns.sh script (single source of truth)
+# --skip-wait: We already have the LB_DNS from earlier in this script
+log_info "Using centralized auto-update-lb-dns.sh script..."
+if "${SCRIPT_DIR}/auto-update-lb-dns.sh" "${ENV}" --skip-wait; then
+    log "✓ All configuration files updated via auto-update-lb-dns.sh"
+else
+    log_error "Failed to update configuration files"
+    exit 1
+fi
 echo
 
 # Validate Ingress updates

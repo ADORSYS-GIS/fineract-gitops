@@ -5,7 +5,7 @@
 	deploy-infrastructure-dev deploy-k8s-with-loadbalancer-dns-dev deploy-with-loadbalancer-dns-dev \
 	seal-secrets seal-terraform-secrets seal-app-secrets seal-argocd-secret \
 	deploy-gitops deploy-step-1 deploy-step-2 deploy-step-3 deploy-step-4 deploy-step-5 \
-	verify-namespaces validate-ingress-dns validate-prereqs validate-terraform-prereqs validate-k8s-prereqs validate-terraform setup-terraform-backend \
+	verify-namespaces validate-ingress-dns auto-update-lb-dns validate-prereqs validate-terraform-prereqs validate-k8s-prereqs validate-terraform setup-terraform-backend \
 	terraform-init-dev terraform-init-uat terraform-init-prod \
 	terraform-plan-dev terraform-plan-uat terraform-plan-prod \
 	terraform-apply-dev terraform-apply-uat terraform-apply-prod \
@@ -72,6 +72,7 @@ help:
 	@echo ""
 	@echo "$(YELLOW)Validation and prerequisites:$(NC)"
 	@echo "  make validate-ingress-dns [ENV=dev] - Validate Ingress DNS matches LoadBalancer"
+	@echo "  make auto-update-lb-dns [ENV=dev]   - Auto-update LoadBalancer DNS in all config files"
 	@echo "  make validate-prereqs            - Validate all prerequisites (runs both checks below)"
 	@echo "  make validate-terraform-prereqs  - Validate Terraform/Infrastructure prerequisites only"
 	@echo "  make validate-k8s-prereqs        - Validate Kubernetes/GitOps prerequisites (includes SSH deploy key)"
@@ -436,6 +437,15 @@ validate-ingress-dns: ## Validate Ingress DNS matches LoadBalancer DNS
 	@echo ""
 	@echo "$(BLUE)Environment:$(NC) $(ENV)"
 	@./scripts/validate-ingress-dns.sh $(ENV)
+
+# Update LoadBalancer DNS across all configuration files
+auto-update-lb-dns: ## Auto-update LoadBalancer DNS in all config files
+	@echo "$(BLUE)========================================$(NC)"
+	@echo "$(BLUE) Auto-Update LoadBalancer DNS$(NC)"
+	@echo "$(BLUE)========================================$(NC)"
+	@echo ""
+	@echo "$(BLUE)Environment:$(NC) $(ENV)"
+	@./scripts/auto-update-lb-dns.sh $(ENV) --commit --push
 
 # Kept for backwards compatibility - validates Terraform only
 validate-terraform:
