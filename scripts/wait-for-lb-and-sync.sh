@@ -195,6 +195,7 @@ commit_and_push() {
     git add apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml
     git add apps/keycloak/overlays/${ENV}/kustomization.yaml
     git add operations/keycloak-config/overlays/${ENV}/kustomization.yaml
+    git add operations/fineract-config/overlays/${ENV}/kustomization.yaml
 
     local LOADBALANCER_DNS=$(cat /tmp/lb-dns-${ENV}.txt)
     git commit -m "chore: auto-update LoadBalancer DNS for ${ENV} environment (${LOADBALANCER_DNS})"

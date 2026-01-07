@@ -173,6 +173,7 @@ jobs:
           git add apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml
           git add apps/keycloak/overlays/${ENV}/kustomization.yaml
           git add operations/keycloak-config/overlays/${ENV}/kustomization.yaml
+          git add operations/fineract-config/overlays/${ENV}/kustomization.yaml
 
           git commit -m "chore: auto-update LoadBalancer DNS for ${ENV} environment (${{ env.lb_dns }})"
 
@@ -200,6 +201,7 @@ jobs:
           - apps/oauth2-proxy/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
           - apps/keycloak/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
           - operations/keycloak-config/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
+          - operations/fineract-config/overlays/${{ steps.env.outputs.env }}/kustomization.yaml
 
           **Next Steps:**
           1. ArgoCD will automatically detect and sync the changes
