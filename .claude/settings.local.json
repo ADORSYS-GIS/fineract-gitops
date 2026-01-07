@@ -68,7 +68,21 @@
       "Bash(for app in fineract-dev-admin-app fineract-dev-account-manager-app fineract-dev-branch-manager-app fineract-dev-reporting-app)",
       "Bash(do)",
       "Bash(for app in fineract-dev-admin-app fineract-dev-account-manager-app fineract-dev-branch-manager-app fineract-dev-reporting-app fineract-dev-cashier-app)",
-      "Bash(xargs kubectl exec -n ingress-nginx -- nginx -s reload)"
+      "Bash(xargs kubectl exec -n ingress-nginx -- nginx -s reload)",
+      "Bash(grep:*)",
+      "Bash(for app in admin-app account-manager-app accounting-app branch-manager-app cashier-app reporting-app web-app)",
+      "Bash(for app in admin-app account-manager-app branch-manager-app cashier-app reporting-app web-app)",
+      "Bash(git diff:*)",
+      "Bash(git checkout:*)",
+      "Bash(for app in admin-app account-manager-app branch-manager-app cashier-app reporting-app)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/account-manager-app -n fineract-dev)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/branch-manager-app -n fineract-dev)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/cashier-app -n fineract-dev)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/reporting-app -n fineract-dev)",
+      "Bash(__NEW_LINE__ echo \"All apps ready\")",
+      "Bash(for app in account-manager-app branch-manager-app cashier-app reporting-app)",
+      "Bash(file=\"/Users/guymoyo/dev/fineract-gitops/apps/accounting-app/base/nginx-configmap.yaml\")",
+      "Bash(perl -i -pe:*)"
     ],
     "deny": [],
     "ask": []

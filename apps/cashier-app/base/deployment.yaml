@@ -48,7 +48,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 1000
       - name: create-symlinks
-        image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:df657e7
+        image: ghcr.io/adorsys-gis/fineract-apps/cashier-app:bde99be
         command:
         - sh
         - -c
