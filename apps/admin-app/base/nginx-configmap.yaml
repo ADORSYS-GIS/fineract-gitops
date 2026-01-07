@@ -24,15 +24,11 @@ data:
             add_header Access-Control-Allow-Origin "*";
         }
 
-        # Handle hardcoded /dist/styles.css by serving the actual hashed CSS file
+        # Handle hardcoded /dist/styles.css by rewriting to the actual hashed CSS file
         # This needs to come before the general /dist/ location
         location = /dist/styles.css {
-            # Serve the actual CSS file with the hash
-            alias /usr/share/nginx/html/assets/index-BSIxc3Va.css;
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-            add_header X-Content-Type-Options "nosniff" always;
-            add_header Access-Control-Allow-Origin "*";
+            # Internally rewrite to the hashed CSS file
+            rewrite ^ /dist/index-BSIxc3Va.css last;
         }
 
         # Serve /assets/ when /dist/ is requested (for backward compatibility)
