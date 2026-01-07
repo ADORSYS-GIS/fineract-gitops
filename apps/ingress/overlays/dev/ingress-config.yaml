@@ -7,9 +7,9 @@ data:
   # AWS ELB hostname - used for all ingress routing
   # IMPORTANT: This hostname MUST match the actual load balancer hostname
   # Update this value after deploying ingress-nginx if the LB hostname changes
-  apps-hostname: ad7be67fe38e44712b52e94133434b30-7308ad1acbe818dc.elb.eu-central-1.amazonaws.com
-  auth-hostname: ad7be67fe38e44712b52e94133434b30-7308ad1acbe818dc.elb.eu-central-1.amazonaws.com
+  apps-hostname: ab3a2dd0eaaba4b9a89246cd98529071-d5c907b8f8072a6a.elb.eu-central-1.amazonaws.com
+  auth-hostname: ab3a2dd0eaaba4b9a89246cd98529071-d5c907b8f8072a6a.elb.eu-central-1.amazonaws.com
   cluster-issuer: selfsigned-issuer
-  auth-signin-url: https://ad7be67fe38e44712b52e94133434b30-7308ad1acbe818dc.elb.eu-central-1.amazonaws.com/oauth2/start?rd=$escaped_request_uri
-  cors-allow-origin-url: https://ad7be67fe38e44712b52e94133434b30-7308ad1acbe818dc.elb.eu-central-1.amazonaws.com
+  auth-signin-url: https://ab3a2dd0eaaba4b9a89246cd98529071-d5c907b8f8072a6a.elb.eu-central-1.amazonaws.com/oauth2/start?rd=$escaped_request_uri
+  cors-allow-origin-url: https://ab3a2dd0eaaba4b9a89246cd98529071-d5c907b8f8072a6a.elb.eu-central-1.amazonaws.com
   auth-url: http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth
