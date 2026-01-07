@@ -45,6 +45,23 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
         }
 
+        # Fineract API proxy - proxy /fineract-provider directly to backend service
+        location /fineract-provider/ {
+            # Proxy directly to fineract backend service
+            proxy_pass https://fineract-read-service.fineract-dev.svc.cluster.local:8443/fineract-provider/;
+            proxy_ssl_verify off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            # Pass through all auth headers from browser
+            proxy_set_header Authorization $http_authorization;
+            proxy_set_header X-Fineract-Platform-TenantId $http_x_fineract_platform_tenantid;
+
+            # No caching for API calls
+            add_header Cache-Control "no-store, no-cache, must-revalidate";
+        }
+
         # API proxy pass (if needed)
         location /api/ {
             proxy_pass http://fineract-read-service:8080;
