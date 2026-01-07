@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: user-sync-service-config
 data:
-  KEYCLOAK_URL: "http://keycloak-service:8080"
+  KEYCLOAK_URL: "http://keycloak-service:8080/auth"
   KEYCLOAK_REALM: "fineract"
