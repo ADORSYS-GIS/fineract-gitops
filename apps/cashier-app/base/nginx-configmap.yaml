@@ -15,6 +15,15 @@ data:
 
         # Cache-Control headers for static assets
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+            # Disable gzip for JS files to allow sub_filter
+            gzip off;
+
+            # Replace hardcoded localhost URLs in JavaScript with empty string (relative URLs)
+            sub_filter_once off;
+            sub_filter_types application/javascript text/javascript;
+            sub_filter 'https://localhost' '';
+            sub_filter '"localhost"' '""';
+
             expires 1y;
             add_header Cache-Control "public, immutable";
             add_header X-Content-Type-Options "nosniff" always;
