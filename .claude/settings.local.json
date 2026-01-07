@@ -61,7 +61,14 @@
       "Bash(do sed -i '' 's/ae236f3783cac47928b7559158f6f5c4-5941149f506864a2/a07aeb697903842c88211f203f81bd30-ba97476a7e017252/g' \"$file\" echo \"Updated: $file\" done)",
       "Bash(kubectl run:*)",
       "Bash(python3:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(argocd app sync:*)",
+      "Bash(for app in fineract-dev-cashier-app fineract-dev-account-manager-app fineract-dev-accounting-app fineract-dev-branch-manager-app fineract-dev-reporting-app)",
+      "Bash(do kubectl patch application $app -n argocd --type json -p='[{\"\"op\"\": \"\"replace\"\", \"\"path\"\": \"\"/operation\"\", \"\"value\"\": {\"\"initiatedBy\"\": {\"\"username\"\": \"\"admin\"\"}, \"\"sync\"\": {\"\"revision\"\": \"\"HEAD\"\"}}}]')",
+      "Bash(for app in fineract-dev-admin-app fineract-dev-account-manager-app fineract-dev-branch-manager-app fineract-dev-reporting-app)",
+      "Bash(do)",
+      "Bash(for app in fineract-dev-admin-app fineract-dev-account-manager-app fineract-dev-branch-manager-app fineract-dev-reporting-app fineract-dev-cashier-app)",
+      "Bash(xargs kubectl exec -n ingress-nginx -- nginx -s reload)"
     ],
     "deny": [],
     "ask": []
