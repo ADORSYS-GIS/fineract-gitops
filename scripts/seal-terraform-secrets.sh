@@ -280,10 +280,11 @@ echo -e "${YELLOW}  Used by: oauth2-proxy, data loader jobs, keycloak realm conf
 OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
 # OAUTH2_CLIENT_SECRET and OAUTH2_COOKIE_SECRET already fetched from Terraform above (before cd ..)
 
-# Generate random secrets for service account clients (admin-cli and fineract-api)
+# Generate random secrets for service account clients (admin-cli, fineract-api, user-sync-service)
 # These are used by backend services for machine-to-machine authentication
 ADMIN_CLI_SECRET=$(openssl rand -base64 32)
 FINERACT_API_SECRET=$(openssl rand -base64 32)
+USER_SYNC_SERVICE_SECRET=$(openssl rand -base64 32)
 
 # Create consolidated keycloak-client-secrets with:
 # - Both client-id AND client-secret for all OAuth clients
@@ -299,7 +300,9 @@ create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "fineract-api-client-id=fineract-api" \
     "fineract-api-client-secret=${FINERACT_API_SECRET}" \
     "fineract-data-loader-client-id=fineract-api" \
-    "fineract-data-loader-client-secret=${FINERACT_API_SECRET}"
+    "fineract-data-loader-client-secret=${FINERACT_API_SECRET}" \
+    "user-sync-service-client-id=user-sync-service" \
+    "user-sync-service-client-secret=${USER_SYNC_SERVICE_SECRET}"
 
 echo
 

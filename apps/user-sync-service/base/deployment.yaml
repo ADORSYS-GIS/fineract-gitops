@@ -23,8 +23,18 @@ spec:
           envFrom:
             - configMapRef:
                 name: user-sync-service-config
-            - secretRef:
-                name: user-sync-service-secrets
+          env:
+            # Keycloak client credentials from consolidated secrets
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: user-sync-service-client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: user-sync-service-client-secret
           resources:
             requests:
               memory: "128Mi"

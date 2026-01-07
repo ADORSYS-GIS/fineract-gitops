@@ -309,6 +309,28 @@ clients:
     # Note: Realm roles for service accounts must be assigned after creation
     # via the Keycloak admin console or a separate script
 
+  # 5. User Sync Service (User management service account)
+  - clientId: "${USER_SYNC_SERVICE_CLIENT_ID}"
+    name: User Sync Service
+    description: Service account for user synchronization between Fineract and Keycloak
+    enabled: true
+
+    # Confidential service account
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "${USER_SYNC_SERVICE_CLIENT_SECRET}"
+    protocol: openid-connect
+
+    # Service account only (client credentials grant)
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+
+    defaultClientScopes:
+      - profile
+      - email
+
 # Client Scopes
 clientScopes:
   - name: fineract-api
@@ -568,6 +590,24 @@ attributes:
   webAuthnPolicyPasswordlessCreateTimeout: 60
   webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister: false
   webAuthnPolicyPasswordlessAcceptableAaguids: '[]'
+
+# Service Account Users - Role Assignments
+# These service accounts are automatically created by Keycloak when clients have
+# serviceAccountsEnabled: true. We define them here to assign realm-management roles.
+users:
+  # User Sync Service Account
+  # Requires manage-users permission to sync users between Fineract and Keycloak
+  - username: service-account-${USER_SYNC_SERVICE_CLIENT_ID}
+    enabled: true
+    serviceAccountClientId: "${USER_SYNC_SERVICE_CLIENT_ID}"
+    clientRoles:
+      realm-management:
+        - manage-users
+        - view-users
+        - query-users
+    attributes:
+      description: ["Service account for user-sync-service - manages user synchronization"]
+      managed_by: ["keycloak-config-cli"]
 
 # Default Users for Development
 # NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
