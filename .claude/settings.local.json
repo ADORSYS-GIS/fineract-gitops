@@ -82,7 +82,20 @@
       "Bash(__NEW_LINE__ echo \"All apps ready\")",
       "Bash(for app in account-manager-app branch-manager-app cashier-app reporting-app)",
       "Bash(file=\"/Users/guymoyo/dev/fineract-gitops/apps/accounting-app/base/nginx-configmap.yaml\")",
-      "Bash(perl -i -pe:*)"
+      "Bash(perl -i -pe:*)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/branch-manager-app -n fineract-dev --timeout=120s)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/cashier-app -n fineract-dev --timeout=120s)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/reporting-app -n fineract-dev --timeout=120s)",
+      "Bash(__NEW_LINE__ kubectl rollout status deployment/account-manager-app -n fineract-dev --timeout=120s)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(xargs kubectl get:*)",
+      "Bash(xargs kubectl logs:*)",
+      "Bash(kubectl top:*)",
+      "Bash(kustomize build:*)",
+      "Bash(kubectl kustomize:*)",
+      "Bash(kubectl wait:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
