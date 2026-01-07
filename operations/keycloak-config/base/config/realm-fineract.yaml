@@ -605,6 +605,7 @@ users:
         - manage-users
         - view-users
         - query-users
+        - view-realm  # Required for admin.get_realm() health check
     attributes:
       description: ["Service account for user-sync-service - manages user synchronization"]
       managed_by: ["keycloak-config-cli"]
