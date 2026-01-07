@@ -62,8 +62,6 @@ data:
             # Disable gzip for HTML to allow sub_filter to work
             gzip off;
 
-
-        location / {
             # Inject base href for subpath deployment
             sub_filter_once off;
             sub_filter_types text/html;
