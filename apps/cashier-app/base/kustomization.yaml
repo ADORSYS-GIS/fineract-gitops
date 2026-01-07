@@ -15,6 +15,3 @@ commonLabels:
 images:
   - name: ghcr.io/adorsys-gis/fineract-apps/cashier-app
     newTag: bde99be
-
-configMapGenerator:
-- name: cashier-app-scripts
