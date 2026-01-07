@@ -163,13 +163,3 @@ replacements:
     select:
       kind: Ingress
       name: fineract-web-app-protected
-- source:
-    fieldPath: data.cors-allow-origin-url
-    kind: ConfigMap
-    name: ingress-config
-  targets:
-  - fieldPaths:
-    - metadata.annotations.[nginx.ingress.kubernetes.io/cors-allow-origin]
-    select:
-      kind: Ingress
-      name: fineract-authentication
