@@ -47,10 +47,18 @@ metadata:
         proxy_set_header Host $host;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
       }
-      # Branch manager app static assets
+      # Branch manager app static assets (correct path)
       location ~* ^/branch/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
         auth_request off;
         rewrite ^/branch/(.*)$ /$1 break;
+        proxy_pass http://branch-manager-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Branch manager app static assets (legacy /branchmanager path from build)
+      location ~* ^/branchmanager/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/branchmanager/(.*)$ /$1 break;
         proxy_pass http://branch-manager-app.fineract-dev.svc.cluster.local:80;
         proxy_set_header Host $host;
         add_header Cache-Control "public, max-age=31536000, immutable" always;

@@ -66,6 +66,9 @@ data:
             sub_filter 'href="/dist/' 'href="/branch/dist/';
             sub_filter 'href="/assets/' 'href="/branch/assets/';
             sub_filter 'src="/assets/' 'src="/branch/assets/';
+            # Fix hardcoded /branchmanager/ paths (HTML was built with wrong base)
+            sub_filter 'href="/branchmanager/' 'href="/branch/';
+            sub_filter 'src="/branchmanager/' 'src="/branch/';
 
             try_files $uri $uri/ /index.html;
             expires 1h;
