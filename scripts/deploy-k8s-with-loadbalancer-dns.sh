@@ -805,6 +805,69 @@ else
 fi
 
 # ============================================================================
+# PHASE 7.4: Validate Sealed Secrets Decryption
+# ============================================================================
+
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PHASE 7.4: Validate Sealed Secrets Decryption${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Validating that sealed secrets can be decrypted..."
+
+# Test decryption by checking if a critical secret exists and has data
+# This catches the case where sealed secrets controller keys don't match
+SECRETS_VALID=true
+SECRETS_CHECKED=0
+
+# Check keycloak-admin-credentials
+if kubectl get secret keycloak-admin-credentials -n fineract-${ENV} -o jsonpath='{.data.username}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
+    log "✓ keycloak-admin-credentials: decrypted successfully"
+    SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+else
+    log_error "✗ keycloak-admin-credentials: failed to decrypt"
+    SECRETS_VALID=false
+fi
+
+# Check fineract-db-credentials
+if kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.host}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
+    log "✓ fineract-db-credentials: decrypted successfully"
+    SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+else
+    log_error "✗ fineract-db-credentials: failed to decrypt"
+    SECRETS_VALID=false
+fi
+
+# Check keycloak-client-secrets
+if kubectl get secret keycloak-client-secrets -n fineract-${ENV} -o jsonpath='{.data.oauth2-proxy-client-id}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
+    log "✓ keycloak-client-secrets: decrypted successfully"
+    SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+else
+    log_error "✗ keycloak-client-secrets: failed to decrypt"
+    SECRETS_VALID=false
+fi
+
+echo
+
+if [ "$SECRETS_VALID" = "true" ]; then
+    log "✓ All sealed secrets validated successfully ($SECRETS_CHECKED secrets checked)"
+else
+    log_error "Sealed secrets validation FAILED!"
+    log_error "This indicates the sealed secrets controller keys don't match the encrypted secrets."
+    log_error ""
+    log_error "To fix this, re-run the deployment with Option 2 (Regenerate sealed secrets)"
+    log_error "or restore the correct controller keys from backup."
+    echo
+    log_info "Debug commands:"
+    echo "  kubectl get sealedsecrets -n fineract-${ENV}"
+    echo "  kubectl logs -n kube-system -l name=sealed-secrets-controller"
+    echo
+    exit 1
+fi
+
+echo
+
+# ============================================================================
 # PHASE 7.5: Verify OAuth2-Proxy Service
 # ============================================================================
 
