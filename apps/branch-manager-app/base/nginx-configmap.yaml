@@ -59,6 +59,11 @@ data:
 
         # SPA fallback - all other routes serve index.html
         location / {
+            # Disable gzip for HTML to allow sub_filter to work
+            gzip off;
+
+
+        location / {
             # Inject base href for subpath deployment
             sub_filter_once off;
             sub_filter_types text/html;
@@ -69,6 +74,8 @@ data:
             # Fix hardcoded /branchmanager/ paths (HTML was built with wrong base)
             sub_filter 'href="/branchmanager/' 'href="/branch/';
             sub_filter 'src="/branchmanager/' 'src="/branch/';
+            # Inject runtime environment configuration
+            sub_filter '<title>' '<script>window.__env__={VITE_FINERACT_API_URL:"",VITE_FINERACT_API_PROVIDER:"/fineract-provider/api/v1",VITE_FINERACT_PLATFORM_TENANT_ID:"default"};</script></head>';
 
             try_files $uri $uri/ /index.html;
             expires 1h;
