@@ -354,6 +354,16 @@ update_operations_configs() {
         ((files_updated++))
     fi
 
+    # Update fineract-config overlay
+    local fineract_config="${REPO_ROOT}/operations/fineract-config/overlays/${ENV}/kustomization.yaml"
+    if [ -f "$fineract_config" ]; then
+        cp "$fineract_config" "${fineract_config}.backup.$(date +%Y%m%d_%H%M%S)"
+        sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$fineract_config"
+        rm -f "${fineract_config}.tmp"
+        log "  ✓ Updated: operations/fineract-config/overlays/${ENV}/kustomization.yaml"
+        ((files_updated++))
+    fi
+
     log "✓ Updated $files_updated file(s) in operations/"
     echo ""
 }
@@ -425,6 +435,7 @@ commit_and_push() {
 
     git add apps/keycloak/overlays/${ENV}/kustomization.yaml
     git add operations/keycloak-config/overlays/${ENV}/kustomization.yaml
+    git add operations/fineract-config/overlays/${ENV}/kustomization.yaml
 
     if [ "$DO_COMMIT" = true ]; then
         local commit_message="chore: auto-update LoadBalancer DNS for ${ENV} environment (${LOADBALANCER_DNS})"
