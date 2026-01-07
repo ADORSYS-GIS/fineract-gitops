@@ -19,7 +19,7 @@ configMapGenerator:
   - name: ingress-config
     behavior: merge
     literals:
-      - auth-hostname=ab3a2dd0eaaba4b9a89246cd98529071-d5c907b8f8072a6a.elb.eu-central-1.amazonaws.com
+      - auth-hostname=a205fc3bee43041e5aa2a9a30cb6ac6a-38a8acae97b657d4.elb.eu-central-1.amazonaws.com
 
 patches:
   - patch: |-
@@ -34,13 +34,13 @@ patches:
             - name: keycloak
               env:
               - name: KC_HOSTNAME
-                value: ab3a2dd0eaaba4b9a89246cd98529071-d5c907b8f8072a6a.elb.eu-central-1.amazonaws.com
+                value: a205fc3bee43041e5aa2a9a30cb6ac6a-38a8acae97b657d4.elb.eu-central-1.amazonaws.com
               - name: KC_HOSTNAME_STRICT
-                value: "false"
+                value: a205fc3bee43041e5aa2a9a30cb6ac6a-38a8acae97b657d4.elb.eu-central-1.amazonaws.com"false"
               - name: KC_HTTP_ENABLED
-                value: "true"
+                value: a205fc3bee43041e5aa2a9a30cb6ac6a-38a8acae97b657d4.elb.eu-central-1.amazonaws.com"true"
               - name: KC_PROXY
-                value: "edge"
+                value: a205fc3bee43041e5aa2a9a30cb6ac6a-38a8acae97b657d4.elb.eu-central-1.amazonaws.com"edge"
     target:
       kind: Deployment
       name: keycloak

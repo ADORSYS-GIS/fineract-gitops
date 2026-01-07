@@ -601,6 +601,19 @@ echo -e "${BLUE}PHASE 4: Commit Configuration Changes to Git${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo
 
+# Define config files that auto-update-lb-dns.sh modifies
+declare -a CONFIG_FILES=(
+    "config/loadbalancer-dns-configmap.yaml"
+    "environments/${ENV}/loadbalancer-config.yaml"
+    "environments/${ENV}/fineract-oauth2-config-patch.yaml"
+    "apps/ingress/overlays/${ENV}/ingress-config.yaml"
+    "apps/ingress/overlays/${ENV}/kustomization.yaml"
+    "apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml"
+    "apps/keycloak/overlays/${ENV}/kustomization.yaml"
+    "operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
+    "operations/fineract-config/overlays/${ENV}/kustomization.yaml"
+)
+
 # Check if there are changes to commit
 if git diff --quiet; then
     log_warn "No configuration changes detected (configs may already be correct)"
@@ -610,12 +623,15 @@ else
     # Add modified config files
     for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
         if [ -f "$CONFIG_FILE" ]; then
-            git add "$CONFIG_FILE"
+            git add "$CONFIG_FILE" 2>/dev/null || true
         fi
     done
 
-    # Commit changes
-    git commit -m "$(cat <<EOF
+    # Commit changes (use --allow-empty to handle case where all files are already tracked)
+    if git diff --cached --quiet; then
+        log_warn "No new changes to commit (files may already be up-to-date)"
+    else
+        git commit -m "$(cat <<EOF
 chore: update configs with LoadBalancer DNS for ${ENV}
 
 Automated update using LoadBalancer DNS: ${LB_DNS}
@@ -628,8 +644,8 @@ This commit was generated automatically by:
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
-
-    log "✓ Configuration changes committed to Git"
+        log "✓ Configuration changes committed to Git"
+    fi
 fi
 
 echo
