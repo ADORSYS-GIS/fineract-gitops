@@ -328,8 +328,11 @@ update_app_overlays() {
     if [ -f "$keycloak_config" ]; then
         cp "$keycloak_config" "${keycloak_config}.backup.$(date +%Y%m%d_%H%M%S)"
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$keycloak_config"
-        # Match both ELB hostnames and PENDING placeholders in KC_HOSTNAME value
-        sed -i.tmp "s|value: [A-Za-z0-9._-]*|value: ${LOADBALANCER_DNS}|g" "$keycloak_config"
+        # Only replace KC_HOSTNAME value - match ELB DNS patterns specifically
+        # Pattern matches: hex-hex.elb.region.amazonaws.com (LoadBalancer DNS format)
+        sed -i.tmp 's|value: [a-f0-9]\{32\}-[a-f0-9]\{16\}\.elb\.[a-z0-9-]*\.amazonaws\.com|value: '"${LOADBALANCER_DNS}"'|g' "$keycloak_config"
+        # Also match PENDING placeholder if used
+        sed -i.tmp "s|value: PENDING_LOADBALANCER_DNS|value: ${LOADBALANCER_DNS}|g" "$keycloak_config"
         rm -f "${keycloak_config}.tmp"
         log "  ✓ Updated: apps/keycloak/overlays/${ENV}/kustomization.yaml"
         ((files_updated++))
