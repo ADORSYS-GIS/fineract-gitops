@@ -14,10 +14,10 @@ data:
 
   # Primary Load Balancer DNS/Hostname
   # Automatically populated after deployment
-  lb-dns: "afa94d01b9b104ba38f4b2d46be4f325-52f4b3ca40580c24.elb.eu-central-1.amazonaws.com"
+  lb-dns: "ae9a10270bf0b433ebaa236cd768484c-4fced772ae408ab9.elb.eu-central-1.amazonaws.com"
 
   # Environment label for tracking
   environment: "dev"
 
   # Last update timestamp (for monitoring)
-  last-updated: "2026-01-07T20:01:30Z"
+  last-updated: "2026-01-07T21:24:21Z"
