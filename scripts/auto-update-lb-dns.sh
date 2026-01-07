@@ -218,9 +218,6 @@ update_central_configmap() {
         exit 1
     fi
 
-    # Backup original
-    cp "$config_file" "${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
-
     # Update lb-dns value
     sed -i.tmp "s|lb-dns: \".*\"|lb-dns: \"${LOADBALANCER_DNS}\"|g" "$config_file"
     rm -f "${config_file}.tmp"
@@ -248,7 +245,6 @@ update_environment_configs() {
     # Update loadbalancer-config.yaml
     local lb_config="${env_dir}/loadbalancer-config.yaml"
     if [ -f "$lb_config" ]; then
-        cp "$lb_config" "${lb_config}.backup.$(date +%Y%m%d_%H%M%S)"
         sed -i.tmp "s|LOADBALANCER_DNS: \".*\"|LOADBALANCER_DNS: \"${LOADBALANCER_DNS}\"|g" "$lb_config"
         sed -i.tmp "s|APPS_HOSTNAME: \".*\"|APPS_HOSTNAME: \"${LOADBALANCER_DNS}\"|g" "$lb_config"
         sed -i.tmp "s|AUTH_HOSTNAME: \".*\"|AUTH_HOSTNAME: \"${LOADBALANCER_DNS}\"|g" "$lb_config"
@@ -260,7 +256,6 @@ update_environment_configs() {
     # Update fineract-oauth2-config-patch.yaml
     local oauth_patch="${env_dir}/fineract-oauth2-config-patch.yaml"
     if [ -f "$oauth_patch" ]; then
-        cp "$oauth_patch" "${oauth_patch}.backup.$(date +%Y%m%d_%H%M%S)"
         # Update OIDC issuer URL with new LoadBalancer DNS
         sed -i.tmp "s|oidc-issuer-url: \".*\"|oidc-issuer-url: \"https://${LOADBALANCER_DNS}/auth/realms/fineract\"|g" "$oauth_patch"
         rm -f "${oauth_patch}.tmp"
@@ -282,7 +277,6 @@ update_app_overlays() {
     # Check if ingress-config.yaml exists (All environments now use this format)
     local ingress_config_yaml="${REPO_ROOT}/apps/ingress/overlays/${ENV}/ingress-config.yaml"
     if [ -f "$ingress_config_yaml" ]; then
-        cp "$ingress_config_yaml" "${ingress_config_yaml}.backup.$(date +%Y%m%d_%H%M%S)}"
         sed -i.tmp "s|apps-hostname: .*|apps-hostname: ${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
         sed -i.tmp "s|auth-hostname: .*|auth-hostname: ${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
         # Match both ELB hostnames and PENDING placeholders
@@ -295,7 +289,6 @@ update_app_overlays() {
         # Fallback: This should not be needed anymore as all environments use ingress-config.yaml
         local ingress_kustomization="${REPO_ROOT}/apps/ingress/overlays/${ENV}/kustomization.yaml"
         if [ -f "$ingress_kustomization" ]; then
-            cp "$ingress_kustomization" "${ingress_kustomization}.backup.$(date +%Y%m%d_%H%M%S)}"
             sed -i.tmp "s|- apps-hostname=.*|- apps-hostname=${LOADBALANCER_DNS}|g" "$ingress_kustomization"
             sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$ingress_kustomization"
             rm -f "${ingress_kustomization}.tmp"
@@ -311,7 +304,6 @@ update_app_overlays() {
     if [ -f "$oauth_config" ]; then
         # Check if file has configMapGenerator with apps-hostname (Dev environment pattern)
         if grep -q "configMapGenerator:" "$oauth_config" && grep -q "apps-hostname=" "$oauth_config"; then
-            cp "$oauth_config" "${oauth_config}.backup.$(date +%Y%m%d_%H%M%S)"
             sed -i.tmp "s|- apps-hostname=.*|- apps-hostname=${LOADBALANCER_DNS}|g" "$oauth_config"
             sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$oauth_config"
             rm -f "${oauth_config}.tmp"
@@ -326,7 +318,6 @@ update_app_overlays() {
     # Update keycloak config
     local keycloak_config="${REPO_ROOT}/apps/keycloak/overlays/${ENV}/kustomization.yaml"
     if [ -f "$keycloak_config" ]; then
-        cp "$keycloak_config" "${keycloak_config}.backup.$(date +%Y%m%d_%H%M%S)"
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$keycloak_config"
         # Only replace KC_HOSTNAME value - match ELB DNS patterns specifically
         # Pattern matches: hex-hex.elb.region.amazonaws.com (LoadBalancer DNS format)
@@ -351,7 +342,6 @@ update_operations_configs() {
     # Update keycloak-config overlay
     local kc_config="${REPO_ROOT}/operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
     if [ -f "$kc_config" ]; then
-        cp "$kc_config" "${kc_config}.backup.$(date +%Y%m%d_%H%M%S)"
         sed -i.tmp "s|- apps-hostname=.*|- apps-hostname=${LOADBALANCER_DNS}|g" "$kc_config"
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$kc_config"
         rm -f "${kc_config}.tmp"
@@ -362,7 +352,6 @@ update_operations_configs() {
     # Update fineract-config overlay
     local fineract_config="${REPO_ROOT}/operations/fineract-config/overlays/${ENV}/kustomization.yaml"
     if [ -f "$fineract_config" ]; then
-        cp "$fineract_config" "${fineract_config}.backup.$(date +%Y%m%d_%H%M%S)"
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$fineract_config"
         rm -f "${fineract_config}.tmp"
         log "  ✓ Updated: operations/fineract-config/overlays/${ENV}/kustomization.yaml"
@@ -505,15 +494,6 @@ print_summary() {
     echo ""
 }
 
-# Cleanup old backups
-cleanup_backups() {
-    log_info "Cleaning up old backups (keeping last 5)..."
-    find "${REPO_ROOT}/environments/${ENV}" -name "*.backup.*" -type f 2>/dev/null | sort -r | tail -n +6 | xargs rm -f 2>/dev/null || true
-    find "${REPO_ROOT}/apps/ingress/overlays/${ENV}" -name "*.backup.*" -type f 2>/dev/null | sort -r | tail -n +6 | xargs rm -f 2>/dev/null || true
-    find "${REPO_ROOT}/apps/oauth2-proxy/overlays/${ENV}" -name "*.backup.*" -type f 2>/dev/null | sort -r | tail -n +6 | xargs rm -f 2>/dev/null || true
-    find "${REPO_ROOT}/apps/keycloak/overlays/${ENV}" -name "*.backup.*" -type f 2>/dev/null | sort -r | tail -n +6 | xargs rm -f 2>/dev/null || true
-}
-
 # Main execution
 main() {
     # Execute steps
@@ -525,7 +505,6 @@ main() {
     validate_consistency
     commit_and_push
     trigger_argocd_sync
-    cleanup_backups
 
     # Print summary
     print_summary

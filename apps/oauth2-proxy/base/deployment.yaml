@@ -40,7 +40,11 @@ spec:
                   app: oauth2-proxy
               topologyKey: kubernetes.io/hostname
 
-      # Wait for Keycloak realm to be created
+      # Wait for Keycloak realm to be fully configured by keycloak-config job
+      # NOTE: This init container must wait for realm configuration to be COMPLETE,
+      # not just for the realm endpoint to be accessible. The keycloak-config job
+      # applies the realm configuration (including frontendUrl/auth endpoint settings)
+      # which OAuth2 Proxy needs for OIDC discovery.
       initContainers:
       - name: wait-for-fineract-realm
         image: curlimages/curl
@@ -49,35 +53,45 @@ spec:
         - -c
         - |
           echo "========================================="
-          echo "Waiting for Keycloak Fineract Realm"
+          echo "Waiting for Keycloak Realm Configuration"
           echo "========================================="
+          echo "This waits for keycloak-config job to fully configure the realm,"
+          echo "not just for the realm endpoint to be accessible."
+          echo ""
 
-          MAX_RETRIES=60
+          MAX_RETRIES=90  # 7.5 minutes (increased to allow keycloak-config job to complete)
           RETRY_COUNT=0
 
           until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
-            # Try to fetch the fineract realm
-            if curl -f -s http://keycloak-service:8080/auth/realms/fineract > /dev/null 2>&1; then
-              echo "✓ Fineract realm is accessible!"
+            # Fetch OIDC discovery configuration
+            OIDC_CONFIG=$(curl -f -s http://keycloak-service:8080/auth/realms/fineract/.well-known/openid-configuration 2>/dev/null || echo "")
 
-              # Additional check: verify OIDC configuration is available
-              if curl -f -s http://keycloak-service:8080/auth/realms/fineract/.well-known/openid-configuration > /dev/null 2>&1; then
-                echo "✓ OIDC configuration endpoint is available!"
+            if [ -n "$OIDC_CONFIG" ]; then
+              # Extract authorization_endpoint from OIDC discovery
+              AUTH_ENDPOINT=$(echo "$OIDC_CONFIG" | grep -o '"authorization_endpoint":"[^"]*"' | head -1)
+
+              # Verify the auth endpoint is properly configured (not localhost or unconfigured)
+              # keycloak-config job sets the frontendUrl which determines this endpoint
+              if echo "$AUTH_ENDPOINT" | grep -qv "localhost"; then
+                echo "✓ Keycloak realm is fully configured!"
+                echo "  $AUTH_ENDPOINT"
+                echo ""
                 echo "Keycloak realm 'fineract' is ready for OAuth2 Proxy!"
                 echo "========================================="
                 exit 0
               else
-                echo "⚠  Realm exists but OIDC configuration not ready yet..."
+                echo "⚠  Realm exists but frontendUrl not yet configured (keycloak-config job still running)..."
               fi
             fi
 
             RETRY_COUNT=$((RETRY_COUNT + 1))
-            echo "Fineract realm not ready yet (attempt $RETRY_COUNT/$MAX_RETRIES), waiting 5s..."
+            echo "Waiting for realm configuration (attempt $RETRY_COUNT/$MAX_RETRIES)..."
             sleep 5
           done
 
-          echo "❌ Fineract realm did not become available within timeout"
+          echo "❌ Timeout waiting for Keycloak realm configuration"
           echo "This likely means the keycloak-config job has not completed successfully."
+          echo "Check the apply-keycloak-config job logs for errors."
           exit 1
         resources:
           requests:
