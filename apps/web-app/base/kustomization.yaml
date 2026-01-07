@@ -12,3 +12,7 @@ commonLabels:
   app.kubernetes.io/name: web-app
   app.kubernetes.io/component: frontend
   app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: ghcr.io/adorsys-gis/mifos-web-app
+    newTag: mifosweb-11ce49c

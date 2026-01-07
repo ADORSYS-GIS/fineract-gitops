@@ -11,5 +11,10 @@ commonLabels:
   app.kubernetes.io/name: cashier-app
   app.kubernetes.io/component: frontend
   app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: ghcr.io/adorsys-gis/fineract-apps/cashier-app
+    newTag: bde99be
+
 configMapGenerator:
 - name: cashier-app-scripts

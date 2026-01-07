@@ -11,3 +11,7 @@ commonLabels:
   app.kubernetes.io/name: branch-manager-app
   app.kubernetes.io/component: frontend
   app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: ghcr.io/adorsys-gis/fineract-apps/branch-manager-app
+    newTag: bde99be
