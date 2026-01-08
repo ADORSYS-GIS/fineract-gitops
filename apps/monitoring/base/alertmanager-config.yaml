@@ -34,6 +34,15 @@ stringData:
 
       # Child routes
       routes:
+      # Auto-rollback alerts - highest priority
+      - match:
+          auto_rollback: enabled
+        receiver: auto-rollback-webhook
+        group_wait: 10s
+        group_interval: 1m
+        repeat_interval: 15m
+        continue: true  # Also send to other receivers
+
       # Critical alerts - send immediately
       - match:
           severity: critical
@@ -59,6 +68,13 @@ stringData:
     - name: 'default'
       # webhook_configs:
       # - url: 'http://webhook-receiver:8080/alerts'
+
+    # Auto-rollback webhook
+    - name: 'auto-rollback-webhook'
+      webhook_configs:
+      - url: 'http://auto-rollback-webhook.argocd.svc.cluster.local:8080/alerts'
+        send_resolved: false
+        max_alerts: 10
 
     # Critical alerts - multiple channels
     - name: 'critical-alerts'

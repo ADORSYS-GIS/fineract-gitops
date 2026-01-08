@@ -1,0 +1,262 @@
+name: Post-Deployment Smoke Tests
+
+on:
+  # Trigger after ArgoCD syncs (via repository dispatch)
+  repository_dispatch:
+    types:
+      - deployment-completed
+      - run-smoke-tests
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        type: choice
+        options:
+          - dev
+          - uat
+          - production
+      base_url:
+        description: 'Base URL for the environment (optional, will use default if not provided)'
+        required: false
+        type: string
+
+env:
+  DEV_BASE_URL: https://dev.fineract.example.com
+  UAT_BASE_URL: https://uat.fineract.example.com
+  PROD_BASE_URL: https://fineract.example.com
+
+jobs:
+  smoke-tests:
+    name: Run Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENV="${{ inputs.environment }}"
+            CUSTOM_URL="${{ inputs.base_url }}"
+          else
+            ENV="${{ github.event.client_payload.environment || 'dev' }}"
+            CUSTOM_URL="${{ github.event.client_payload.base_url || '' }}"
+          fi
+
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+
+          # Set base URL
+          if [ -n "$CUSTOM_URL" ]; then
+            echo "base_url=$CUSTOM_URL" >> $GITHUB_OUTPUT
+          elif [ "$ENV" == "production" ]; then
+            echo "base_url=${{ env.PROD_BASE_URL }}" >> $GITHUB_OUTPUT
+          elif [ "$ENV" == "uat" ]; then
+            echo "base_url=${{ env.UAT_BASE_URL }}" >> $GITHUB_OUTPUT
+          else
+            echo "base_url=${{ env.DEV_BASE_URL }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services to stabilize after deployment..."
+          sleep 30
+
+      - name: Test Fineract API Health
+        id: fineract_health
+        continue-on-error: true
+        run: |
+          BASE_URL="${{ steps.env.outputs.base_url }}"
+          echo "Testing Fineract API at $BASE_URL"
+
+          # Health endpoint
+          HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            "$BASE_URL/fineract-provider/actuator/health" || echo "000")
+
+          echo "Health endpoint response: $HEALTH_RESPONSE"
+
+          if [ "$HEALTH_RESPONSE" == "200" ]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "Fineract API health check: PASSED"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "Fineract API health check: FAILED (HTTP $HEALTH_RESPONSE)"
+          fi
+
+      - name: Test Fineract API Actuator Info
+        id: fineract_info
+        continue-on-error: true
+        run: |
+          BASE_URL="${{ steps.env.outputs.base_url }}"
+
+          # Actuator info endpoint
+          INFO_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            "$BASE_URL/fineract-provider/actuator/info" || echo "000")
+
+          echo "Info endpoint response: $INFO_RESPONSE"
+
+          if [ "$INFO_RESPONSE" == "200" ]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "Fineract API info check: PASSED"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "Fineract API info check: FAILED (HTTP $INFO_RESPONSE)"
+          fi
+
+      - name: Test Keycloak Health
+        id: keycloak_health
+        continue-on-error: true
+        run: |
+          BASE_URL="${{ steps.env.outputs.base_url }}"
+
+          # Keycloak health endpoint
+          KC_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            "$BASE_URL/auth/health" || echo "000")
+
+          echo "Keycloak health response: $KC_RESPONSE"
+
+          if [ "$KC_RESPONSE" == "200" ]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "Keycloak health check: PASSED"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "Keycloak health check: FAILED (HTTP $KC_RESPONSE)"
+          fi
+
+      - name: Test Keycloak Realm
+        id: keycloak_realm
+        continue-on-error: true
+        run: |
+          BASE_URL="${{ steps.env.outputs.base_url }}"
+
+          # Keycloak realm endpoint
+          REALM_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            "$BASE_URL/auth/realms/fineract" || echo "000")
+
+          echo "Keycloak realm response: $REALM_RESPONSE"
+
+          if [ "$REALM_RESPONSE" == "200" ]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "Keycloak realm check: PASSED"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "Keycloak realm check: FAILED (HTTP $REALM_RESPONSE)"
+          fi
+
+      - name: Test Frontend Apps
+        id: frontend_health
+        continue-on-error: true
+        run: |
+          BASE_URL="${{ steps.env.outputs.base_url }}"
+          FAILED_APPS=""
+
+          # Test each frontend app
+          for app in admin accounting cashier branchmanager reporting web; do
+            APP_URL="$BASE_URL/$app"
+            APP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 30 \
+              "$APP_URL/" || echo "000")
+
+            if [ "$APP_RESPONSE" == "200" ] || [ "$APP_RESPONSE" == "301" ] || [ "$APP_RESPONSE" == "302" ]; then
+              echo "$app app: PASSED (HTTP $APP_RESPONSE)"
+            else
+              echo "$app app: FAILED (HTTP $APP_RESPONSE)"
+              FAILED_APPS="$FAILED_APPS $app"
+            fi
+          done
+
+          if [ -z "$FAILED_APPS" ]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "All frontend apps: PASSED"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "Failed frontend apps:$FAILED_APPS"
+          fi
+
+      - name: Test OAuth2 Proxy
+        id: oauth2_proxy
+        continue-on-error: true
+        run: |
+          BASE_URL="${{ steps.env.outputs.base_url }}"
+
+          # OAuth2 proxy ping endpoint
+          OAUTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            "$BASE_URL/oauth2/ping" || echo "000")
+
+          echo "OAuth2 proxy response: $OAUTH_RESPONSE"
+
+          if [ "$OAUTH_RESPONSE" == "200" ]; then
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "OAuth2 proxy check: PASSED"
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "OAuth2 proxy check: FAILED (HTTP $OAUTH_RESPONSE)"
+          fi
+
+      - name: Generate Test Summary
+        run: |
+          echo "## Smoke Test Results - ${{ steps.env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ steps.env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Base URL**: ${{ steps.env.outputs.base_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Fineract API Health | ${{ steps.fineract_health.outputs.result == 'pass' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fineract API Info | ${{ steps.fineract_info.outputs.result == 'pass' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Keycloak Health | ${{ steps.keycloak_health.outputs.result == 'pass' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Keycloak Realm | ${{ steps.keycloak_realm.outputs.result == 'pass' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Apps | ${{ steps.frontend_health.outputs.result == 'pass' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OAuth2 Proxy | ${{ steps.oauth2_proxy.outputs.result == 'pass' && 'PASS' || 'FAIL' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check Overall Result
+        run: |
+          FAILED=0
+
+          # Check critical services
+          if [ "${{ steps.fineract_health.outputs.result }}" != "pass" ]; then
+            echo "CRITICAL: Fineract API health check failed"
+            FAILED=1
+          fi
+
+          if [ "${{ steps.keycloak_health.outputs.result }}" != "pass" ]; then
+            echo "CRITICAL: Keycloak health check failed"
+            FAILED=1
+          fi
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "SMOKE TESTS FAILED - Critical services are not healthy"
+            exit 1
+          fi
+
+          echo ""
+          echo "SMOKE TESTS PASSED - All critical services are healthy"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "### SMOKE TESTS FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Critical services failed health checks after deployment." >> $GITHUB_STEP_SUMMARY
+          echo "Consider rolling back the deployment." >> $GITHUB_STEP_SUMMARY
+
+          # Here you could add Slack/email notification
+          # curl -X POST "$SLACK_WEBHOOK_URL" -d "{\"text\": \"Smoke tests failed for ${{ steps.env.outputs.environment }}\"}"

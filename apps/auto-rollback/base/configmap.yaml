@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auto-rollback-config
+  namespace: argocd
+data:
+  config.yaml: |
+    # Auto-rollback configuration
+    argocd:
+      server: argocd-server.argocd.svc.cluster.local:443
+      insecure: true  # Using internal service, TLS handled by service mesh
+
+    # Application name mapping (deployment name -> ArgoCD app name)
+    app_mapping:
+      fineract-write: fineract
+      fineract-read: fineract
+      fineract-batch: fineract
+      keycloak: keycloak
+      admin-app: admin-app
+      account-manager-app: account-manager-app
+      branch-manager-app: branch-manager-app
+      cashier-app: cashier-app
+      reporting-app: reporting-app
+      accounting-app: accounting-app
+      web-app: web-app
+      user-sync-service: user-sync-service
+      oauth2-proxy: oauth2-proxy
+
+    # Rollback settings
+    rollback:
+      enabled: true
+      max_rollbacks_per_hour: 3
+      cooldown_minutes: 15
+      dry_run: false  # Set to true to test without actual rollback
+
+    # Notifications
+    notifications:
+      slack_enabled: false
+      # slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+  rollback.sh: |
+    #!/bin/bash
+    set -e
+
+    APP_NAME="$1"
+    NAMESPACE="$2"
+    REASON="$3"
+
+    if [ -z "$APP_NAME" ] || [ -z "$NAMESPACE" ]; then
+      echo "Usage: rollback.sh <app_name> <namespace> [reason]"
+      exit 1
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Initiating rollback for $APP_NAME in $NAMESPACE"
+    echo "Reason: ${REASON:-Unknown}"
+
+    # Get ArgoCD token
+    ARGOCD_TOKEN=$(cat /var/run/secrets/argocd/token 2>/dev/null || echo "")
+
+    if [ -z "$ARGOCD_TOKEN" ]; then
+      echo "Error: ArgoCD token not found"
+      exit 1
+    fi
+
+    # Get current deployment revision
+    CURRENT_REVISION=$(curl -s -k \
+      -H "Authorization: Bearer $ARGOCD_TOKEN" \
+      "https://argocd-server.argocd.svc.cluster.local/api/v1/applications/$APP_NAME" \
+      | jq -r '.status.history[-1].id // empty')
+
+    if [ -z "$CURRENT_REVISION" ]; then
+      echo "Error: Could not get current revision"
+      exit 1
+    fi
+
+    # Get previous revision
+    PREVIOUS_REVISION=$(curl -s -k \
+      -H "Authorization: Bearer $ARGOCD_TOKEN" \
+      "https://argocd-server.argocd.svc.cluster.local/api/v1/applications/$APP_NAME" \
+      | jq -r '.status.history[-2].id // empty')
+
+    if [ -z "$PREVIOUS_REVISION" ]; then
+      echo "Error: No previous revision available for rollback"
+      exit 1
+    fi
+
+    echo "Rolling back from revision $CURRENT_REVISION to $PREVIOUS_REVISION"
+
+    # Execute rollback
+    ROLLBACK_RESULT=$(curl -s -k -X POST \
+      -H "Authorization: Bearer $ARGOCD_TOKEN" \
+      -H "Content-Type: application/json" \
+      "https://argocd-server.argocd.svc.cluster.local/api/v1/applications/$APP_NAME/rollback" \
+      -d "{\"id\": \"$PREVIOUS_REVISION\"}")
+
+    if echo "$ROLLBACK_RESULT" | jq -e '.metadata.name' > /dev/null 2>&1; then
+      echo "Rollback initiated successfully"
+      echo "Result: $ROLLBACK_RESULT" | jq '.metadata.name, .status.sync.status'
+    else
+      echo "Rollback may have failed. Response: $ROLLBACK_RESULT"
+      exit 1
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Rollback completed for $APP_NAME"

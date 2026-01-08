@@ -1,0 +1,335 @@
+name: Update Image Tags
+
+on:
+  repository_dispatch:
+    types:
+      - update-image-tag
+      - update-frontend-images
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Application name (e.g., admin-app, web-app, user-sync-service)'
+        required: true
+        type: string
+      tag:
+        description: 'New image tag (e.g., abc1234)'
+        required: true
+        type: string
+      branch:
+        description: 'Source branch (develop or main)'
+        required: true
+        type: choice
+        options:
+          - develop
+          - main
+      create_pr:
+        description: 'Create PR instead of direct commit'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  GIT_AUTHOR_NAME: github-actions[bot]
+  GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+  GIT_COMMITTER_NAME: github-actions[bot]
+  GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+
+jobs:
+  update-single-image:
+    name: Update Single Image Tag
+    if: github.event_name == 'workflow_dispatch' || github.event.action == 'update-image-tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set variables
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "app=${{ inputs.app }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ inputs.branch }}" >> $GITHUB_OUTPUT
+            echo "create_pr=${{ inputs.create_pr }}" >> $GITHUB_OUTPUT
+          else
+            echo "app=${{ github.event.client_payload.app }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.client_payload.branch }}" >> $GITHUB_OUTPUT
+            # Always create PR for automated updates
+            echo "create_pr=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine target branch
+        id: target
+        run: |
+          SOURCE_BRANCH="${{ steps.vars.outputs.branch }}"
+          if [ "$SOURCE_BRANCH" == "main" ]; then
+            echo "base_branch=main" >> $GITHUB_OUTPUT
+          else
+            echo "base_branch=deploy-key" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ steps.target.outputs.base_branch }}
+
+      - name: Determine kustomization path
+        id: path
+        run: |
+          APP="${{ steps.vars.outputs.app }}"
+
+          # Map app names to kustomization paths
+          case "$APP" in
+            admin|admin-app)
+              echo "path=apps/admin-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/admin-app" >> $GITHUB_OUTPUT
+              echo "app_name=admin-app" >> $GITHUB_OUTPUT
+              ;;
+            account-manager|account-manager-app)
+              echo "path=apps/account-manager-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/account-manager-app" >> $GITHUB_OUTPUT
+              echo "app_name=account-manager-app" >> $GITHUB_OUTPUT
+              ;;
+            branch-manager|branch-manager-app)
+              echo "path=apps/branch-manager-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/branch-manager-app" >> $GITHUB_OUTPUT
+              echo "app_name=branch-manager-app" >> $GITHUB_OUTPUT
+              ;;
+            cashier|cashier-app)
+              echo "path=apps/cashier-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/cashier-app" >> $GITHUB_OUTPUT
+              echo "app_name=cashier-app" >> $GITHUB_OUTPUT
+              ;;
+            reporting|reporting-app)
+              echo "path=apps/reporting-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/reporting-app" >> $GITHUB_OUTPUT
+              echo "app_name=reporting-app" >> $GITHUB_OUTPUT
+              ;;
+            accounting|accounting-app)
+              echo "path=apps/accounting-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/accounting-app" >> $GITHUB_OUTPUT
+              echo "app_name=accounting-app" >> $GITHUB_OUTPUT
+              ;;
+            web-app|mifos-web-app)
+              echo "path=apps/web-app/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/mifos-web-app" >> $GITHUB_OUTPUT
+              echo "app_name=web-app" >> $GITHUB_OUTPUT
+              ;;
+            user-sync-service|user-sync)
+              echo "path=apps/user-sync-service/base/kustomization.yaml" >> $GITHUB_OUTPUT
+              echo "image=ghcr.io/adorsys-gis/fineract-apps/user-sync-service" >> $GITHUB_OUTPUT
+              echo "app_name=user-sync-service" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "Unknown app: $APP"
+              exit 1
+              ;;
+          esac
+
+      - name: Create feature branch
+        id: feature_branch
+        if: steps.vars.outputs.create_pr == 'true'
+        run: |
+          APP="${{ steps.path.outputs.app_name }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="update/${APP}/${TAG}-${TIMESTAMP}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Update image tag
+        run: |
+          KUSTOMIZATION_FILE="${{ steps.path.outputs.path }}"
+          NEW_TAG="${{ steps.vars.outputs.tag }}"
+          IMAGE="${{ steps.path.outputs.image }}"
+
+          echo "Updating $KUSTOMIZATION_FILE"
+          echo "Image: $IMAGE"
+          echo "New tag: $NEW_TAG"
+
+          # Check if images section exists
+          if grep -q "^images:" "$KUSTOMIZATION_FILE"; then
+            # Update existing image tag using sed
+            sed -i "s|newTag: .*|newTag: $NEW_TAG|" "$KUSTOMIZATION_FILE"
+          else
+            # Add images section
+            cat >> "$KUSTOMIZATION_FILE" << EOF
+
+images:
+  - name: $IMAGE
+    newTag: $NEW_TAG
+EOF
+          fi
+
+          echo "Updated kustomization:"
+          cat "$KUSTOMIZATION_FILE"
+
+      - name: Commit changes
+        run: |
+          APP="${{ steps.path.outputs.app_name }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+          BRANCH="${{ steps.vars.outputs.branch }}"
+
+          git add .
+
+          # Check if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "no_changes=true" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          git commit -m "chore($APP): update image tag to $TAG
+
+Triggered by $BRANCH branch build in fineract-apps repository."
+
+      - name: Push and create PR
+        if: steps.vars.outputs.create_pr == 'true' && env.no_changes != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APP="${{ steps.path.outputs.app_name }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+          BRANCH="${{ steps.vars.outputs.branch }}"
+          FEATURE_BRANCH="${{ steps.feature_branch.outputs.branch_name }}"
+          BASE_BRANCH="${{ steps.target.outputs.base_branch }}"
+
+          git push -u origin "$FEATURE_BRANCH"
+
+          # Create PR
+          gh pr create \
+            --title "chore($APP): update image tag to $TAG" \
+            --body "## Summary
+- Updates $APP image tag to \`$TAG\`
+- Triggered by \`$BRANCH\` branch build in fineract-apps
+
+## Changes
+- Updated \`${{ steps.path.outputs.path }}\`
+
+## Auto-generated
+This PR was automatically created by the image update workflow." \
+            --base "$BASE_BRANCH" \
+            --head "$FEATURE_BRANCH"
+
+      - name: Direct push (if PR not requested)
+        if: steps.vars.outputs.create_pr != 'true' && env.no_changes != 'true'
+        run: |
+          git push
+
+      - name: Generate summary
+        run: |
+          echo "### Image Tag Updated Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| App | ${{ steps.path.outputs.app_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | ${{ steps.vars.outputs.tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Branch | ${{ steps.vars.outputs.branch }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| File | ${{ steps.path.outputs.path }} |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.vars.outputs.create_pr }}" == "true" ]; then
+            echo "| PR Branch | ${{ steps.feature_branch.outputs.branch_name }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  update-frontend-images:
+    name: Update All Frontend Images
+    if: github.event.action == 'update-frontend-images'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine target branch
+        id: target
+        run: |
+          SOURCE_BRANCH="${{ github.event.client_payload.branch }}"
+          if [ "$SOURCE_BRANCH" == "main" ]; then
+            echo "base_branch=main" >> $GITHUB_OUTPUT
+          else
+            echo "base_branch=deploy-key" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ steps.target.outputs.base_branch }}
+
+      - name: Create feature branch
+        id: feature_branch
+        run: |
+          TAG="${{ github.event.client_payload.tag }}"
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="update/frontend-apps/${TAG}-${TIMESTAMP}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Update all frontend image tags
+        run: |
+          TAG="${{ github.event.client_payload.tag }}"
+          APPS='${{ github.event.client_payload.apps }}'
+
+          echo "Updating frontend apps to tag: $TAG"
+          echo "Apps to update: $APPS"
+
+          # Parse apps JSON array
+          for app in $(echo "$APPS" | jq -r '.[]'); do
+            KUSTOMIZATION_FILE="apps/${app}-app/base/kustomization.yaml"
+
+            if [ -f "$KUSTOMIZATION_FILE" ]; then
+              echo "Updating $KUSTOMIZATION_FILE"
+              sed -i "s|newTag: .*|newTag: $TAG|" "$KUSTOMIZATION_FILE"
+            else
+              echo "Warning: $KUSTOMIZATION_FILE not found"
+            fi
+          done
+
+      - name: Commit and push changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.client_payload.tag }}"
+          BRANCH="${{ github.event.client_payload.branch }}"
+          FEATURE_BRANCH="${{ steps.feature_branch.outputs.branch_name }}"
+          BASE_BRANCH="${{ steps.target.outputs.base_branch }}"
+          APPS='${{ github.event.client_payload.apps }}'
+
+          git add .
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore(frontend): update all frontend image tags to $TAG
+
+Triggered by $BRANCH branch build in fineract-apps repository.
+
+Apps updated: $APPS"
+
+          git push -u origin "$FEATURE_BRANCH"
+
+          # Create PR
+          gh pr create \
+            --title "chore(frontend): update all frontend image tags to $TAG" \
+            --body "## Summary
+- Updates all frontend app image tags to \`$TAG\`
+- Triggered by \`$BRANCH\` branch build in fineract-apps
+
+## Apps Updated
+$APPS
+
+## Auto-generated
+This PR was automatically created by the image update workflow." \
+            --base "$BASE_BRANCH" \
+            --head "$FEATURE_BRANCH"
+
+      - name: Generate summary
+        run: |
+          echo "### Frontend Image Tags Updated Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: \`${{ github.event.client_payload.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${{ github.event.client_payload.branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Apps**: ${{ github.event.client_payload.apps }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PR Branch**: ${{ steps.feature_branch.outputs.branch_name }}" >> $GITHUB_STEP_SUMMARY

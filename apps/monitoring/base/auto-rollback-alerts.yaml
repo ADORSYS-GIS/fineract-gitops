@@ -1,0 +1,118 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: auto-rollback-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: monitoring-stack
+    prometheus: fineract
+spec:
+  groups:
+  - name: auto-rollback-triggers
+    interval: 15s
+    rules:
+    # Trigger rollback when deployment has no available replicas for 3+ minutes
+    - alert: DeploymentRollbackRequired
+      expr: |
+        (
+          kube_deployment_status_replicas_available{namespace=~"fineract.*"} == 0
+          and
+          kube_deployment_spec_replicas{namespace=~"fineract.*"} > 0
+        )
+        unless on(deployment, namespace)
+        (
+          kube_deployment_status_replicas_updated{namespace=~"fineract.*"} > 0
+          and
+          time() - kube_deployment_status_replicas_updated{namespace=~"fineract.*"} < 300
+        )
+      for: 3m
+      labels:
+        severity: critical
+        component: deployment
+        auto_rollback: enabled
+        rollback_type: deployment
+      annotations:
+        summary: "Deployment {{ $labels.deployment }} requires rollback"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has 0 available replicas for over 3 minutes. Triggering automatic rollback."
+        rollback_target: "{{ $labels.deployment }}"
+        rollback_namespace: "{{ $labels.namespace }}"
+
+    # Trigger rollback on crash loop (5+ restarts in 10 minutes)
+    - alert: CrashLoopRollbackRequired
+      expr: |
+        increase(kube_pod_container_status_restarts_total{namespace=~"fineract.*"}[10m]) > 5
+      for: 2m
+      labels:
+        severity: critical
+        component: pod
+        auto_rollback: enabled
+        rollback_type: crash_loop
+      annotations:
+        summary: "Pod {{ $labels.pod }} crash looping - rollback required"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted more than 5 times in 10 minutes. Triggering automatic rollback."
+        rollback_target: "{{ $labels.pod }}"
+        rollback_namespace: "{{ $labels.namespace }}"
+
+    # High error rate after recent deployment
+    - alert: HighErrorRateRollbackRequired
+      expr: |
+        (
+          sum(rate(http_requests_total{namespace=~"fineract.*", status=~"5.."}[5m])) by (namespace, deployment)
+          /
+          sum(rate(http_requests_total{namespace=~"fineract.*"}[5m])) by (namespace, deployment)
+        ) > 0.3
+        and
+        changes(kube_deployment_status_observed_generation{namespace=~"fineract.*"}[30m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: application
+        auto_rollback: enabled
+        rollback_type: error_rate
+      annotations:
+        summary: "High error rate after deployment - rollback required"
+        description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has >30% error rate after recent deployment. Triggering automatic rollback."
+        rollback_target: "{{ $labels.deployment }}"
+        rollback_namespace: "{{ $labels.namespace }}"
+
+    # Fineract backend health check failures
+    - alert: FineractHealthRollbackRequired
+      expr: |
+        (
+          probe_success{job="fineract-health", namespace=~"fineract.*"} == 0
+        )
+        and
+        changes(kube_deployment_status_observed_generation{deployment=~"fineract.*", namespace=~"fineract.*"}[30m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: application
+        auto_rollback: enabled
+        rollback_type: health_check
+      annotations:
+        summary: "Fineract health check failing - rollback required"
+        description: "Fineract health endpoint is failing after recent deployment in namespace {{ $labels.namespace }}. Triggering automatic rollback."
+        rollback_target: "fineract"
+        rollback_namespace: "{{ $labels.namespace }}"
+
+    # Keycloak unavailable after deployment
+    - alert: KeycloakRollbackRequired
+      expr: |
+        (
+          up{job="keycloak", namespace=~"fineract.*"} == 0
+          or
+          probe_success{job="keycloak-health", namespace=~"fineract.*"} == 0
+        )
+        and
+        changes(kube_deployment_status_observed_generation{deployment="keycloak", namespace=~"fineract.*"}[30m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: authentication
+        auto_rollback: enabled
+        rollback_type: keycloak
+      annotations:
+        summary: "Keycloak unavailable - rollback required"
+        description: "Keycloak is unavailable after recent deployment in namespace {{ $labels.namespace }}. Triggering automatic rollback."
+        rollback_target: "keycloak"
+        rollback_namespace: "{{ $labels.namespace }}"

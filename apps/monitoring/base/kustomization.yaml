@@ -49,6 +49,7 @@ resources:
 
   # Alert Rules
   - alert-rules.yaml
+  - auto-rollback-alerts.yaml
 
   # Additional Scrape Configs
   - prometheus-additional-scrape-configs.yaml
