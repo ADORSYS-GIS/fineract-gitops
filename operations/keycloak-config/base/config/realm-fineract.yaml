@@ -330,6 +330,7 @@ clients:
     defaultClientScopes:
       - profile
       - email
+      - roles
 
 # Client Scopes
 clientScopes:
