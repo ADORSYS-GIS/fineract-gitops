@@ -278,8 +278,8 @@ destroy_terraform() {
 
     # Run destroy-all.sh script with --auto-confirmed flag
     if [ -f "scripts/destroy-all.sh" ]; then
-        log_info "  Running: ./scripts/destroy-all.sh $ENV --auto-confirmed"
-        bash scripts/destroy-all.sh "$ENV" --auto-confirmed
+        log_info "  Running: python3 scripts/destroy-all.sh $ENV --force"
+        python3 scripts/destroy-all.sh "$ENV" --force
         log "✓ Terraform resources destroyed"
     else
         log_warn "  destroy-all.sh not found, running manual destroy"
@@ -350,7 +350,7 @@ reset_lb_dns_configs() {
     local central_config="${REPO_ROOT}/config/loadbalancer-dns-configmap.yaml"
     if [ -f "$central_config" ]; then
         cp "$central_config" "${central_config}.backup.$(date +%Y%m%d_%H%M%S)"
-        sed -i '' 's|lb-dns: ".*"|lb-dns: "PENDING_UPDATE"|g' "$central_config"
+        sed -i 's|lb-dns: ".*"|lb-dns: "PENDING_UPDATE"|g' "$central_config"
         rm -f "${central_config}.tmp"
         log "  ✓ Reset: config/loadbalancer-dns-configmap.yaml"
     fi
@@ -371,9 +371,9 @@ reset_lb_dns_configs() {
                 cp "$config_file" "${config_file}.backup.$(date +%Y%m%d_%H%M%S)"
 
                 # Replace actual LB DNS with PENDING_UPDATE
-                sed -i '' 's|a[0-9]\+\.elb\.amazonaws\.com|PENDING_UPDATE|g' "$config_file"
-                sed -i '' 's|apps\.fineract\.com|PENDING_UPDATE|g' "$config_file"
-                sed -i '' 's|auth\.fineract\.com|PENDING_UPDATE|g' "$config_file"
+                sed -i 's|a[0-9]\+\.elb\.amazonaws\.com|PENDING_UPDATE|g' "$config_file"
+                sed -i 's|apps\.fineract\.com|PENDING_UPDATE|g' "$config_file"
+                sed -i 's|auth\.fineract\.com|PENDING_UPDATE|g' "$config_file"
 
                 log "  ✓ Reset: $(basename "$config_file")"
             fi

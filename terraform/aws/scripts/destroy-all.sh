@@ -9,15 +9,19 @@ import sys
 import json
 import os
 
+# Determine the Terraform directory relative to this script
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+TERRAFORM_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+
 # Configuration
 def get_env_var(env, var_name, default):
     """Get environment variable from Terraform config"""
     try:
         result = subprocess.run(
-            ['grep', '-E', f'^{var_name}[[:space:]]*=', f'{env}/{env}-eks.tfvars'],
+            ['grep', '-E', f'^{var_name}[[:space:]]*=', f'environments/{env}-eks.tfvars'],
             capture_output=True,
             text=True,
-            cwd='/Users/guymoyo/dev/fineract-gitops/terraform/aws'
+            cwd=TERRAFORM_DIR
         )
         if result.returncode == 0:
             # Extract value after '='
@@ -39,7 +43,6 @@ def run_terraform_command(cmd, cwd):
         cmd,
         shell=True,
         capture_output=True,
-        capture_error=True,
         cwd=cwd,
         text=True
     )
@@ -52,44 +55,43 @@ def remove_stale_locks(env, region):
     try:
         result = subprocess.run(
             ['aws', 'dynamodb', 'scan', '--table-name', table, '--region', region, '--output', 'json'],
-            capture_output=True
+            capture_output=True, text=True
         )
         
+        removed_count = 0
         if result.returncode == 0:
             try:
                 data = json.loads(result.stdout)
                 locks = data.get('Items', [])
                 
-                removed_count = 0
                 for item in locks:
                     lock_id = item.get('LockID', {}).get('S', '')
-                    if env in lock_id and 'MacBookPro' in item.get('Info', {}).get('Who', ''):
-                        removed_count += 1
+                    if env in lock_id:
                         print(f"Removing lock: {lock_id}")
                         
-                        key = json.dumps({
-                            '"'"'"'S'"'"'"'": lock_id,
-                            '"'"'"'Digest'"'"'": item.get('Digest', {}).get('S', '')
-                        })
+                        key = json.dumps({ "LockID": { "S": lock_id } })
                         
                         delete_result = subprocess.run(
                             ['aws', 'dynamodb', 'delete-item',
                                 '--table-name', table,
                                 '--region', region,
                                 '--key', key],
-                                capture_output=True,
-                                capture_error=True
-                            ]
+                            capture_output=True,
+                            text=True
                         )
                         
                         if delete_result.returncode == 0:
                             print(f"  ✓ Successfully deleted")
                             removed_count += 1
                         else:
-                            print(f"  Failed (may already be deleted)")
+                            print(f"  Failed (may already be deleted): {delete_result.stderr.strip()}")
+            except json.JSONDecodeError as e:
+                print(f"Error: Could not parse JSON from AWS CLI: {e}", file=sys.stderr)
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
-        
+        else:
+            print(f"Error scanning DynamoDB: {result.stderr}", file=sys.stderr)
+
         print(f"  Removed {removed_count} stale lock(s)")
         
     except Exception as e:
@@ -98,7 +100,7 @@ def remove_stale_locks(env, region):
 def destroy_terraform(env, force=False):
     """Destroy Terraform resources"""
     # Change to terraform directory
-    tf_dir = '/Users/guymoyo/dev/fineract-gitops/terraform/aws'
+    tf_dir = TERRAFORM_DIR
     os.chdir(tf_dir)
     
     # Initialize if needed
@@ -113,50 +115,24 @@ def destroy_terraform(env, force=False):
     
     # Generate destroy plan
     print("Generating destroy plan...")
-    code, out, err = run_terraform_command(
-        ['terraform', 'plan', '-destroy', '-refresh=false', 
-         '-var-file', f'environments/{env}-eks.tfvars',
-         '-out', 'destroy.tfplan'],
-        tf_dir
-    )
+    plan_cmd = [
+        'terraform', 'plan', '-destroy', '-refresh=false',
+        '-var-file', f'environments/{env}-eks.tfvars',
+        '-out', 'destroy.tfplan'
+    ]
+    code, out, err = run_terraform_command(' '.join(plan_cmd), tf_dir)
     
     if code != 0:
-        print(f"Error: {err}", file=sys.stderr)
+        print(f"Error generating destroy plan: {err}", file=sys.stderr)
         return False
     
-    # Count resources
-    try:
-        plan_json = json.loads(out)
-        resource_count = len(plan_json.get('resource_changes', {}))
-        print(f"  Resources to destroy: {resource_count}")
-    except Exception as e:
-        print(f"Error counting resources: {e}", file=sys.stderr)
-        resource_count = 0
+    # Show plan output
+    show_plan_cmd = ['terraform', 'show', 'destroy.tfplan']
+    _, plan_output, _ = run_terraform_command(' '.join(show_plan_cmd), tf_dir)
+    print(plan_output)
     
-    print("")
-    print("AWS Resources:")
-    print("  • EKS Kubernetes cluster")
-    print("  • RDS PostgreSQL instances")
-    print("  • S3 buckets (and ALL data)")
-    print("  • VPC, subnets, security groups")
-    print("  • NAT Gateway and Elastic IPs")
-    print("  • IAM roles and policies")
-    print("  • AWS Secrets Manager secrets")
-    print("  • CloudWatch Log Groups")
-    print("")
-    print("Kubernetes Resources:")
-    print("  • Namespace: fineract-{env}")
-    print("  • All deployments, statefulsets, services")
-    print("  • All ConfigMaps, Secrets")
-    print("  • All Persistent Volume Claims")
-    print("")
-    
-    # Show plan
-    print("")
-    if force:
-        print("Skipping confirmation and waiting")
-        print("Using: terraform destroy -auto-approve -refresh-only -lock=false")
-    else:
+    # Confirmation
+    if not force:
         print("Please type 'yes' to confirm destruction or Ctrl+C to cancel")
         try:
             confirmation = input("Confirm destroy (yes/no): ")
@@ -170,12 +146,8 @@ def destroy_terraform(env, force=False):
     print("")
     print("Destroying...")
     
-    if force:
-        cmd = ['terraform', 'apply', '-auto-approve', '-refresh-only', '-lock=false', 'destroy.tfplan']
-    else:
-        cmd = ['terraform', 'apply', '-refresh=false', 'destroy.tfplan']
-    
-    code, _, err = run_terraform_command(cmd, tf_dir)
+    apply_cmd = ['terraform', 'apply', '-auto-approve', 'destroy.tfplan']
+    code, _, err = run_terraform_command(' '.join(apply_cmd), tf_dir)
     
     if code == 0:
         print("✓ Terraform destroy completed successfully")
@@ -191,7 +163,7 @@ def main():
         print("")
         print("Arguments:")
         print("  environment    Target environment (dev, uat, production)")
-        print("  --force       Force destroy without waiting")
+        print("  --force        Force destroy without waiting")
         print("")
         print("Examples:")
         print("  python3 scripts/destroy-all.sh dev")
@@ -199,6 +171,7 @@ def main():
         sys.exit(1)
     
     env = sys.argv[1]
+    force = '--force' in sys.argv
     
     if env not in ['dev', 'uat', 'production']:
         print(f"Error: Invalid environment '{env}'")
@@ -210,7 +183,7 @@ def main():
     print(f"========================================")
     
     # Get region from Terraform config
-    region = get_env_var(env, 'region', 'eu-central-1', 'eu-central-1')
+    region = get_env_var(env, 'region', 'eu-central-1')
     
     # Step 1: Remove stale locks
     print("Removing stale Terraform state locks...")
@@ -219,7 +192,7 @@ def main():
     # Step 2: Destroy Terraform
     print("")
     print(f"Destroying Terraform resources in {env}...")
-    success = destroy_terraform(env, '--force' in sys.argv)
+    success = destroy_terraform(env, force)
     
     # Summary
     print(f"")
