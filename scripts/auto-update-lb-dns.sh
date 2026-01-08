@@ -397,9 +397,9 @@ validate_consistency() {
     echo ""
 }
 
-# Step 7: Restart OAuth2 Proxy to pick up new DNS
+# Step 9: Restart OAuth2 Proxy to pick up new DNS (after ArgoCD sync)
 restart_oauth2_proxy() {
-    log_step "Step 7: Restarting OAuth2 Proxy to pick up new configuration..."
+    log_step "Step 9: Restarting OAuth2 Proxy to pick up new configuration..."
 
     if kubectl --kubeconfig="$KUBECONFIG_FILE" get deployment -n "$NAMESPACE" oauth2-proxy &>/dev/null; then
         kubectl --kubeconfig="$KUBECONFIG_FILE" rollout restart deployment/oauth2-proxy -n "$NAMESPACE"
@@ -417,14 +417,14 @@ restart_oauth2_proxy() {
     echo ""
 }
 
-# Step 8: Commit and push
+# Step 7: Commit and push
 commit_and_push() {
     if [ "$DO_COMMIT" = false ] && [ "$DO_PUSH" = false ]; then
         log_info "Skipping Git commit/push (use --commit and/or --push)"
         return 0
     fi
 
-    log_step "Step 8: Committing and pushing changes..."
+    log_step "Step 7: Committing and pushing changes..."
 
     # Check if there are changes
     if git diff --quiet && git diff --cached --quiet; then
@@ -466,10 +466,10 @@ commit_and_push() {
     echo ""
 }
 
-# Step 9: Trigger ArgoCD sync
+# Step 8: Trigger ArgoCD sync
 trigger_argocd_sync() {
     if [ "$DO_PUSH" = true ]; then
-        log_step "Step 9: Triggering ArgoCD sync..."
+        log_step "Step 8: Triggering ArgoCD sync..."
 
         # ArgoCD will automatically detect changes and sync
         # Just wait a moment for the webhook to trigger
@@ -523,9 +523,9 @@ main() {
     update_app_overlays
     update_operations_configs
     validate_consistency
-    restart_oauth2_proxy
     commit_and_push
     trigger_argocd_sync
+    restart_oauth2_proxy  # Must happen AFTER ArgoCD syncs the new ConfigMap to cluster
 
     # Print summary
     print_summary
