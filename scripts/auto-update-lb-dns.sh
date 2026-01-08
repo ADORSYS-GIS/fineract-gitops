@@ -397,26 +397,6 @@ validate_consistency() {
     echo ""
 }
 
-# Step 9: Restart OAuth2 Proxy to pick up new DNS (after ArgoCD sync)
-restart_oauth2_proxy() {
-    log_step "Step 9: Restarting OAuth2 Proxy to pick up new configuration..."
-
-    if kubectl --kubeconfig="$KUBECONFIG_FILE" get deployment -n "$NAMESPACE" oauth2-proxy &>/dev/null; then
-        kubectl --kubeconfig="$KUBECONFIG_FILE" rollout restart deployment/oauth2-proxy -n "$NAMESPACE"
-        log "✓ OAuth2 Proxy rollout restart triggered"
-
-        # Wait for rollout to complete (timeout 2 minutes)
-        if kubectl --kubeconfig="$KUBECONFIG_FILE" rollout status deployment/oauth2-proxy -n "$NAMESPACE" --timeout=120s; then
-            log "✓ OAuth2 Proxy rollout completed successfully"
-        else
-            log_warn "OAuth2 Proxy rollout timed out (pod may still be starting)"
-        fi
-    else
-        log_info "OAuth2 Proxy deployment not found (may not be deployed yet)"
-    fi
-    echo ""
-}
-
 # Step 7: Commit and push
 commit_and_push() {
     if [ "$DO_COMMIT" = false ] && [ "$DO_PUSH" = false ]; then
@@ -525,7 +505,7 @@ main() {
     validate_consistency
     commit_and_push
     trigger_argocd_sync
-    restart_oauth2_proxy  # Must happen AFTER ArgoCD syncs the new ConfigMap to cluster
+    # NOTE: Service restarts no longer needed - init containers wait for valid ConfigMap values
 
     # Print summary
     print_summary
