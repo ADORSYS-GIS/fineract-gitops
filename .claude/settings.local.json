@@ -95,7 +95,15 @@
       "Bash(kustomize build:*)",
       "Bash(kubectl kustomize:*)",
       "Bash(kubectl wait:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(make cleanup-cluster:*)",
+      "Bash(export KUBECONFIG=/Users/guymoyo/.kube/config-fineract-dev)",
+      "Bash(yes:*)",
+      "Bash(./scripts/cleanup-cluster.sh:*)",
+      "Bash(./scripts/regenerate-all-sealed-secrets.sh dev)",
+      "Bash(aws elb describe-load-balancers:*)",
+      "Bash(aws elbv2 describe-load-balancers:*)",
+      "Bash(kubectl:*)"
     ],
     "deny": [],
     "ask": []
