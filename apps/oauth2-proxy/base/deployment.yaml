@@ -28,6 +28,7 @@ spec:
         prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"
         reloader.stakater.com/auto: "true"
+        configmap.reloader.stakater.com/reload: "ingress-config,oauth2-proxy-config"
     spec:
       affinity:
         # Pod anti-affinity for when scaling to multiple replicas
