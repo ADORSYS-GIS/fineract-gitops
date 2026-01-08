@@ -4,9 +4,11 @@ metadata:
   name: create-keycloak-db
   annotations:
     description: "Creates Keycloak database and user in RDS PostgreSQL (idempotent)"
-    argocd.argoproj.io/hook: PreSync
+    # Changed from PreSync to Sync - PreSync hooks don't run reliably on initial
+    # ArgoCD Application creation with automated sync. Sync hooks always execute.
+    argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-wave: "-10"
   labels:
     app.kubernetes.io/name: database-setup
     app.kubernetes.io/part-of: fineract-platform
