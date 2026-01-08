@@ -14,4 +14,4 @@ commonLabels:
 
 images:
   - name: ghcr.io/adorsys-gis/fineract-apps/cashier-app
-    newTag: a8eda16
+    newTag: 8e88487
