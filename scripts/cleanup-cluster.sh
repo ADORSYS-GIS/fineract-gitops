@@ -2,7 +2,7 @@
 # Cleanup Cluster - Force remove stuck namespaces and resources
 # This script handles stuck namespaces in "Terminating" state by removing finalizers
 #
-# Usage: ./cleanup-cluster.sh [--env dev|uat|prod]
+# Usage: ./cleanup-cluster.sh [--env dev|uat|prod] [--force] [--stuck-only]
 
 set -e
 set -o pipefail
@@ -12,6 +12,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Default environment
 ENV="${ENV:-dev}"
+FORCE_MODE=false
+STUCK_ONLY=false
+SKIP_DB_CLEANUP=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -20,12 +23,28 @@ while [[ $# -gt 0 ]]; do
             ENV="$2"
             shift 2
             ;;
+        --force|-f)
+            FORCE_MODE=true
+            shift
+            ;;
+        --stuck-only)
+            STUCK_ONLY=true
+            FORCE_MODE=true  # stuck-only implies force mode
+            shift
+            ;;
+        --skip-db)
+            SKIP_DB_CLEANUP=true
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0 [--env dev|uat|prod]"
+            echo "Usage: $0 [--env dev|uat|prod] [--force] [--stuck-only]"
             echo ""
             echo "Options:"
-            echo "  --env, -e    Environment to clean (dev, uat, prod). Default: dev"
-            echo "  --help, -h   Show this help message"
+            echo "  --env, -e      Environment to clean (dev, uat, prod). Default: dev"
+            echo "  --force, -f    Non-interactive mode (skip all confirmations)"
+            echo "  --stuck-only   Only clean stuck (Terminating) namespaces, then exit"
+            echo "  --skip-db      Skip database cleanup prompt"
+            echo "  --help, -h     Show this help message"
             exit 0
             ;;
         *)
@@ -729,11 +748,15 @@ cleanup_rds_databases() {
     echo -e "${YELLOW}  This ensures a clean state for the next deployment.${NC}"
     echo ""
 
-    read -p "  Drop and recreate RDS databases? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}  → Skipping database cleanup${NC}"
-        return 0
+    if [ "$FORCE_MODE" = false ]; then
+        read -p "  Drop and recreate RDS databases? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}  → Skipping database cleanup${NC}"
+            return 0
+        fi
+    else
+        echo -e "${BLUE}  [Force mode] Proceeding with database cleanup...${NC}"
     fi
 
     # Create a temporary job to drop and recreate databases
@@ -865,6 +888,95 @@ EOF
 
 # Main cleanup process
 if [ "$CLUSTER_ACCESSIBLE" = true ]; then
+
+    # ===========================================================================
+    # STUCK-ONLY MODE: Quick fix for stuck namespaces before deployment
+    # ===========================================================================
+    if [ "$STUCK_ONLY" = true ]; then
+        echo -e "${BLUE}========================================${NC}"
+        echo -e "${BLUE} Quick Fix: Cleaning Stuck Namespaces${NC}"
+        echo -e "${BLUE}========================================${NC}"
+        echo ""
+
+        # Find all stuck namespaces
+        STUCK_NAMESPACES=$(kubectl get namespaces -o json 2>/dev/null | \
+            jq -r '.items[] | select(.status.phase=="Terminating") | .metadata.name' 2>/dev/null || echo "")
+
+        if [ -z "$STUCK_NAMESPACES" ]; then
+            echo -e "${GREEN}✓ No stuck namespaces found${NC}"
+            exit 0
+        fi
+
+        echo -e "${YELLOW}Found stuck namespaces:${NC}"
+        echo "$STUCK_NAMESPACES" | while read ns; do
+            echo "  - $ns"
+        done
+        echo ""
+
+        # Clean each stuck namespace
+        echo "$STUCK_NAMESPACES" | while read ns; do
+            if [ -n "$ns" ]; then
+                echo -e "${YELLOW}→ Fixing stuck namespace: $ns${NC}"
+
+                # Step 1: Remove finalizers from all resources in namespace
+                echo -e "${BLUE}  Removing resource finalizers...${NC}"
+                for resource in applications.argoproj.io appprojects.argoproj.io pods jobs deployments statefulsets services pvc configmaps secrets; do
+                    kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
+                        kubectl patch $obj -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                    done
+                done
+
+                # Step 2: Force delete remaining resources
+                echo -e "${BLUE}  Force deleting resources...${NC}"
+                kubectl delete all --all -n $ns --force --grace-period=0 2>/dev/null || true
+
+                # Step 3: Remove namespace finalizers
+                echo -e "${BLUE}  Removing namespace finalizers...${NC}"
+                kubectl patch namespace $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+
+                # Step 4: Use finalize API endpoint
+                echo -e "${BLUE}  Calling finalize API...${NC}"
+                kubectl get namespace $ns -o json 2>/dev/null | \
+                    jq '.spec.finalizers=[]' | \
+                    kubectl replace --raw "/api/v1/namespaces/$ns/finalize" -f - 2>/dev/null || true
+
+                sleep 2
+
+                # Check result
+                if kubectl get namespace $ns &>/dev/null; then
+                    echo -e "${YELLOW}  ⚠ Namespace still exists (may need more time)${NC}"
+                else
+                    echo -e "${GREEN}  ✓ Namespace deleted${NC}"
+                fi
+            fi
+        done
+
+        echo ""
+
+        # Final verification
+        sleep 3
+        REMAINING=$(kubectl get namespaces -o json 2>/dev/null | \
+            jq -r '.items[] | select(.status.phase=="Terminating") | .metadata.name' 2>/dev/null || echo "")
+
+        if [ -z "$REMAINING" ]; then
+            echo -e "${GREEN}========================================${NC}"
+            echo -e "${GREEN}✓ All stuck namespaces cleaned!${NC}"
+            echo -e "${GREEN}========================================${NC}"
+            exit 0
+        else
+            echo -e "${YELLOW}========================================${NC}"
+            echo -e "${YELLOW}⚠ Some namespaces still stuck:${NC}"
+            echo "$REMAINING" | sed 's/^/   - /'
+            echo -e "${YELLOW}========================================${NC}"
+            echo ""
+            echo "Try running again or wait a few seconds."
+            exit 1
+        fi
+    fi
+    # ===========================================================================
+    # END STUCK-ONLY MODE
+    # ===========================================================================
+
     echo -e "${YELLOW}This will clean up the '${ENV}' environment:${NC}"
     echo ""
     echo -e "${YELLOW}Namespaces to be removed:${NC}"
@@ -884,17 +996,25 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     echo "  - fineract_default database (if prompted)"
     echo ""
 
-    read -p "Continue? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Cleanup cancelled${NC}"
-        exit 0
+    if [ "$FORCE_MODE" = false ]; then
+        read -p "Continue? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Cleanup cancelled${NC}"
+            exit 0
+        fi
+    else
+        echo -e "${BLUE}[Force mode] Proceeding with cleanup...${NC}"
     fi
 
     echo ""
 
     # Step 0.5: Cleanup RDS databases (optional, before deleting namespaces)
-    cleanup_rds_databases
+    if [ "$SKIP_DB_CLEANUP" = false ]; then
+        cleanup_rds_databases
+    else
+        echo -e "${BLUE}→ Skipping database cleanup (--skip-db flag)${NC}"
+    fi
     echo ""
 
     # Step 1: Delete ArgoCD Applications first (removes finalizers)
