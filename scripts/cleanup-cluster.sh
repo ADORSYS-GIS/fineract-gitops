@@ -1,8 +1,57 @@
 #!/bin/bash
 # Cleanup Cluster - Force remove stuck namespaces and resources
 # This script handles stuck namespaces in "Terminating" state by removing finalizers
+#
+# Usage: ./cleanup-cluster.sh [--env dev|uat|prod]
 
 set -e
+set -o pipefail
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Default environment
+ENV="${ENV:-dev}"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --env|-e)
+            ENV="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--env dev|uat|prod]"
+            echo ""
+            echo "Options:"
+            echo "  --env, -e    Environment to clean (dev, uat, prod). Default: dev"
+            echo "  --help, -h   Show this help message"
+            exit 0
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Validate and set namespace based on environment
+case "$ENV" in
+    dev)
+        FINERACT_NAMESPACE="fineract-dev"
+        ;;
+    uat)
+        FINERACT_NAMESPACE="fineract-uat"
+        ;;
+    prod|production)
+        FINERACT_NAMESPACE="fineract-production"
+        ENV="prod"
+        ;;
+    *)
+        echo "Invalid environment: $ENV"
+        echo "Valid values: dev, uat, prod"
+        exit 1
+        ;;
+esac
 
 # Colors
 RED='\033[0;31m'
@@ -13,6 +62,7 @@ NC='\033[0m'
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE} Fineract GitOps - Cluster Cleanup${NC}"
+echo -e "${BLUE} Environment: ${ENV}${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
@@ -665,7 +715,7 @@ cleanup_rds_databases() {
     echo -e "${BLUE}→ Cleaning up RDS databases...${NC}"
 
     # Check if fineract-db-credentials secret exists (needed for DB access)
-    if ! kubectl get secret -n fineract-dev fineract-db-credentials &>/dev/null; then
+    if ! kubectl get secret -n "$FINERACT_NAMESPACE" fineract-db-credentials &>/dev/null; then
         echo -e "${YELLOW}  ⚠ fineract-db-credentials secret not found${NC}"
         echo -e "${YELLOW}  → Skipping database cleanup (cluster may not be fully deployed)${NC}"
         return 0
@@ -694,7 +744,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: cleanup-rds-databases
-  namespace: fineract-dev
+  namespace: $FINERACT_NAMESPACE
   labels:
     app: database-cleanup
 spec:
@@ -708,7 +758,7 @@ spec:
       - name: cleanup-db
         image: postgres:15-alpine
         command:
-        - /bin/bash
+        - /bin/sh
         - -c
         - |
           set -e
@@ -791,20 +841,20 @@ EOF
 
         # Wait for job to complete
         echo -e "${BLUE}  → Waiting for database cleanup to complete...${NC}"
-        if kubectl wait --for=condition=complete --timeout=60s job/cleanup-rds-databases -n fineract-dev 2>/dev/null; then
+        if kubectl wait --for=condition=complete --timeout=60s job/cleanup-rds-databases -n "$FINERACT_NAMESPACE" 2>/dev/null; then
             echo -e "${GREEN}  ✓${NC} Databases cleaned successfully"
 
             # Show job logs
             echo -e "${BLUE}  → Cleanup job output:${NC}"
-            kubectl logs job/cleanup-rds-databases -n fineract-dev 2>/dev/null | sed 's/^/    /'
+            kubectl logs job/cleanup-rds-databases -n "$FINERACT_NAMESPACE" 2>/dev/null | sed 's/^/    /'
         else
             echo -e "${YELLOW}  ⚠ Database cleanup job did not complete within 60s${NC}"
             echo -e "${YELLOW}  → Checking job logs...${NC}"
-            kubectl logs job/cleanup-rds-databases -n fineract-dev 2>/dev/null | sed 's/^/    /' || echo "    (no logs available)"
+            kubectl logs job/cleanup-rds-databases -n "$FINERACT_NAMESPACE" 2>/dev/null | sed 's/^/    /' || echo "    (no logs available)"
         fi
 
         # Clean up the job
-        kubectl delete job cleanup-rds-databases -n fineract-dev --force --grace-period=0 2>/dev/null || true
+        kubectl delete job cleanup-rds-databases -n "$FINERACT_NAMESPACE" --force --grace-period=0 2>/dev/null || true
     else
         echo -e "${YELLOW}  ⚠ Failed to create database cleanup job${NC}"
         echo -e "${YELLOW}  → Continuing with namespace cleanup...${NC}"
@@ -815,12 +865,15 @@ EOF
 
 # Main cleanup process
 if [ "$CLUSTER_ACCESSIBLE" = true ]; then
-    echo -e "${YELLOW}This will remove all ArgoCD applications and force-delete stuck namespaces:${NC}"
+    echo -e "${YELLOW}This will clean up the '${ENV}' environment:${NC}"
+    echo ""
+    echo -e "${YELLOW}Namespaces to be removed:${NC}"
     echo "  - argocd"
-    echo "  - fineract-dev"
+    echo "  - $FINERACT_NAMESPACE"
     echo "  - ingress-nginx"
     echo "  - cert-manager"
     echo "  - monitoring"
+    echo "  - logging"
     echo ""
     echo -e "${YELLOW}It will also remove from kube-system:${NC}"
     echo "  - Sealed Secrets Controller"
@@ -855,7 +908,7 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     # Step 1.75: Run pre-cleanup diagnostics for all target namespaces
     echo -e "${BLUE}→ Pre-cleanup diagnostics for target namespaces...${NC}"
     echo ""
-    NAMESPACES=("argocd" "fineract-dev" "ingress-nginx" "cert-manager" "monitoring")
+    NAMESPACES=("argocd" "$FINERACT_NAMESPACE" "ingress-nginx" "cert-manager" "monitoring" "logging")
     for ns in "${NAMESPACES[@]}"; do
         status=$(check_namespace_stuck $ns)
         if [ "$status" != "notfound" ]; then
@@ -994,13 +1047,13 @@ else
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "  1. Clean up AWS infrastructure:"
-    echo "     ${BLUE}make destroy ENV=dev${NC}"
+    echo "     ${BLUE}make destroy ENV=${ENV}${NC}"
     echo ""
     echo "  2. Deploy fresh infrastructure:"
-    echo "     ${BLUE}make deploy-infrastructure-dev${NC}"
-    echo "     ${BLUE}aws eks update-kubeconfig --region us-east-2 --name fineract-dev-eks${NC}"
-    echo "     ${BLUE}make deploy-k8s-with-loadbalancer-dns-dev${NC}"
-    echo "     ${BLUE}make deploy-gitops ENV=dev${NC}"
+    echo "     ${BLUE}make deploy-infrastructure-${ENV}${NC}"
+    echo "     ${BLUE}aws eks update-kubeconfig --region eu-central-1 --name fineract-${ENV}-eks${NC}"
+    echo "     ${BLUE}make deploy-k8s-with-loadbalancer-dns-${ENV}${NC}"
+    echo "     ${BLUE}make deploy-gitops ENV=${ENV}${NC}"
     echo ""
     exit 0
 fi
