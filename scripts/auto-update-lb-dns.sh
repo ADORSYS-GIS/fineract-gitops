@@ -257,7 +257,8 @@ update_environment_configs() {
     local oauth_patch="${env_dir}/fineract-oauth2-config-patch.yaml"
     if [ -f "$oauth_patch" ]; then
         # Update OIDC issuer URL with new LoadBalancer DNS
-        sed -i.tmp "s|oidc-issuer-url: \".*\"|oidc-issuer-url: \"https://${LOADBALANCER_DNS}/auth/realms/fineract\"|g" "$oauth_patch"
+        # Keycloak 17+ serves from root path (no /auth prefix)
+        sed -i.tmp "s|oidc-issuer-url: \".*\"|oidc-issuer-url: \"https://${LOADBALANCER_DNS}/realms/fineract\"|g" "$oauth_patch"
         rm -f "${oauth_patch}.tmp"
         log "  ✓ Updated: environments/${ENV}/fineract-oauth2-config-patch.yaml"
         ((++files_updated))

@@ -58,7 +58,8 @@ patches:
 
                   # Build full URLs from domain components
                   # Use internal Kubernetes service URL for OIDC discovery (no dependency on ingress/DNS)
-                  export OIDC_ISSUER_URL="http://keycloak-service:8080/auth/realms/${REALM_NAME}"
+                  # Keycloak 17+ serves from root path (no /auth prefix)
+                  export OIDC_ISSUER_URL="http://keycloak-service:8080/realms/${REALM_NAME}"
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"

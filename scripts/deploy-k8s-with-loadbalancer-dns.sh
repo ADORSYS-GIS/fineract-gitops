@@ -735,10 +735,10 @@ fi
 echo
 log_info "Verifying Fineract realm is accessible..."
 
-# Test realm OIDC discovery endpoint
-if curl -k -s -f "https://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
+# Test realm OIDC discovery endpoint (Keycloak 17+ serves from root path - no /auth prefix)
+if curl -k -s -f "https://${LB_DNS}/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
     log "✓ Fineract realm OIDC discovery endpoint is accessible"
-elif curl -k -s -f "http://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
+elif curl -k -s -f "http://${LB_DNS}/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
     log "✓ Fineract realm OIDC discovery endpoint is accessible (HTTP)"
 else
     log_warn "Fineract realm OIDC endpoint not accessible yet (may need more time)"
@@ -943,11 +943,11 @@ else
     done
 fi
 
-# Test Keycloak realm endpoint
+# Test Keycloak realm endpoint (Keycloak 17+ serves from root path - no /auth prefix)
 log_info "Testing Keycloak realm endpoint..."
-if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/auth/realms/fineract" | grep -q "200\|302"; then
+if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/realms/fineract" | grep -q "200\|302"; then
     log "✓ Keycloak realm endpoint is responding"
-elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/auth/realms/fineract" | grep -q "200\|302"; then
+elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/realms/fineract" | grep -q "200\|302"; then
     log "✓ Keycloak realm endpoint is responding (HTTP)"
 else
     log_warn "Keycloak realm endpoint not responding as expected"

@@ -54,7 +54,8 @@ spec:
   - host: auth-hostname
     http:
       paths:
-      - path: /auth
+      # Keycloak 17+ serves from root path (KC_HTTP_RELATIVE_PATH removed)
+      - path: /
         pathType: Prefix
         backend:
           service:

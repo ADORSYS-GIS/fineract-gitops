@@ -68,7 +68,8 @@ patches:
 
                 until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
                   # Fetch OIDC discovery configuration
-                  OIDC_CONFIG=$(curl -f -s http://keycloak-service:8080/auth/realms/fineract/.well-known/openid-configuration 2>/dev/null || echo "")
+                  # Keycloak 17+ serves from root path (no /auth prefix)
+                  OIDC_CONFIG=$(curl -f -s http://keycloak-service:8080/realms/fineract/.well-known/openid-configuration 2>/dev/null || echo "")
 
                   if [ -n "$OIDC_CONFIG" ]; then
                     # Extract authorization_endpoint from OIDC discovery
@@ -144,7 +145,8 @@ patches:
                   # DEV: Use internal Keycloak service for OIDC discovery (no DNS/certs for ELB)
                   # OAuth2 Proxy runs inside cluster and can access Keycloak directly
                   # Browsers will access Keycloak via the ELB hostname for login redirects
-                  export OIDC_ISSUER_URL="http://keycloak-service:8080/auth/realms/${REALM_NAME}"
+                  # Keycloak 17+ serves from root path (no /auth prefix)
+                  export OIDC_ISSUER_URL="http://keycloak-service:8080/realms/${REALM_NAME}"
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"

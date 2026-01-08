@@ -116,7 +116,8 @@ spec:
 
           until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
             # Fetch OIDC discovery configuration
-            OIDC_CONFIG=$(curl -f -s http://keycloak-service:8080/auth/realms/fineract/.well-known/openid-configuration 2>/dev/null || echo "")
+            # Keycloak 17+ serves from root path (no /auth prefix)
+            OIDC_CONFIG=$(curl -f -s http://keycloak-service:8080/realms/fineract/.well-known/openid-configuration 2>/dev/null || echo "")
 
             if [ -n "$OIDC_CONFIG" ]; then
               # Extract authorization_endpoint from OIDC discovery

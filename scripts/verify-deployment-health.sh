@@ -268,11 +268,11 @@ else
     check_pass "LoadBalancer DNS: $LB_DNS"
 fi
 
-# Test Keycloak
+# Test Keycloak (Keycloak 17+ serves from root path - no /auth prefix)
 log_info "Testing Keycloak realm endpoint..."
-if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/auth/realms/fineract" 2>/dev/null | grep -q "200\|302"; then
+if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/realms/fineract" 2>/dev/null | grep -q "200\|302"; then
     check_pass "Keycloak realm endpoint is responding (HTTPS)"
-elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/auth/realms/fineract" 2>/dev/null | grep -q "200\|302"; then
+elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/realms/fineract" 2>/dev/null | grep -q "200\|302"; then
     check_pass "Keycloak realm endpoint is responding (HTTP)"
 else
     check_fail "Keycloak realm endpoint not responding"
@@ -322,11 +322,11 @@ if [ "$MODE" = "--full" ]; then
         check_warn "Unexpected response from protected endpoint (HTTP $HTTP_CODE)"
     fi
 
-    # Test OIDC discovery
+    # Test OIDC discovery (Keycloak 17+ serves from root path - no /auth prefix)
     log_info "Testing Keycloak OIDC discovery endpoint..."
-    if curl -k -s "https://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" 2>/dev/null | jq -e '.authorization_endpoint' > /dev/null 2>&1; then
+    if curl -k -s "https://${LB_DNS}/realms/fineract/.well-known/openid-configuration" 2>/dev/null | jq -e '.authorization_endpoint' > /dev/null 2>&1; then
         check_pass "OIDC discovery endpoint returns valid configuration (HTTPS)"
-    elif curl -k -s "http://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" 2>/dev/null | jq -e '.authorization_endpoint' > /dev/null 2>&1; then
+    elif curl -k -s "http://${LB_DNS}/realms/fineract/.well-known/openid-configuration" 2>/dev/null | jq -e '.authorization_endpoint' > /dev/null 2>&1; then
         check_pass "OIDC discovery endpoint returns valid configuration (HTTP)"
     else
         check_fail "OIDC discovery endpoint not returning valid configuration"

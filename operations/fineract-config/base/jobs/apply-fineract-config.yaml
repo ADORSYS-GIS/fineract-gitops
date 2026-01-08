@@ -139,8 +139,9 @@ spec:
             # OAuth2 authentication
             - name: FINERACT_AUTH_TYPE
               value: "oauth2"
+            # Keycloak 17+ serves from root path (no /auth prefix)
             - name: FINERACT_AUTH_OAUTH2_TOKEN_URL
-              value: "http://keycloak-service:8080/auth/realms/fineract/protocol/openid-connect/token"
+              value: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/token"
             - name: FINERACT_AUTH_OAUTH2_CLIENT_ID
               valueFrom:
                 secretKeyRef:

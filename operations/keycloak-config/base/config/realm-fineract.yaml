@@ -550,13 +550,13 @@ attributes:
   # IMPORTANT: This value is critical for JWT token validation
   # - Fineract validates the 'iss' claim in JWT tokens against this URL
   # - If there's a mismatch, authentication will fail with 302 redirects
-  # - The value MUST include the /auth path to match KC_HTTP_RELATIVE_PATH
+  # - Keycloak 17+ serves from root path (no /auth prefix)
   #
   # Environment-specific values (from overlays/*/kustomization.yaml):
   # - dev: Uses AUTH_HOSTNAME from environment (LoadBalancer DNS)
   # - uat: auth.uat.fineract.com
   # - production: auth.fineract.com
-  frontendUrl: "https://${AUTH_HOSTNAME}/auth"
+  frontendUrl: "https://${AUTH_HOSTNAME}"
 
   acr.loa.map: '{"copper": 0, "silver": 1, "gold": 2}'
 

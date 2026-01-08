@@ -96,9 +96,9 @@ spec:
               name: keycloak-admin-credentials
               key: password
 
-        # HTTP Relative Path - Serve Keycloak from /auth subpath
-        - name: KC_HTTP_RELATIVE_PATH
-          value: "/auth"
+        # NOTE: KC_HTTP_RELATIVE_PATH removed - Keycloak 17+ serves from root path
+        # python-keycloak 7.x expects URLs without /auth prefix
+        # See: https://www.keycloak.org/migration/migrating-to-quarkus
 
         # Hostname Configuration (Keycloak 26.x - Official Best Practice)
         #
@@ -147,8 +147,8 @@ spec:
 
         livenessProbe:
           httpGet:
-            path: /auth/health/live
-            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
+            path: /health/live
+            port: 8080
           initialDelaySeconds: 120
           periodSeconds: 30
           timeoutSeconds: 10
@@ -156,8 +156,8 @@ spec:
 
         readinessProbe:
           httpGet:
-            path: /auth/health/ready
-            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
+            path: /health/ready
+            port: 8080
           initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 5
@@ -165,8 +165,8 @@ spec:
 
         startupProbe:
           httpGet:
-            path: /auth/health/started
-            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
+            path: /health/started
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5

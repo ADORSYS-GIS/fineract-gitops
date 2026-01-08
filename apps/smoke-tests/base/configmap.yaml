@@ -53,13 +53,13 @@ data:
       "http://fineract-read.fineract.svc.cluster.local:8443/fineract-provider/actuator/health" \
       "200" || true
 
-    # Keycloak
+    # Keycloak (Keycloak 17+ serves from root path - no /auth prefix)
     run_test "Keycloak Health" \
-      "http://keycloak.fineract.svc.cluster.local:8080/auth/health" \
+      "http://keycloak.fineract.svc.cluster.local:8080/health" \
       "200" || true
 
     run_test "Keycloak Realm" \
-      "http://keycloak.fineract.svc.cluster.local:8080/auth/realms/fineract" \
+      "http://keycloak.fineract.svc.cluster.local:8080/realms/fineract" \
       "200" || true
 
     # Redis

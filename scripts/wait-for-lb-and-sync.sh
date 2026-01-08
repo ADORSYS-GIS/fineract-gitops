@@ -360,9 +360,9 @@ validate_endpoints() {
         log_warn "LoadBalancer endpoint not accessible (timed out or DNS not propagated)"
     fi
 
-    # Test Keycloak endpoint
-    log_info "Testing Keycloak endpoint: https://${LOADBALANCER_DNS}/auth/realms/fineract"
-    local kc_code=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 10 "https://${LOADBALANCER_DNS}/auth/realms/fineract" || echo "000")
+    # Test Keycloak endpoint (Keycloak 17+ serves from root path - no /auth prefix)
+    log_info "Testing Keycloak endpoint: https://${LOADBALANCER_DNS}/realms/fineract"
+    local kc_code=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 10 "https://${LOADBALANCER_DNS}/realms/fineract" || echo "000")
 
     if [ "$kc_code" != "000" ]; then
         log_success "Keycloak endpoint is accessible (HTTP $kc_code)"
@@ -398,7 +398,7 @@ print_summary() {
 
     log "Access URLs:"
     log "  LoadBalancer: https://${LOADBALANCER_DNS}"
-    log "  Keycloak: https://${LOADBALANCER_DNS}/auth/realms/fineract"
+    log "  Keycloak: https://${LOADBALANCER_DNS}/realms/fineract"
     log "  Fineract API: https://${LOADBALANCER_DNS}/fineract-provider/api/v1"
     echo ""
 
