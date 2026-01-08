@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-db-setup-marker
+  labels:
+    app.kubernetes.io/name: database-setup
+    app.kubernetes.io/part-of: fineract-platform
+    app.kubernetes.io/component: database
+  annotations:
+    description: "Marker ConfigMap to ensure ArgoCD syncs this app and triggers hooks"
+data:
+  purpose: "This ConfigMap exists to ensure ArgoCD performs a sync operation, which triggers the Sync hook job that creates the keycloak database."
+  last-updated: "2026-01-08"
