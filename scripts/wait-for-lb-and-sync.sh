@@ -266,21 +266,21 @@ run_health_checks() {
     local health_total=0
 
     # Check if namespace exists
-    ((health_total++))
+    ((++health_total))
     if KUBECONFIG="$KUBECONFIG_FILE" kubectl get namespace "$NAMESPACE" &>/dev/null; then
         log_success "Namespace $NAMESPACE exists"
-        ((health_passed++))
+        ((++health_passed))
     else
         log_warn "Namespace $NAMESPACE not found"
     fi
 
     # Check Redis StatefulSet
-    ((health_total++))
+    ((++health_total))
     if KUBECONFIG="$KUBECONFIG_FILE" kubectl get statefulset -n "$NAMESPACE" fineract-redis &>/dev/null; then
         local redis_ready=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get statefulset -n "$NAMESPACE" fineract-redis -o jsonpath='{.status.readyReplicas}')
         if [ "$redis_ready" -ge 1 ]; then
             log_success "Redis is ready ($redis_ready/1 replica)"
-            ((health_passed++))
+            ((++health_passed))
         else
             log_warn "Redis not ready (ready: $redis_ready/1)"
         fi
@@ -289,12 +289,12 @@ run_health_checks() {
     fi
 
     # Check Keycloak deployment
-    ((health_total++))
+    ((++health_total))
     if KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" keycloak &>/dev/null; then
         local keycloak_ready=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" keycloak -o jsonpath='{.status.readyReplicas}')
         if [ "$keycloak_ready" -ge 1 ]; then
             log_success "Keycloak is ready ($keycloak_ready/1 replica)"
-            ((health_passed++))
+            ((++health_passed))
         else
             log_warn "Keycloak not ready (ready: $keycloak_ready/1)"
         fi
@@ -304,13 +304,13 @@ run_health_checks() {
 
     # Check Fineract deployments
     for deployment in fineract-write fineract-read fineract-batch; do
-        ((health_total++))
+        ((++health_total))
         if KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" "$deployment" &>/dev/null; then
             local replicas=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" "$deployment" -o jsonpath='{.spec.replicas}')
             local ready=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" "$deployment" -o jsonpath='{.status.readyReplicas}')
             if [ "$ready" -eq "$replicas" ]; then
                 log_success "$deployment is ready ($ready/$replicas replicas)"
-                ((health_passed++))
+                ((++health_passed))
             else
                 log_warn "$deployment not ready (ready: $ready/$replicas)"
             fi
@@ -320,12 +320,12 @@ run_health_checks() {
     done
 
     # Check OAuth2 Proxy
-    ((health_total++))
+    ((++health_total))
     if KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" oauth2-proxy &>/dev/null; then
         local oauth_ready=$(KUBECONFIG="$KUBECONFIG_FILE" kubectl get deployment -n "$NAMESPACE" oauth2-proxy -o jsonpath='{.status.readyReplicas}')
         if [ "$oauth_ready" -ge 1 ]; then
             log_success "OAuth2 Proxy is ready ($oauth_ready/1 replica)"
-            ((health_passed++))
+            ((++health_passed))
         else
             log_warn "OAuth2 Proxy not ready (ready: $oauth_ready/1)"
         fi

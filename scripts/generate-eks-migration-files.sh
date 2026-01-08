@@ -30,11 +30,11 @@ create_file() {
 
     if [ -f "$file_path" ]; then
         echo -e "${YELLOW}⊙${NC} Skipping (exists): $file_path"
-        ((skipped_files++))
+        ((++skipped_files))
     else
         echo "$content" > "$file_path"
         echo -e "${GREEN}✓${NC} Created: $file_path"
-        ((created_files++))
+        ((++created_files))
     fi
 }
 

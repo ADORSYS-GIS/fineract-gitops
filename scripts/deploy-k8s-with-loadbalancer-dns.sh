@@ -108,7 +108,7 @@ preflight_check() {
     if [ -z "$KUBECONFIG" ]; then
         log_error "KUBECONFIG environment variable not set"
         echo "  Fix: export KUBECONFIG=~/.kube/config-fineract-$ENV"
-        ((errors++))
+        ((++errors))
     else
         log "✓ KUBECONFIG is set: $KUBECONFIG"
     fi
@@ -118,7 +118,7 @@ preflight_check() {
         log_error "Cannot connect to Kubernetes cluster"
         echo "  Fix: Ensure infrastructure is deployed and kubeconfig is configured"
         echo "       Run: ./scripts/setup-eks-kubeconfig.sh $ENV"
-        ((errors++))
+        ((++errors))
     else
         CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo "unknown")
         log "✓ Connected to cluster: $CLUSTER_NAME"
@@ -132,14 +132,14 @@ preflight_check() {
         echo "  This is needed for ArgoCD to access the Git repository"
         echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
         echo "  Then add public key to GitHub repository deploy keys"
-        ((errors++))
+        ((++errors))
     fi
 
     # Check 4: Terraform outputs (needed for sealed secrets)
     if [ ! -d "terraform/aws" ]; then
         log_warn "Terraform directory not found"
         echo "  This may cause sealed secrets generation to fail"
-        ((errors++))
+        ((++errors))
     else
         # Check if terraform state exists
         if [ -f "terraform/aws/terraform.tfstate" ] || [ -d "terraform/aws/.terraform" ]; then
@@ -163,7 +163,7 @@ preflight_check() {
         else
             log_error "Terraform not initialized or no state file"
             echo "  Fix: cd terraform/aws && terraform init && terraform apply"
-            ((errors++))
+            ((++errors))
         fi
     fi
 

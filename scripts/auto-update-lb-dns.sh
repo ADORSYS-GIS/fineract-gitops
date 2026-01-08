@@ -250,7 +250,7 @@ update_environment_configs() {
         sed -i.tmp "s|AUTH_HOSTNAME: \".*\"|AUTH_HOSTNAME: \"${LOADBALANCER_DNS}\"|g" "$lb_config"
         rm -f "${lb_config}.tmp"
         log "  ✓ Updated: environments/${ENV}/loadbalancer-config.yaml"
-        ((files_updated++))
+        ((++files_updated))
     fi
 
     # Update fineract-oauth2-config-patch.yaml
@@ -260,7 +260,7 @@ update_environment_configs() {
         sed -i.tmp "s|oidc-issuer-url: \".*\"|oidc-issuer-url: \"https://${LOADBALANCER_DNS}/auth/realms/fineract\"|g" "$oauth_patch"
         rm -f "${oauth_patch}.tmp"
         log "  ✓ Updated: environments/${ENV}/fineract-oauth2-config-patch.yaml"
-        ((files_updated++))
+        ((++files_updated))
     fi
 
     log "✓ Updated $files_updated file(s) in environments/${ENV}/"
@@ -284,7 +284,7 @@ update_app_overlays() {
         sed -i.tmp "s|cors-allow-origin-url: https://.*|cors-allow-origin-url: https://${LOADBALANCER_DNS}|g" "$ingress_config_yaml"
         rm -f "${ingress_config_yaml}.tmp"
         log "  ✓ Updated: apps/ingress/overlays/${ENV}/ingress-config.yaml"
-        ((files_updated++))
+        ((++files_updated))
     else
         # Fallback: This should not be needed anymore as all environments use ingress-config.yaml
         local ingress_kustomization="${REPO_ROOT}/apps/ingress/overlays/${ENV}/kustomization.yaml"
@@ -293,7 +293,7 @@ update_app_overlays() {
             sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$ingress_kustomization"
             rm -f "${ingress_kustomization}.tmp"
             log "  ✓ Updated: apps/ingress/overlays/${ENV}/kustomization.yaml (configMapGenerator)"
-            ((files_updated++))
+            ((++files_updated))
         else
             log_warn "  ⚠ No ingress config found in apps/ingress/overlays/${ENV}/"
         fi
@@ -308,7 +308,7 @@ update_app_overlays() {
             sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$oauth_config"
             rm -f "${oauth_config}.tmp"
             log "  ✓ Updated: apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml (configMapGenerator)"
-            ((files_updated++))
+            ((++files_updated))
         else
             log "  ℹ Skipped: apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml (no configMapGenerator to update)"
             log "    OAuth2 Proxy uses ingress-config from apps/ingress/overlays/${ENV}/kustomization.yaml"
@@ -326,7 +326,7 @@ update_app_overlays() {
         sed -i.tmp "s|value: PENDING_LOADBALANCER_DNS|value: ${LOADBALANCER_DNS}|g" "$keycloak_config"
         rm -f "${keycloak_config}.tmp"
         log "  ✓ Updated: apps/keycloak/overlays/${ENV}/kustomization.yaml"
-        ((files_updated++))
+        ((++files_updated))
     fi
 
     log "✓ Updated $files_updated file(s) in apps/"
@@ -346,7 +346,7 @@ update_operations_configs() {
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$kc_config"
         rm -f "${kc_config}.tmp"
         log "  ✓ Updated: operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
-        ((files_updated++))
+        ((++files_updated))
     fi
 
     # Update fineract-config overlay
@@ -355,7 +355,7 @@ update_operations_configs() {
         sed -i.tmp "s|- auth-hostname=.*|- auth-hostname=${LOADBALANCER_DNS}|g" "$fineract_config"
         rm -f "${fineract_config}.tmp"
         log "  ✓ Updated: operations/fineract-config/overlays/${ENV}/kustomization.yaml"
-        ((files_updated++))
+        ((++files_updated))
     fi
 
     log "✓ Updated $files_updated file(s) in operations/"
@@ -385,7 +385,7 @@ validate_consistency() {
             log "  ✓ $file - Contains correct DNS"
         else
             log_warn "  ⚠ $file - May not contain correct DNS"
-            ((inconsistencies++))
+            ((++inconsistencies))
         fi
     done
 

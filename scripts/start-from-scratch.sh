@@ -249,7 +249,7 @@ remove_stale_state_locks() {
                 --region "$region" \
                 --key "$lock_key" 2>&1; then
                 log_info "    ✓ Successfully deleted"
-                ((removed_count++))
+                ((++removed_count))
             else
                 log_warn "    Failed to delete (may already be gone)"
             fi
