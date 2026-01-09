@@ -10,7 +10,7 @@ node_desired_size   = 2
 node_min_size       = 2
 node_max_size       = 4
 cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Allow from anywhere for dev
-# enable_cloudwatch_observability = false  # Disabled - will use Grafana/Prometheus later
+enable_cloudwatch_observability = false  # Disabled - using Grafana/Prometheus instead
 
 # VPC Configuration
 vpc_cidr = "10.0.0.0/16"

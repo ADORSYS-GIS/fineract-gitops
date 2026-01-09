@@ -68,6 +68,12 @@ variable "cluster_endpoint_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "enable_cloudwatch_observability" {
+  description = "Enable CloudWatch Observability add-on (set to false to use Grafana/Prometheus instead)"
+  type        = bool
+  default     = true
+}
+
 # Route53 Configuration
 variable "domain_name" {
   description = "Domain name for Route53 hosted zone (leave empty to skip DNS setup)"
