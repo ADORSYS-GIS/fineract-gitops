@@ -611,10 +611,11 @@ force_delete_namespace() {
     fi
 }
 
-# Function to delete all ArgoCD Applications (removes finalizers)
+# Function to delete all ArgoCD Applications and AppProjects (removes finalizers)
 delete_argocd_applications() {
-    echo -e "${BLUE}→ Checking for ArgoCD Applications...${NC}"
+    echo -e "${BLUE}→ Checking for ArgoCD resources...${NC}"
 
+    # Delete Applications
     local app_count=$(kubectl get applications -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
 
     if [ "$app_count" -gt 0 ]; then
@@ -627,11 +628,45 @@ delete_argocd_applications() {
         done
 
         # Delete all applications
-        kubectl delete applications --all -n argocd --timeout=30s 2>/dev/null || true
+        kubectl delete applications --all -n argocd --force --grace-period=0 2>/dev/null || true
 
         echo -e "${GREEN}  ✓${NC} ArgoCD Applications removed"
     else
         echo -e "${GREEN}  ✓${NC} No ArgoCD Applications found"
+    fi
+
+    # Delete ApplicationSets
+    local appset_count=$(kubectl get applicationsets -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$appset_count" -gt 0 ]; then
+        echo -e "${YELLOW}  Found $appset_count ArgoCD ApplicationSet(s)${NC}"
+
+        kubectl get applicationsets -n argocd -o name 2>/dev/null | while read appset; do
+            kubectl patch $appset -n argocd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        done
+
+        kubectl delete applicationsets --all -n argocd --force --grace-period=0 2>/dev/null || true
+        echo -e "${GREEN}  ✓${NC} ArgoCD ApplicationSets removed"
+    fi
+
+    # Delete AppProjects (IMPORTANT - these can block namespace deletion)
+    local project_count=$(kubectl get appprojects -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$project_count" -gt 0 ]; then
+        echo -e "${YELLOW}  Found $project_count ArgoCD AppProject(s)${NC}"
+        echo -e "${YELLOW}  → Removing finalizers and deleting...${NC}"
+
+        # Remove finalizers from all appprojects
+        kubectl get appprojects -n argocd -o name 2>/dev/null | while read proj; do
+            kubectl patch $proj -n argocd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        done
+
+        # Delete all appprojects (except 'default' which is protected)
+        kubectl delete appprojects --all -n argocd --force --grace-period=0 2>/dev/null || true
+
+        echo -e "${GREEN}  ✓${NC} ArgoCD AppProjects removed"
+    else
+        echo -e "${GREEN}  ✓${NC} No ArgoCD AppProjects found"
     fi
 }
 
