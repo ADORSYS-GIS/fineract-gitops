@@ -884,6 +884,12 @@ EOF
     fi
 
     echo -e "${GREEN}  ✓${NC} Database cleanup complete"
+
+    # After database cleanup, delete Keycloak deployment to force restart
+    # This ensures Keycloak re-initializes its schema on the fresh database
+    echo -e "${BLUE}  → Deleting Keycloak deployment (will restart with fresh database)...${NC}"
+    kubectl delete deployment keycloak -n "$FINERACT_NAMESPACE" --ignore-not-found 2>/dev/null || true
+    echo -e "${GREEN}  ✓${NC} Keycloak will restart and initialize schema on next sync"
 }
 
 # Main cleanup process
