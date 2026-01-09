@@ -1,7 +1,7 @@
 #!/bin/bash
-# Post-Terraform Setup Script
-# This script handles tasks that Terraform's Kubernetes provider fails to do
-# due to IP caching issues when K3s instances are replaced.
+# Post-Terraform Setup Script for EKS
+# This script configures kubeconfig and creates initial Kubernetes resources
+# after Terraform has provisioned the EKS cluster.
 
 set -e  # Exit on error
 set -o pipefail
@@ -19,6 +19,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Environment (default: dev)
 ENV="${1:-dev}"
+
+# Kubeconfig path
+KUBECONFIG_PATH="$HOME/.kube/config-fineract-${ENV}"
 
 log() {
     echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $*"
@@ -41,92 +44,75 @@ error_exit() {
     exit 1
 }
 
-# Step 1: Get K3s server IP from Terraform
-get_k3s_server_ip() {
-    log "Getting K3s server IP from Terraform..."
+# Step 1: Configure kubectl for EKS
+get_eks_kubeconfig() {
+    log "Configuring kubectl for EKS cluster..."
     cd "$REPO_ROOT/terraform/aws"
 
-    K3S_SERVER_IP=$(terraform output -json k3s_server_public_ips | jq -r '.[0]')
+    # Get cluster name and region from Terraform outputs
+    local cluster_name=$(terraform output -raw eks_cluster_name)
+    local region=$(terraform output -raw aws_region 2>/dev/null || echo "eu-central-1")
 
-    if [ -z "$K3S_SERVER_IP" ] || [ "$K3S_SERVER_IP" = "null" ]; then
-        error_exit "Failed to get K3s server IP from Terraform"
+    if [ -z "$cluster_name" ]; then
+        error_exit "Failed to get EKS cluster name from Terraform"
     fi
 
-    log "K3s server IP: $K3S_SERVER_IP"
-    echo "$K3S_SERVER_IP"
+    log_info "EKS cluster: $cluster_name"
+    log_info "AWS region: $region"
+
+    # Ensure .kube directory exists
+    mkdir -p "$HOME/.kube"
+
+    # Configure kubeconfig for EKS
+    aws eks update-kubeconfig \
+        --name "$cluster_name" \
+        --region "$region" \
+        --kubeconfig "$KUBECONFIG_PATH"
+
+    log "Kubeconfig saved to: $KUBECONFIG_PATH"
 }
 
-# Step 2: Wait for K3s to be ready
-wait_for_k3s() {
-    local server_ip="$1"
-    log "Waiting for K3s API server to be ready..."
+# Step 2: Wait for EKS cluster to be ready
+wait_for_eks() {
+    log "Waiting for EKS cluster to be ready..."
 
     local max_attempts=30
     local attempt=0
 
     while [ $attempt -lt $max_attempts ]; do
-        if curl -sk "https://${server_ip}:6443/healthz" --connect-timeout 5 | grep -q "ok"; then
-            log "K3s API server is ready!"
+        if KUBECONFIG="$KUBECONFIG_PATH" kubectl cluster-info &>/dev/null; then
+            log "EKS cluster is ready!"
             return 0
         fi
 
         attempt=$((attempt + 1))
-        log_info "Waiting for K3s... (attempt $attempt/$max_attempts)"
+        log_info "Waiting for EKS... (attempt $attempt/$max_attempts)"
         sleep 10
     done
 
-    error_exit "K3s API server did not become ready in time"
+    error_exit "EKS cluster did not become ready in time"
 }
 
-# Step 3: Get kubeconfig directly from K3s server
-get_kubeconfig() {
-    local server_ip="$1"
-    log "Getting kubeconfig directly from K3s server..."
-
-    local kubeconfig_path="$HOME/.kube/config-fineract-${ENV}-${ENV}"
-
-    # Ensure .kube directory exists
-    mkdir -p "$HOME/.kube"
-
-    # Get kubeconfig via SSH and replace 127.0.0.1 with actual IP
-    if ssh -i ~/.ssh/fineract-k3s -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-        ubuntu@"${server_ip}" "sudo cat /etc/rancher/k3s/k3s.yaml" | \
-        sed "s/127.0.0.1/${server_ip}/g" > "$kubeconfig_path"; then
-
-        log "Kubeconfig saved to: $kubeconfig_path"
-
-        # Verify it works
-        if KUBECONFIG="$kubeconfig_path" kubectl cluster-info &> /dev/null; then
-            log "Kubeconfig is working correctly!"
-            return 0
-        else
-            error_exit "Kubeconfig verification failed"
-        fi
-    else
-        error_exit "Failed to get kubeconfig from K3s server"
-    fi
-}
-
-# Step 4: Create Kubernetes namespace
+# Step 3: Create Kubernetes namespace
 create_namespace() {
     log "Creating Kubernetes namespace..."
 
-    local kubeconfig_path="$HOME/.kube/config-fineract-${ENV}-${ENV}"
-
-    KUBECONFIG="$kubeconfig_path" kubectl create namespace "fineract-${ENV}" \
+    KUBECONFIG="$KUBECONFIG_PATH" kubectl create namespace "fineract-${ENV}" \
         --dry-run=client -o yaml | \
-        KUBECONFIG="$kubeconfig_path" kubectl apply -f -
+        KUBECONFIG="$KUBECONFIG_PATH" kubectl apply -f -
 
     log "Namespace fineract-${ENV} created/verified"
 }
 
-# Step 5: Create secrets from Terraform outputs
+# Step 4: Create secrets from Terraform outputs
 create_secrets() {
     log "Creating Kubernetes secrets from Terraform outputs..."
 
     cd "$REPO_ROOT/terraform/aws"
-    local kubeconfig_path="$HOME/.kube/config-fineract-${ENV}-${ENV}"
     local namespace="fineract-${ENV}"
+
+    # Get AWS region
+    local region=$(terraform output -raw aws_region 2>/dev/null || echo "eu-central-1")
 
     # Get RDS credentials
     log_info "Getting RDS credentials..."
@@ -138,7 +124,7 @@ create_secrets() {
     RDS_PASSWORD=$(terraform state pull | jq -r '.resources[] | select(.module == "module.rds" and .type == "random_password" and .name == "master") | .instances[0].attributes.result')
 
     log_info "Creating rds-connection secret..."
-    KUBECONFIG="$kubeconfig_path" kubectl create secret generic rds-connection \
+    KUBECONFIG="$KUBECONFIG_PATH" kubectl create secret generic rds-connection \
         -n "$namespace" \
         --from-literal=jdbc-url="jdbc:postgresql://${RDS_ENDPOINT}/${RDS_DATABASE}" \
         --from-literal=host="$RDS_HOST" \
@@ -146,10 +132,10 @@ create_secrets() {
         --from-literal=database="$RDS_DATABASE" \
         --from-literal=username="$RDS_USERNAME" \
         --from-literal=password="$RDS_PASSWORD" \
-        --dry-run=client -o yaml | KUBECONFIG="$kubeconfig_path" kubectl apply -f -
+        --dry-run=client -o yaml | KUBECONFIG="$KUBECONFIG_PATH" kubectl apply -f -
 
     log_info "Creating fineract-db-credentials secret..."
-    KUBECONFIG="$kubeconfig_path" kubectl create secret generic fineract-db-credentials \
+    KUBECONFIG="$KUBECONFIG_PATH" kubectl create secret generic fineract-db-credentials \
         -n "$namespace" \
         --from-literal=jdbc-url="jdbc:postgresql://${RDS_ENDPOINT}/${RDS_DATABASE}" \
         --from-literal=host="$RDS_HOST" \
@@ -157,7 +143,7 @@ create_secrets() {
         --from-literal=database="$RDS_DATABASE" \
         --from-literal=username="$RDS_USERNAME" \
         --from-literal=password="$RDS_PASSWORD" \
-        --dry-run=client -o yaml | KUBECONFIG="$kubeconfig_path" kubectl apply -f -
+        --dry-run=client -o yaml | KUBECONFIG="$KUBECONFIG_PATH" kubectl apply -f -
 
     # Note: Using in-cluster fineract-redis instead of AWS ElastiCache
     # Redis connection configured via fineract-redis-credentials secret (deployed via ArgoCD)
@@ -166,30 +152,28 @@ create_secrets() {
     log_info "Getting S3 bucket names..."
     DOCUMENTS_BUCKET=$(terraform output -raw documents_bucket_name)
     BACKUPS_BUCKET=$(terraform output -raw backups_bucket_name)
-    AWS_REGION="us-east-2"
 
     log_info "Creating s3-connection secret..."
-    KUBECONFIG="$kubeconfig_path" kubectl create secret generic s3-connection \
+    KUBECONFIG="$KUBECONFIG_PATH" kubectl create secret generic s3-connection \
         -n "$namespace" \
         --from-literal=documents-bucket="$DOCUMENTS_BUCKET" \
         --from-literal=backups-bucket="$BACKUPS_BUCKET" \
-        --from-literal=region="$AWS_REGION" \
+        --from-literal=region="$region" \
         --from-literal=acceleration-enabled="false" \
-        --dry-run=client -o yaml | KUBECONFIG="$kubeconfig_path" kubectl apply -f -
+        --dry-run=client -o yaml | KUBECONFIG="$KUBECONFIG_PATH" kubectl apply -f -
 
     log "All secrets created successfully!"
 }
 
-# Step 6: Update Load Balancer DNS (CENTRALIZED APPROACH)
+# Step 5: Update Load Balancer DNS (CENTRALIZED APPROACH)
 update_hostnames() {
     log "Updating Load Balancer DNS (using centralized approach)..."
-
-    local kubeconfig_path="$HOME/.kube/config-fineract-${ENV}-${ENV}"
 
     # Use the centralized auto-update script
     log_info "Using centralized Load Balancer DNS management..."
     log_info "This will update ALL configuration files consistently"
 
+    export KUBECONFIG="$KUBECONFIG_PATH"
     if ! "$SCRIPT_DIR/auto-update-lb-dns.sh" "$ENV"; then
         error_exit "Failed to update Load Balancer DNS using centralized script"
     fi
@@ -200,15 +184,14 @@ update_hostnames() {
 # Main execution
 main() {
     log "=========================================="
-    log "  Post-Terraform Setup Script"
+    log "  Post-Terraform Setup Script (EKS)"
     log "=========================================="
     log "Environment: $ENV"
     echo ""
 
     # Execute setup steps
-    K3S_IP=$(get_k3s_server_ip)
-    wait_for_k3s "$K3S_IP"
-    get_kubeconfig "$K3S_IP"
+    get_eks_kubeconfig
+    wait_for_eks
     create_namespace
     create_secrets
     update_hostnames
@@ -217,11 +200,11 @@ main() {
     log "=========================================="
     log "  Setup Complete!"
     log "=========================================="
-    log "Kubeconfig: $HOME/.kube/config-fineract-${ENV}-${ENV}"
+    log "Kubeconfig: $KUBECONFIG_PATH"
     log "Namespace: fineract-${ENV}"
     log ""
     log "Next step: Deploy applications"
-    log "  kubectl apply -k environments/${ENV}"
+    log "  KUBECONFIG=$KUBECONFIG_PATH ./scripts/deploy-k8s-with-loadbalancer-dns.sh $ENV"
     echo ""
 }
 
