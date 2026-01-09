@@ -334,7 +334,34 @@ clean_namespace_resources() {
         if kubectl api-resources --verbs=list -o name 2>/dev/null | grep -q "^${resource}$"; then
             local count=$(kubectl get $resource -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
             if [ "$count" -gt 0 ]; then
-                echo -e "${BLUE}    Removing finalizers from $resource...${NC}"
+                echo -e "${BLUE}    Removing finalizers from $resource ($count found)...${NC}"
+
+                # Special handling for ArgoCD resources (AppProjects, Applications, ApplicationSets)
+                if [[ "$resource" == "appprojects.argoproj.io" ]] || [[ "$resource" == "applications.argoproj.io" ]] || [[ "$resource" == "applicationsets.argoproj.io" ]]; then
+                    echo -e "${BLUE}      ArgoCD resource cleanup for $resource...${NC}"
+
+                    # Get each resource and remove finalizers individually
+                    kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
+                        echo -e "${YELLOW}        Cleaning: $obj${NC}"
+                        # Remove finalizers
+                        kubectl patch "$obj" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                        kubectl patch "$obj" -n $ns --type json -p='[{"op": "remove", "path": "/metadata/finalizers"}]' 2>/dev/null || true
+                        # Force delete
+                        kubectl delete "$obj" -n $ns --force --grace-period=0 2>/dev/null || true
+                    done
+
+                    # Also try bulk delete
+                    kubectl delete $resource --all -n $ns --force --grace-period=0 2>/dev/null || true
+
+                    sleep 2
+                    local remaining=$(kubectl get $resource -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
+                    if [ "$remaining" -gt 0 ]; then
+                        echo -e "${YELLOW}      Warning: $remaining $resource still remain${NC}"
+                    else
+                        echo -e "${GREEN}      ✓ All $resource deleted${NC}"
+                    fi
+                    continue
+                fi
 
                 # Enhanced job cleanup with proper pod deletion and finalizer handling
                 if [[ "$resource" == "jobs" ]]; then
