@@ -611,9 +611,9 @@ users:
       description: ["Service account for user-sync-service - manages user synchronization"]
       managed_by: ["keycloak-config-cli"]
 
-# Default Users for Development
-# NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
-# Passwords are substituted from keycloak-default-users secret at runtime
+  # Default Users for Development
+  # NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
+  # Passwords are substituted from keycloak-default-users secret at runtime
 
   # Admin user - Full administrative access
   - username: admin
