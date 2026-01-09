@@ -885,11 +885,14 @@ EOF
 
     echo -e "${GREEN}  ✓${NC} Database cleanup complete"
 
-    # After database cleanup, delete Keycloak deployment to force restart
-    # This ensures Keycloak re-initializes its schema on the fresh database
-    echo -e "${BLUE}  → Deleting Keycloak deployment (will restart with fresh database)...${NC}"
-    kubectl delete deployment keycloak -n "$FINERACT_NAMESPACE" --ignore-not-found 2>/dev/null || true
-    echo -e "${GREEN}  ✓${NC} Keycloak will restart and initialize schema on next sync"
+    # After database cleanup, delete ALL deployments in the namespace
+    # This ensures:
+    # 1. No stale database connections (Keycloak, Fineract services)
+    # 2. No resource exhaustion from old pods
+    # 3. ArgoCD recreates everything in correct order (migrations first)
+    echo -e "${BLUE}  → Deleting all deployments in $FINERACT_NAMESPACE (will restart fresh)...${NC}"
+    kubectl delete deployments --all -n "$FINERACT_NAMESPACE" --ignore-not-found 2>/dev/null || true
+    echo -e "${GREEN}  ✓${NC} All deployments deleted - ArgoCD will recreate them on next sync"
 }
 
 # Main cleanup process
