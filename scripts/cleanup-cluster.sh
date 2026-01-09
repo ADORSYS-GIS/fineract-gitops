@@ -729,6 +729,84 @@ cleanup_sealed_secrets() {
     echo -e "${GREEN}  ✓${NC} Sealed Secrets cleanup complete"
 }
 
+# Function to cleanup Reloader from kube-system
+cleanup_reloader() {
+    echo -e "${BLUE}→ Checking for Reloader in kube-system...${NC}"
+
+    # Check if Reloader deployment exists
+    if kubectl get deployment -n kube-system -l app.kubernetes.io/name=reloader --no-headers 2>/dev/null | grep -q .; then
+        echo -e "${YELLOW}  Found Reloader deployment${NC}"
+        echo -e "${YELLOW}  → Deleting Reloader resources...${NC}"
+
+        # Delete deployment
+        kubectl delete deployment -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete service account
+        kubectl delete serviceaccount -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+        echo -e "${GREEN}  ✓${NC} Reloader deleted"
+    else
+        echo -e "${GREEN}  ✓${NC} No Reloader found"
+    fi
+}
+
+# Function to cleanup cluster-scoped resources
+cleanup_cluster_scoped_resources() {
+    echo -e "${BLUE}→ Cleaning up cluster-scoped resources...${NC}"
+
+    # ClusterRoles
+    echo -e "${BLUE}  → Deleting ClusterRoles...${NC}"
+    local cluster_roles=(
+        "argocd-application-controller"
+        "argocd-server"
+        "ingress-nginx"
+        "ingress-nginx-admission"
+        "cert-manager-controller-issuers"
+        "cert-manager-controller-clusterissuers"
+        "cert-manager-controller-certificates"
+        "cert-manager-controller-orders"
+        "cert-manager-controller-challenges"
+        "cert-manager-controller-ingress-shim"
+        "cert-manager-view"
+        "cert-manager-edit"
+        "cert-manager-cainjector"
+        "cert-manager-webhook:subjectaccessreviews"
+        "reloader-reloader-role"
+    )
+
+    for role in "${cluster_roles[@]}"; do
+        if kubectl get clusterrole "$role" &>/dev/null; then
+            kubectl delete clusterrole "$role" --force --grace-period=0 2>/dev/null || true
+        fi
+    done
+
+    # Also delete by label
+    kubectl delete clusterroles -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+    # ClusterRoleBindings
+    echo -e "${BLUE}  → Deleting ClusterRoleBindings...${NC}"
+    kubectl delete clusterrolebindings -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+    # IngressClass
+    echo -e "${BLUE}  → Deleting IngressClass...${NC}"
+    kubectl delete ingressclass nginx --force --grace-period=0 2>/dev/null || true
+
+    # PersistentVolumes (orphaned)
+    echo -e "${BLUE}  → Deleting orphaned PersistentVolumes...${NC}"
+    kubectl get pv -o name 2>/dev/null | while read pv; do
+        kubectl patch "$pv" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        kubectl delete "$pv" --force --grace-period=0 2>/dev/null || true
+    done
+
+    echo -e "${GREEN}  ✓${NC} Cluster-scoped resources cleaned"
+}
+
 # Function to cleanup RDS databases (drop and recreate)
 cleanup_rds_databases() {
     echo -e "${BLUE}→ Cleaning up RDS databases...${NC}"
@@ -1032,6 +1110,14 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
 
     # Step 1.5: Cleanup Sealed Secrets from kube-system
     cleanup_sealed_secrets
+    echo ""
+
+    # Step 1.6: Cleanup Reloader from kube-system
+    cleanup_reloader
+    echo ""
+
+    # Step 1.7: Cleanup cluster-scoped resources
+    cleanup_cluster_scoped_resources
     echo ""
 
     # Step 1.75: Run pre-cleanup diagnostics for all target namespaces
