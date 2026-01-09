@@ -360,6 +360,10 @@ roles:
       description: Full administrative access (Super user)
       composite: false
 
+    - name: Admin
+      description: Admin role (capitalized for frontend apps)
+      composite: false
+
     - name: Super User
       description: Full administrative access (Fineract native role name)
       composite: false
@@ -637,7 +641,7 @@ users:
       office_id: ["1"]
       department: ["IT"]
 
-  # Mifos user - Standard staff user with loan officer permissions
+  # Mifos user - Admin user with full access to all frontend apps
   - username: mifos
     enabled: true
     emailVerified: true
@@ -650,10 +654,9 @@ users:
         value: "${MIFOS_PASSWORD}"
         temporary: false
     realmRoles:
-      - loan-officer
-      - staff
+      - Admin
     groups:
-      - /loan-officers
+      - /head-office
     attributes:
       employee_id: ["EMP002"]
       office_id: ["1"]
