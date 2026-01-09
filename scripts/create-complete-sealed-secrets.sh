@@ -171,8 +171,9 @@ echo "6. Keycloak Default Users..."
 echo -e "${BLUE}  Creating default user credentials for Keycloak...${NC}"
 
 # Default passwords for dev environment (should be changed for production)
-KEYCLOAK_ADMIN_DEFAULT_PASSWORD="${KEYCLOAK_ADMIN_DEFAULT_PASSWORD:-Admin@123}"
-KEYCLOAK_MIFOS_DEFAULT_PASSWORD="${KEYCLOAK_MIFOS_DEFAULT_PASSWORD:-Mifos@123}"
+# Passwords must meet Keycloak policy: 12+ chars, 2+ digits, 1+ uppercase, 1+ lowercase, 1+ special
+KEYCLOAK_ADMIN_DEFAULT_PASSWORD="${KEYCLOAK_ADMIN_DEFAULT_PASSWORD:-SecureAdmin@123}"
+KEYCLOAK_MIFOS_DEFAULT_PASSWORD="${KEYCLOAK_MIFOS_DEFAULT_PASSWORD:-SecureMifos@123}"
 
 create_sealed_secret "keycloak-default-users" "${NAMESPACE}" \
     "admin-password=${KEYCLOAK_ADMIN_DEFAULT_PASSWORD}" \

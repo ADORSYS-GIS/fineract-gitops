@@ -114,7 +114,9 @@ SES_SMTP_PASS=$(echo "$TF_STATE_JSON" | jq -r '.values.root_module.child_modules
 # Get non-sensitive Terraform outputs (these are safe to expose)
 RDS_HOST=$(terraform output -raw rds_instance_endpoint 2>/dev/null | cut -d: -f1 || echo "")
 RDS_PORT=$(terraform output -raw rds_instance_endpoint 2>/dev/null | cut -d: -f2 || echo "5432")
-RDS_DATABASE=$(terraform output -raw rds_database_name 2>/dev/null || echo "fineract")
+RDS_DATABASE=$(terraform output -raw rds_database_name 2>/dev/null)
+# Default to fineract_tenants if empty (RDS created without default database, apps create their own)
+RDS_DATABASE="${RDS_DATABASE:-fineract_tenants}"
 RDS_USERNAME=$(terraform output -json rds_master_username 2>/dev/null | jq -r '.' || echo "fineract")
 # Fineract uses fineract_tenants as the tenant-store database (not the raw RDS database name)
 RDS_JDBC_URL="jdbc:postgresql://${RDS_HOST}:${RDS_PORT}/fineract_tenants"
