@@ -836,6 +836,34 @@ DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonp
 if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ]; then
     log "✓ fineract-db-credentials: decrypted successfully (database: $DB_NAME)"
     SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+elif [ -n "$DB_HOST" ] && [ -z "$DB_NAME" ]; then
+    # Database field is empty - auto-fix by regenerating sealed secret
+    log_warn "✗ fineract-db-credentials: database field is empty (auto-fixing...)"
+    log_info "Regenerating fineract-db-credentials sealed secret..."
+
+    # Regenerate the sealed secret from Terraform outputs
+    if "$REPO_ROOT/scripts/seal-terraform-secrets.sh" "$ENV" > /dev/null 2>&1; then
+        # Delete and reapply the sealed secret
+        kubectl delete secret fineract-db-credentials -n fineract-${ENV} 2>/dev/null || true
+        kubectl delete sealedsecret fineract-db-credentials -n fineract-${ENV} 2>/dev/null || true
+        kubectl apply -f "$REPO_ROOT/secrets/${ENV}/fineract-db-credentials-sealed.yaml"
+
+        # Wait for secret to be created by sealed-secrets controller
+        sleep 5
+
+        # Re-check the database field
+        DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.database}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        if [ -n "$DB_NAME" ]; then
+            log "✓ fineract-db-credentials: auto-fixed successfully (database: $DB_NAME)"
+            SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+        else
+            log_error "✗ fineract-db-credentials: auto-fix failed - database still empty"
+            SECRETS_VALID=false
+        fi
+    else
+        log_error "✗ fineract-db-credentials: failed to regenerate sealed secret"
+        SECRETS_VALID=false
+    fi
 else
     log_error "✗ fineract-db-credentials: failed to decrypt or missing required fields"
     [ -z "$DB_HOST" ] && log_error "  - host is empty"
