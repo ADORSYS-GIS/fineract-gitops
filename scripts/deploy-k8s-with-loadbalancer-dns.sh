@@ -660,6 +660,31 @@ echo -e "${BLUE}PHASE 5: Deploy Secrets (Sealed Secrets from Terraform)${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo
 
+# Always regenerate sealed secrets from Terraform outputs before applying
+# This ensures secrets have the latest values (e.g., database=fineract_tenants)
+log_info "Regenerating sealed secrets from Terraform outputs..."
+if "$REPO_ROOT/scripts/seal-terraform-secrets.sh" "$ENV"; then
+    log "✓ Sealed secrets regenerated with latest Terraform values"
+
+    # Commit regenerated sealed secrets to git for GitOps consistency
+    log_info "Committing regenerated sealed secrets to git..."
+    cd "$REPO_ROOT"
+    if git diff --quiet "secrets/${ENV}/" 2>/dev/null; then
+        log "No changes to sealed secrets (already up to date)"
+    else
+        git add "secrets/${ENV}/"
+        git commit -m "chore: regenerate sealed secrets for ${ENV} environment" || true
+        if git push origin HEAD 2>/dev/null; then
+            log "✓ Sealed secrets committed and pushed to git"
+        else
+            log_warn "Could not push to git (may need manual push later)"
+        fi
+    fi
+else
+    log_warn "Failed to regenerate sealed secrets (will use existing files)"
+fi
+echo
+
 log_info "Running: make deploy-step-3"
 if ! make deploy-step-3; then
     error_exit "Secrets deployment failed (deploy-step-3)"
