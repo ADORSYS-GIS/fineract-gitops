@@ -129,7 +129,8 @@
       "Bash(RDS_DATABASE=\"$RDS_DATABASE:-fineract_tenants\")",
       "Bash(aws eks describe-addon:*)",
       "Bash(chmod:*)",
-      "Bash(terraform state list:*)"
+      "Bash(terraform state list:*)",
+      "Bash(/Users/guymoyo/dev/fineract-gitops/scripts/seal-terraform-secrets.sh dev)"
     ],
     "deny": [],
     "ask": []
