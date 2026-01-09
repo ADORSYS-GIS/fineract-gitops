@@ -614,50 +614,50 @@ users:
 # Default Users for Development
 # NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
 # Passwords are substituted from keycloak-default-users secret at runtime
-# users:
-#   # Admin user - Full administrative access
-#   - username: admin
-#     enabled: true
-#     emailVerified: true
-#     firstName: System
-#     lastName: Administrator
-#     email: admin@fineract.dev
-#     credentials:
-#       - type: password
-#         userLabel: "initial"
-#         value: "${ADMIN_PASSWORD}"
-#         temporary: false
-#     realmRoles:
-#       - admin
-#       - staff
-#     groups:
-#       - /head-office
-#     attributes:
-#       employee_id: ["EMP001"]
-#       office_id: ["1"]
-#       department: ["IT"]
 
-#   # Mifos user - Standard staff user with loan officer permissions
-#   - username: mifos
-#     enabled: true
-#     emailVerified: true
-#     firstName: Mifos
-#     lastName: User
-#     email: mifos@fineract.dev
-#     credentials:
-#       - type: password
-#         userLabel: "initial"
-#         value: "${MIFOS_PASSWORD}"
-#         temporary: false
-#     realmRoles:
-#       - loan-officer
-#       - staff
-#     groups:
-#       - /loan-officers
-#     attributes:
-#       employee_id: ["EMP002"]
-#       office_id: ["1"]
-#       department: ["Lending"]
+  # Admin user - Full administrative access
+  - username: admin
+    enabled: true
+    emailVerified: true
+    firstName: System
+    lastName: Administrator
+    email: admin@fineract.dev
+    credentials:
+      - type: password
+        userLabel: "initial"
+        value: "${ADMIN_PASSWORD}"
+        temporary: false
+    realmRoles:
+      - admin
+      - staff
+    groups:
+      - /head-office
+    attributes:
+      employee_id: ["EMP001"]
+      office_id: ["1"]
+      department: ["IT"]
+
+  # Mifos user - Standard staff user with loan officer permissions
+  - username: mifos
+    enabled: true
+    emailVerified: true
+    firstName: Mifos
+    lastName: User
+    email: mifos@fineract.dev
+    credentials:
+      - type: password
+        userLabel: "initial"
+        value: "${MIFOS_PASSWORD}"
+        temporary: false
+    realmRoles:
+      - loan-officer
+      - staff
+    groups:
+      - /loan-officers
+    attributes:
+      employee_id: ["EMP002"]
+      office_id: ["1"]
+      department: ["Lending"]
 
 #   # ============================================================================
 #   # Service Account Users - Role Assignments
