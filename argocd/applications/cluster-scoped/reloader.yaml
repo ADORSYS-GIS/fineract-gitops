@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: reloader
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    description: "Stakater Reloader - auto-restart pods on ConfigMap/Secret changes"
+spec:
+  project: default
+
+  source:
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: main
+    path: apps/reloader/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Stakater Reloader
+    - name: Type
+      value: Infrastructure (Cluster-scoped)
+    - name: Purpose
+      value: "Auto-restart pods when ConfigMaps or Secrets change"
+    - name: Scope
+      value: Cluster-wide
+    - name: Documentation
+      value: "https://github.com/stakater/Reloader"
