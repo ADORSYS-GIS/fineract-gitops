@@ -733,16 +733,33 @@ cleanup_sealed_secrets() {
 cleanup_reloader() {
     echo -e "${BLUE}→ Checking for Reloader in kube-system...${NC}"
 
-    # Check if Reloader deployment exists
+    local found=false
+
+    # Check by label
     if kubectl get deployment -n kube-system -l app.kubernetes.io/name=reloader --no-headers 2>/dev/null | grep -q .; then
+        found=true
+    fi
+
+    # Also check by name pattern
+    if kubectl get deployment -n kube-system reloader-reloader --no-headers 2>/dev/null | grep -q .; then
+        found=true
+    fi
+
+    if [ "$found" = true ]; then
         echo -e "${YELLOW}  Found Reloader deployment${NC}"
         echo -e "${YELLOW}  → Deleting Reloader resources...${NC}"
 
-        # Delete deployment
+        # Delete by label
         kubectl delete deployment -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
-
-        # Delete service account
         kubectl delete serviceaccount -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete by name (fallback)
+        kubectl delete deployment -n kube-system reloader-reloader --force --grace-period=0 2>/dev/null || true
+        kubectl delete serviceaccount -n kube-system reloader-reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete ClusterRole and ClusterRoleBinding
+        kubectl delete clusterrole reloader-reloader-role --force --grace-period=0 2>/dev/null || true
+        kubectl delete clusterrolebinding reloader-reloader-role-binding --force --grace-period=0 2>/dev/null || true
 
         echo -e "${GREEN}  ✓${NC} Reloader deleted"
     else
@@ -754,40 +771,51 @@ cleanup_reloader() {
 cleanup_cluster_scoped_resources() {
     echo -e "${BLUE}→ Cleaning up cluster-scoped resources...${NC}"
 
-    # ClusterRoles
+    # ClusterRoles - delete by name pattern (grep for our components)
     echo -e "${BLUE}  → Deleting ClusterRoles...${NC}"
-    local cluster_roles=(
-        "argocd-application-controller"
-        "argocd-server"
-        "ingress-nginx"
-        "ingress-nginx-admission"
-        "cert-manager-controller-issuers"
-        "cert-manager-controller-clusterissuers"
-        "cert-manager-controller-certificates"
-        "cert-manager-controller-orders"
-        "cert-manager-controller-challenges"
-        "cert-manager-controller-ingress-shim"
-        "cert-manager-view"
-        "cert-manager-edit"
-        "cert-manager-cainjector"
-        "cert-manager-webhook:subjectaccessreviews"
-        "reloader-reloader-role"
-    )
 
-    for role in "${cluster_roles[@]}"; do
-        if kubectl get clusterrole "$role" &>/dev/null; then
-            kubectl delete clusterrole "$role" --force --grace-period=0 2>/dev/null || true
-        fi
+    # Delete all ArgoCD cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'argocd' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
     done
 
-    # Also delete by label
+    # Delete all cert-manager cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'cert-manager' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete all ingress-nginx cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'ingress-nginx' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete reloader cluster role
+    kubectl delete clusterrole reloader-reloader-role --force --grace-period=0 2>/dev/null || true
+
+    # Also delete by label (in case name doesn't match)
     kubectl delete clusterroles -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
     kubectl delete clusterroles -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
     kubectl delete clusterroles -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
     kubectl delete clusterroles -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
 
-    # ClusterRoleBindings
+    # ClusterRoleBindings - delete by name pattern
     echo -e "${BLUE}  → Deleting ClusterRoleBindings...${NC}"
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'argocd' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'cert-manager' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'ingress-nginx' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl delete clusterrolebinding reloader-reloader-role-binding --force --grace-period=0 2>/dev/null || true
+
+    # Also delete by label
     kubectl delete clusterrolebindings -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
     kubectl delete clusterrolebindings -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
     kubectl delete clusterrolebindings -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
@@ -797,9 +825,10 @@ cleanup_cluster_scoped_resources() {
     echo -e "${BLUE}  → Deleting IngressClass...${NC}"
     kubectl delete ingressclass nginx --force --grace-period=0 2>/dev/null || true
 
-    # PersistentVolumes (orphaned)
-    echo -e "${BLUE}  → Deleting orphaned PersistentVolumes...${NC}"
+    # PersistentVolumes (all - since we're doing a full cleanup)
+    echo -e "${BLUE}  → Deleting PersistentVolumes...${NC}"
     kubectl get pv -o name 2>/dev/null | while read pv; do
+        echo "    Deleting $pv..."
         kubectl patch "$pv" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
         kubectl delete "$pv" --force --grace-period=0 2>/dev/null || true
     done
