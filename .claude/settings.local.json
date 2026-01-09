@@ -103,7 +103,20 @@
       "Bash(./scripts/regenerate-all-sealed-secrets.sh dev)",
       "Bash(aws elb describe-load-balancers:*)",
       "Bash(aws elbv2 describe-load-balancers:*)",
-      "Bash(kubectl:*)"
+      "Bash(kubectl:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git -C /Users/guymoyo/dev/fineract-gitops log --oneline -20 --all)",
+      "Bash(git -C /Users/guymoyo/dev/fineract-gitops log --oneline -5 --all -- config/loadbalancer-dns-configmap.yaml)",
+      "Bash(git -C /Users/guymoyo/dev/fineract-gitops show e2221bc --stat)",
+      "Bash(bash -n:*)",
+      "Bash(argocd app get:*)",
+      "Bash(argocd app history:*)",
+      "Bash(sort:*)",
+      "Bash(KUBECONFIG=~/.kube/config-fineract-dev kubectl config current-context:*)",
+      "Bash(KUBECONFIG=~/.kube/config-fineract-dev kubectl get:*)",
+      "Bash(KUBECONFIG=~/.kube/config-fineract-dev kubectl replace:*)",
+      "Bash(export KUBECONFIG=$HOME/.kube/config-fineract-dev:*)",
+      "Bash(git show:*)"
     ],
     "deny": [],
     "ask": []
