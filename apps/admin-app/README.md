@@ -117,7 +117,7 @@ spec:
 
 ### Authentication Flow
 
-1.  **User accesses** `https://fineract.example.com/admin`
+1.  **User accesses** `https://fineract.example.com/administration`
 2.  **Ingress NGINX** intercepts request
 3.  **OAuth2 Proxy** handles authentication via Keycloak
 4.  **Ingress forwards** to admin-app service
@@ -133,13 +133,13 @@ Sessions are managed centrally by OAuth2 Proxy and Keycloak.
 
 The admin app is accessible at a path like:
 ```
-https://fineract.example.com/admin
+https://fineract.example.com/administration
 ```
-The Ingress configuration routes `/admin(/|$)(.*)` to the admin-app service.
+The Ingress configuration routes `/administration(/|$)(.*)` to the admin-app service.
 
 ---
 
 **Namespace**: `fineract-dev` (dev), `fineract-uat` (uat), `fineract-production` (production)
 **Component**: Frontend - Admin App
 **Managed by**: ArgoCD
-**Access**: Via Ingress NGINX with OAuth2 authentication at `/admin`
+**Access**: Via Ingress NGINX with OAuth2 authentication at `/administration`

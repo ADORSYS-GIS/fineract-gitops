@@ -25,9 +25,9 @@ metadata:
         add_header Cache-Control "public, max-age=31536000, immutable" always;
       }
       # Admin app static assets
-      location ~* ^/admin/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+      location ~* ^/administration/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
         auth_request off;
-        rewrite ^/admin/(.*)$ /$1 break;
+        rewrite ^/administration/(.*)$ /$1 break;
         proxy_pass http://admin-app.fineract-uat.svc.cluster.local:80;
         proxy_set_header Host $host;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
