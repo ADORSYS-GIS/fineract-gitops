@@ -6,7 +6,7 @@
 # Usage:
 #   ./seal-argocd-ssh-credentials.sh [SSH_KEY_PATH]
 #
-# If SSH_KEY_PATH is not provided, defaults to: ~/.ssh/argocd-deploy-key
+# If SSH_KEY_PATH is not provided, defaults to: ~/.ssh/argocd-dev/fineract-deployment
 #
 
 set -e
@@ -21,7 +21,7 @@ NC='\033[0m'
 REPO_URL="git@github.com:ADORSYS-GIS/fineract-gitops.git"
 SECRET_NAME="repo-fineract-gitops"
 NAMESPACE="argocd"
-SSH_KEY_PATH="${1:-$HOME/.ssh/argocd-deploy-key}"
+SSH_KEY_PATH="${1:-$HOME/.ssh/argocd-dev/fineract-deployment}"
 SEALED_SECRETS_NAMESPACE="${SEALED_SECRETS_NAMESPACE:-kube-system}"
 SEALED_SECRETS_CONTROLLER="${SEALED_SECRETS_CONTROLLER:-sealed-secrets-controller}"
 
@@ -35,10 +35,10 @@ if [ ! -f "$SSH_KEY_PATH" ]; then
     echo -e "${RED}✗ Error: SSH private key not found at: $SSH_KEY_PATH${NC}"
     echo ""
     echo -e "${YELLOW}Generate a new deploy key with:${NC}"
-    echo "  ssh-keygen -t ed25519 -C 'argocd-fineract-gitops' -f ~/.ssh/argocd-deploy-key -N ''"
+    echo "  ssh-keygen -t ed25519 -C 'argocd-fineract-gitops' -f ~/.ssh/argocd-dev/fineract-deployment -N ''"
     echo ""
     echo -e "${YELLOW}Then add the public key to GitHub:${NC}"
-    echo "  1. Copy public key: cat ~/.ssh/argocd-deploy-key.pub"
+    echo "  1. Copy public key: cat ~/.ssh/argocd-dev/fineract-deployment.pub"
     echo "  2. Go to: https://github.com/ADORSYS-GIS/fineract-gitops/settings/keys"
     echo "  3. Click 'Add deploy key'"
     echo "  4. Paste the public key"

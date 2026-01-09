@@ -271,7 +271,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Step 2: Push to Remote
 
 ```bash
-git push origin deploy-key
+git push origin dev/fineract-deployment
 ```
 
 ### Step 3: Monitor ArgoCD Sync

@@ -68,7 +68,7 @@ jobs:
           if [ "$SOURCE_BRANCH" == "main" ]; then
             echo "base_branch=main" >> $GITHUB_OUTPUT
           else
-            echo "base_branch=deploy-key" >> $GITHUB_OUTPUT
+            echo "base_branch=dev/fineract-deployment" >> $GITHUB_OUTPUT
           fi
 
       - name: Checkout repository
@@ -247,7 +247,7 @@ This PR was automatically created by the image update workflow." \
           if [ "$SOURCE_BRANCH" == "main" ]; then
             echo "base_branch=main" >> $GITHUB_OUTPUT
           else
-            echo "base_branch=deploy-key" >> $GITHUB_OUTPUT
+            echo "base_branch=dev/fineract-deployment" >> $GITHUB_OUTPUT
           fi
 
       - name: Checkout repository

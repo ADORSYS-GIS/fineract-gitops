@@ -6,7 +6,7 @@ This guide provides the essential commands to clone the repository, connect to t
 
 ```bash
 # Clone the repository using the specified branch
-git clone -b deploy-key git@github.com:ADORSYS-GIS/fineract-gitops.git
+git clone -b dev/fineract-deployment git@github.com:ADORSYS-GIS/fineract-gitops.git
 
 # Enter the project directory
 cd fineract-gitops

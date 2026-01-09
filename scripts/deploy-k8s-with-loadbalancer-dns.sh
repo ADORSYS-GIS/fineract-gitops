@@ -9,7 +9,7 @@
 # Prerequisites:
 # 1. Infrastructure must be deployed (make deploy-infrastructure-dev)
 # 2. Kubeconfig will be auto-configured (or set KUBECONFIG manually)
-# 3. SSH deploy key must exist at ~/.ssh/argocd-deploy-key
+# 3. SSH deploy key must exist at ~/.ssh/argocd-dev/fineract-deployment
 #
 # This script performs:
 # 1. Deploys GitOps tools (ArgoCD, Sealed Secrets, ingress-nginx, cert-manager)
@@ -125,12 +125,12 @@ preflight_check() {
     fi
 
     # Check 3: SSH Deploy Key (replacing GITHUB_TOKEN)
-    if [ -f "$HOME/.ssh/argocd-deploy-key" ]; then
-        log "✓ SSH deploy key found at ~/.ssh/argocd-deploy-key"
+    if [ -f "$HOME/.ssh/argocd-dev/fineract-deployment" ]; then
+        log "✓ SSH deploy key found at ~/.ssh/argocd-dev/fineract-deployment"
     else
-        log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
+        log_warn "SSH deploy key not found at ~/.ssh/argocd-dev/fineract-deployment"
         echo "  This is needed for ArgoCD to access the Git repository"
-        echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
+        echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-dev/fineract-deployment -N \"\""
         echo "  Then add public key to GitHub repository deploy keys"
         ((++errors))
     fi
@@ -206,10 +206,10 @@ if ! kubectl cluster-info &> /dev/null; then
 fi
 
 # Verify SSH deploy key exists
-if [ ! -f "$HOME/.ssh/argocd-deploy-key" ]; then
-    log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
+if [ ! -f "$HOME/.ssh/argocd-dev/fineract-deployment" ]; then
+    log_warn "SSH deploy key not found at ~/.ssh/argocd-dev/fineract-deployment"
     log_warn "ArgoCD may not be able to access the Git repository"
-    log_warn "Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
+    log_warn "Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-dev/fineract-deployment -N \"\""
 fi
 
 echo

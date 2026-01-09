@@ -406,13 +406,13 @@ validate-k8s-prereqs:
 	@# Check jq (optional)
 	@command -v jq >/dev/null 2>&1 && echo "$(GREEN)✓ jq installed$(NC)" || echo "$(YELLOW)⚠ jq not found (optional). Install: brew install jq$(NC)"
 	@# Check SSH deploy key for ArgoCD
-	@if [ ! -f "$$HOME/.ssh/argocd-deploy-key" ]; then \
-		echo "$(RED)✗ SSH deploy key not found at ~/.ssh/argocd-deploy-key$(NC)"; \
-		echo "$(YELLOW)  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\"$(NC)"; \
+	@if [ ! -f "$$HOME/.ssh/argocd-dev/fineract-deployment" ]; then \
+		echo "$(RED)✗ SSH deploy key not found at ~/.ssh/argocd-dev/fineract-deployment$(NC)"; \
+		echo "$(YELLOW)  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-dev/fineract-deployment -N \"\"$(NC)"; \
 		echo "$(YELLOW)  Then add public key to GitHub repository deploy keys$(NC)"; \
 		exit 1; \
 	else \
-		echo "$(GREEN)✓ SSH deploy key found at ~/.ssh/argocd-deploy-key$(NC)"; \
+		echo "$(GREEN)✓ SSH deploy key found at ~/.ssh/argocd-dev/fineract-deployment$(NC)"; \
 	fi
 	@# Check KUBECONFIG environment variable
 	@if [ -z "$$KUBECONFIG" ]; then \

@@ -263,7 +263,7 @@ The scan also identified excellent security and best practices already in place:
 fix: resolve critical configuration issues across environments
 
 Commit: 2db3814
-Branch: deploy-key
+Branch: dev/fineract-deployment
 Date: 2025-11-20
 ```
 

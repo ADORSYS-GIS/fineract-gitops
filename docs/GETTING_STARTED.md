@@ -37,7 +37,7 @@ git clone <your-repo-url>
 cd fineract-gitops
 
 # Checkout the branch you want to work with
-git checkout main  # or dev, deploy-key, etc.
+git checkout main  # or dev, dev/fineract-deployment, etc.
 ```
 
 ---

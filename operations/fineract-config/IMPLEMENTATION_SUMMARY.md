@@ -133,7 +133,7 @@ Created `argocd/applications/dev/fineract-config.yaml`:
 - Name: `fineract-dev-fineract-config`
 - Project: `fineract-dev`
 - Source: `operations/fineract-config/overlays/dev`
-- Branch: `deploy-key` (auto-sync)
+- Branch: `dev/fineract-deployment` (auto-sync)
 - Sync Wave: "4" (after Fineract deployment)
 - SyncPolicy:
   - Automated with `selfHeal: true` (re-syncs on config changes)
@@ -323,7 +323,7 @@ cd ../
 ```bash
 git add operations/fineract-config/
 git commit -m "feat: add fineract-config-cli job with test office"
-git push origin deploy-key
+git push origin dev/fineract-deployment
 ```
 
 ### Step 4: Monitor Deployment
