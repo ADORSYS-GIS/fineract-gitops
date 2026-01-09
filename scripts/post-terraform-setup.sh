@@ -165,22 +165,6 @@ create_secrets() {
     log "All secrets created successfully!"
 }
 
-# Step 5: Update Load Balancer DNS (CENTRALIZED APPROACH)
-update_hostnames() {
-    log "Updating Load Balancer DNS (using centralized approach)..."
-
-    # Use the centralized auto-update script
-    log_info "Using centralized Load Balancer DNS management..."
-    log_info "This will update ALL configuration files consistently"
-
-    export KUBECONFIG="$KUBECONFIG_PATH"
-    if ! "$SCRIPT_DIR/auto-update-lb-dns.sh" "$ENV"; then
-        error_exit "Failed to update Load Balancer DNS using centralized script"
-    fi
-
-    log "Load Balancer DNS updated successfully in all files!"
-}
-
 # Main execution
 main() {
     log "=========================================="
@@ -194,7 +178,7 @@ main() {
     wait_for_eks
     create_namespace
     create_secrets
-    update_hostnames
+    # Note: LoadBalancer DNS update happens in deploy-k8s-with-loadbalancer-dns.sh
 
     log ""
     log "=========================================="
