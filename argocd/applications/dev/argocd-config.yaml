@@ -10,7 +10,7 @@ metadata:
 data:
   # Git repository configuration
   repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-  targetRevision: "deploy-key"  # Branch to track for this environment
+  targetRevision: "dev/fineract-deployment"  # Branch to track for this environment
 
   # Environment configuration
   environment: "dev"

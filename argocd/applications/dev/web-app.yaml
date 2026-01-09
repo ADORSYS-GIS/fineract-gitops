@@ -11,9 +11,9 @@
 #   project: fineract-dev
 #
 #   source:
-#     repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-#     targetRevision: deploy-key
-#     path: apps/web-app/base
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: dev/fineract-deployment
+    path: apps/web-app/base
 #
 #   destination:
 #     server: https://kubernetes.default.svc
