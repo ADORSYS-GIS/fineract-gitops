@@ -470,6 +470,27 @@ trigger_argocd_sync() {
     fi
 }
 
+# Step 9: Restart Keycloak to apply new frontend URL
+restart_keycloak() {
+    log_step "Step 9: Restarting Keycloak to apply new LoadBalancer DNS..."
+
+    # Keycloak stores frontendUrl in database, so it needs a restart to pick up new config
+    if kubectl rollout restart deployment keycloak -n "${NAMESPACE}" 2>/dev/null; then
+        log "  Keycloak restart initiated"
+
+        # Wait for Keycloak to be ready
+        log_info "  Waiting for Keycloak to be ready (up to 120s)..."
+        if kubectl rollout status deployment keycloak -n "${NAMESPACE}" --timeout=120s 2>/dev/null; then
+            log "✓ Keycloak restarted successfully"
+        else
+            log_warn "⚠ Keycloak rollout may still be in progress"
+        fi
+    else
+        log_warn "⚠ Could not restart Keycloak (deployment may not exist yet)"
+    fi
+    echo ""
+}
+
 # Print summary
 print_summary() {
     log "========================================="
@@ -512,7 +533,9 @@ main() {
     validate_consistency
     commit_and_push
     trigger_argocd_sync
-    # NOTE: Service restarts no longer needed - init containers wait for valid ConfigMap values
+    restart_keycloak
+    # NOTE: Other service restarts not needed - init containers wait for valid ConfigMap values
+    # Keycloak restart IS needed because it caches frontendUrl in database
 
     # Print summary
     print_summary
