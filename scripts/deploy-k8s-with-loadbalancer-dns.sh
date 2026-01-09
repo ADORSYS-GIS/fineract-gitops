@@ -830,12 +830,16 @@ else
     SECRETS_VALID=false
 fi
 
-# Check fineract-db-credentials
-if kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.host}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
-    log "✓ fineract-db-credentials: decrypted successfully"
+# Check fineract-db-credentials (verify both host and database are set)
+DB_HOST=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.host}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.database}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ]; then
+    log "✓ fineract-db-credentials: decrypted successfully (database: $DB_NAME)"
     SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
 else
-    log_error "✗ fineract-db-credentials: failed to decrypt"
+    log_error "✗ fineract-db-credentials: failed to decrypt or missing required fields"
+    [ -z "$DB_HOST" ] && log_error "  - host is empty"
+    [ -z "$DB_NAME" ] && log_error "  - database is empty (should be 'fineract_tenants')"
     SECRETS_VALID=false
 fi
 
