@@ -543,9 +543,10 @@ echo
 
 # Use the centralized auto-update-lb-dns.sh script (single source of truth)
 # --skip-wait: We already have the LB_DNS from earlier in this script
+# --commit --push: Automatically commit and push changes so ArgoCD can sync
 log_info "Using centralized auto-update-lb-dns.sh script..."
-if "${SCRIPT_DIR}/auto-update-lb-dns.sh" "${ENV}" --skip-wait; then
-    log "✓ All configuration files updated via auto-update-lb-dns.sh"
+if "${SCRIPT_DIR}/auto-update-lb-dns.sh" "${ENV}" --skip-wait --commit --push; then
+    log "✓ All configuration files updated and pushed via auto-update-lb-dns.sh"
 else
     log_error "Failed to update configuration files"
     exit 1

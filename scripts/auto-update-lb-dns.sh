@@ -124,12 +124,18 @@ fi
 NAMESPACE="fineract-${ENV}"
 
 # Set kubeconfig based on environment
-KUBECONFIG_FILE="${HOME}/.kube/config-fineract-${ENV}"
+# Respect KUBECONFIG env var if set, otherwise use default path
+if [ -n "$KUBECONFIG" ]; then
+    KUBECONFIG_FILE="$KUBECONFIG"
+else
+    KUBECONFIG_FILE="${HOME}/.kube/config-fineract-${ENV}"
+fi
 
 # Check if kubeconfig exists
 if [ ! -f "$KUBECONFIG_FILE" ]; then
     log_error "Kubeconfig not found: $KUBECONFIG_FILE"
     log_info "Run: aws eks update-kubeconfig --name apache-fineract-${ENV} --region eu-central-1 --kubeconfig $KUBECONFIG_FILE"
+    log_info "Or set KUBECONFIG environment variable to your kubeconfig path"
     exit 1
 fi
 
