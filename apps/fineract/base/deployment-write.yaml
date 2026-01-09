@@ -14,6 +14,9 @@ spec:
     metadata:
       labels:
         app: fineract-write
+      annotations:
+        # Auto-restart pod when ConfigMap changes (requires Stakater Reloader or similar)
+        configmap.reloader.stakater.com/reload: "fineract-oauth2-config"
     spec:
       affinity:
         # Prefer agent/worker nodes for Fineract write workloads
