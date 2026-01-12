@@ -65,7 +65,7 @@ else
 fi
 
 # Check SSH deploy key for ArgoCD
-SSH_DEPLOY_KEY="${HOME}/.ssh/argocd-dev/fineract-deployment"
+SSH_DEPLOY_KEY="${HOME}/.ssh/argocd-deploy-key"
 if [ ! -f "$SSH_DEPLOY_KEY" ]; then
     echo -e "${RED}✗${NC} SSH deploy key not found at $SSH_DEPLOY_KEY"
     echo "   Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f $SSH_DEPLOY_KEY -N \"\""

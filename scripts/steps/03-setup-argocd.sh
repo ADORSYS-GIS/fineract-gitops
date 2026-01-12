@@ -41,7 +41,7 @@ echo ""
 echo "→ Creating ArgoCD repository credentials..."
 
 # Check if SSH key exists
-SSH_KEY_PATH="${HOME}/.ssh/argocd-dev/fineract-deployment"
+SSH_KEY_PATH="${HOME}/.ssh/argocd-deploy-key"
 if [ ! -f "$SSH_KEY_PATH" ]; then
     echo -e "${RED}✗${NC} SSH deploy key not found at $SSH_KEY_PATH"
     echo -e "${YELLOW}Generate one with:${NC}"
