@@ -8,7 +8,6 @@ resources:
   - fineract-oauth2-public.yaml
   - fineract-oauth2-protected.yaml
   - fineract-write-upstream.yaml  # Registers write service upstream for method-based routing
-  # - fineract-oauth2-protected-write-canary.yaml  # DEPRECATED: Canary approach doesn't work for method-based routing
   - fineract-web-app-protected.yaml
   - keycloak-ingress.yaml
   - user-sync-ingress.yaml
