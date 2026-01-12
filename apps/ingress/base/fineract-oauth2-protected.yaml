@@ -87,6 +87,15 @@ metadata:
     # Upstream hash for session affinity
     nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_auth_request_user"
 
+    # Server snippet for method-based routing (used by canary ingress)
+    nginx.ingress.kubernetes.io/server-snippet: |
+      # Route POST/PUT/DELETE/PATCH to write service (canary weight 100)
+      set $canary_weight_header "0";
+      if ($request_method ~* ^(POST|PUT|DELETE|PATCH)$) {
+        set $canary_weight_header "100";
+      }
+      more_set_input_headers "X-Canary-Weight: $canary_weight_header";
+
     # Pass correct port to backend and set Authorization header from OAuth2-Proxy token
     # Extract access token from upstream auth response header X-Auth-Request-Access-Token
     # NOTE: Authentication endpoint is handled in fineract-web-app-protected server-snippet
