@@ -91,6 +91,26 @@ metadata:
     # Extract access token from upstream auth response header X-Auth-Request-Access-Token
     # NOTE: Authentication endpoint is handled in fineract-web-app-protected server-snippet
     nginx.ingress.kubernetes.io/configuration-snippet: |
+      # ============================================================================
+      # Method-Based Routing: Route write methods to fineract-write-service
+      # ============================================================================
+      # Default backend is fineract-read-service (set in spec.rules.backend)
+      # Override $proxy_upstream_name for POST/PUT/DELETE/PATCH to route to write service
+      # Upstream name format: <namespace>-<service>-<port>
+      if ($request_method = POST) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+      if ($request_method = PUT) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+      if ($request_method = DELETE) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+      if ($request_method = PATCH) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+
+      # OAuth2 token handling
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
       proxy_set_header Authorization "Bearer $access_token";
       more_set_headers "X-Forwarded-Host: $host";
@@ -112,10 +132,11 @@ spec:
       paths:
 
       # ============================================================================
-      # Fineract API Endpoints - Read Operations (GET, HEAD, OPTIONS)
+      # Fineract API Endpoints
       # ============================================================================
-      # Default: Route to read service for GET operations
-      # Write operations handled by canary ingress below
+      # Default backend is fineract-read-service
+      # Write methods (POST/PUT/DELETE/PATCH) are routed to fineract-write-service
+      # via $proxy_upstream_name override in configuration-snippet above
 
       - path: /fineract-provider
         pathType: Prefix
