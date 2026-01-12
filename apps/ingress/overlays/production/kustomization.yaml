@@ -12,6 +12,10 @@ patches:
     target:
       kind: Ingress
       name: fineract-web-app-protected
+  - path: method-routing-patch.yaml
+    target:
+      kind: Ingress
+      name: fineract-oauth2-protected
 
 commonLabels:
   environment: production

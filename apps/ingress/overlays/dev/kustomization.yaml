@@ -53,16 +53,8 @@ replacements:
     select:
       kind: Ingress
       name: fineract-oauth2-protected
-- source:
-    fieldPath: data.auth-url
-    kind: ConfigMap
-    name: ingress-config
-  targets:
-  - fieldPaths:
-    - metadata.annotations.[nginx.ingress.kubernetes.io/auth-url]
-    select:
-      kind: Ingress
-      name: fineract-oauth2-protected-write-canary
+# Removed: fineract-oauth2-protected-write-canary auth-url replacement
+# The canary ingress has been replaced with method-based routing in the main ingress
 - source:
     fieldPath: data.auth-url
     kind: ConfigMap
@@ -93,16 +85,7 @@ replacements:
     select:
       kind: Ingress
       name: fineract-oauth2-protected
-- source:
-    fieldPath: data.auth-signin-url
-    kind: ConfigMap
-    name: ingress-config
-  targets:
-  - fieldPaths:
-    - metadata.annotations.[nginx.ingress.kubernetes.io/auth-signin]
-    select:
-      kind: Ingress
-      name: fineract-oauth2-protected-write-canary
+# Removed: fineract-oauth2-protected-write-canary auth-signin-url replacement
 - source:
     fieldPath: data.auth-signin-url
     kind: ConfigMap
@@ -133,16 +116,7 @@ replacements:
     select:
       kind: Ingress
       name: fineract-oauth2-protected
-- source:
-    fieldPath: data.cors-allow-origin-url
-    kind: ConfigMap
-    name: ingress-config
-  targets:
-  - fieldPaths:
-    - metadata.annotations.[nginx.ingress.kubernetes.io/cors-allow-origin]
-    select:
-      kind: Ingress
-      name: fineract-oauth2-protected-write-canary
+# Removed: fineract-oauth2-protected-write-canary cors-allow-origin-url replacement
 - source:
     fieldPath: data.cors-allow-origin-url
     kind: ConfigMap
