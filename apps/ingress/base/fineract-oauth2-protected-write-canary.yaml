@@ -24,15 +24,6 @@ metadata:
     # Override canary decision based on request method
     nginx.ingress.kubernetes.io/canary-weight-header: "X-Canary-Weight"
 
-    # Set canary weight to 100 for write methods in configuration snippet
-    nginx.ingress.kubernetes.io/server-snippet: |
-      # Route POST/PUT/DELETE/PATCH to write service (canary weight 100)
-      set $canary_weight_header "0";
-      if ($request_method ~* ^(POST|PUT|DELETE|PATCH)$) {
-        set $canary_weight_header "100";
-      }
-      more_set_input_headers "X-Canary-Weight: $canary_weight_header";
-
     # ============================================================================
     # OAuth2 Proxy Authentication (same as main ingress)
     # ============================================================================
