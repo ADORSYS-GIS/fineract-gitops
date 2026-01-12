@@ -105,7 +105,7 @@ spec:
 
 ### Authentication Flow
 
-1.  **User accesses** `https://fineract.example.com/account-manager`
+1.  **User accesses** `https://fineract.example.com/account`
 2.  **Ingress NGINX** intercepts request
 3.  **OAuth2 Proxy** handles authentication via Keycloak
 4.  **Ingress forwards** to account-manager-app service
@@ -121,13 +121,13 @@ Sessions are managed centrally by OAuth2 Proxy and Keycloak.
 
 The account manager app is accessible at a path like:
 ```
-https://fineract.example.com/account-manager
+https://fineract.example.com/account
 ```
-The Ingress configuration routes `/account-manager(/|$)(.*)` to the account-manager-app service.
+The Ingress configuration routes `/account(/|$)(.*)` to the account-manager-app service.
 
 ---
 
 **Namespace**: `fineract-dev` (dev), `fineract-uat` (uat), `fineract-production` (production)
 **Component**: Frontend - Account Manager
 **Managed by**: ArgoCD
-**Access**: Via Ingress NGINX with OAuth2 authentication at `/account-manager`
+**Access**: Via Ingress NGINX with OAuth2 authentication at `/account`
