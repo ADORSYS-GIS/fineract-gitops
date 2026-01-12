@@ -125,12 +125,12 @@ preflight_check() {
     fi
 
     # Check 3: SSH Deploy Key (replacing GITHUB_TOKEN)
-    if [ -f "$HOME/.ssh/argocd-dev/fineract-deployment" ]; then
-        log "✓ SSH deploy key found at ~/.ssh/argocd-dev/fineract-deployment"
+    if [ -f "$HOME/.ssh/argocd-deploy-key" ]; then
+        log "✓ SSH deploy key found at ~/.ssh/argocd-deploy-key"
     else
-        log_warn "SSH deploy key not found at ~/.ssh/argocd-dev/fineract-deployment"
+        log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
         echo "  This is needed for ArgoCD to access the Git repository"
-        echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-dev/fineract-deployment -N \"\""
+        echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
         echo "  Then add public key to GitHub repository deploy keys"
         ((++errors))
     fi
@@ -206,10 +206,10 @@ if ! kubectl cluster-info &> /dev/null; then
 fi
 
 # Verify SSH deploy key exists
-if [ ! -f "$HOME/.ssh/argocd-dev/fineract-deployment" ]; then
-    log_warn "SSH deploy key not found at ~/.ssh/argocd-dev/fineract-deployment"
+if [ ! -f "$HOME/.ssh/argocd-deploy-key" ]; then
+    log_warn "SSH deploy key not found at ~/.ssh/argocd-deploy-key"
     log_warn "ArgoCD may not be able to access the Git repository"
-    log_warn "Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-dev/fineract-deployment -N \"\""
+    log_warn "Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
 fi
 
 echo
