@@ -334,7 +334,34 @@ clean_namespace_resources() {
         if kubectl api-resources --verbs=list -o name 2>/dev/null | grep -q "^${resource}$"; then
             local count=$(kubectl get $resource -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
             if [ "$count" -gt 0 ]; then
-                echo -e "${BLUE}    Removing finalizers from $resource...${NC}"
+                echo -e "${BLUE}    Removing finalizers from $resource ($count found)...${NC}"
+
+                # Special handling for ArgoCD resources (AppProjects, Applications, ApplicationSets)
+                if [[ "$resource" == "appprojects.argoproj.io" ]] || [[ "$resource" == "applications.argoproj.io" ]] || [[ "$resource" == "applicationsets.argoproj.io" ]]; then
+                    echo -e "${BLUE}      ArgoCD resource cleanup for $resource...${NC}"
+
+                    # Get each resource and remove finalizers individually
+                    kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
+                        echo -e "${YELLOW}        Cleaning: $obj${NC}"
+                        # Remove finalizers
+                        kubectl patch "$obj" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                        kubectl patch "$obj" -n $ns --type json -p='[{"op": "remove", "path": "/metadata/finalizers"}]' 2>/dev/null || true
+                        # Force delete
+                        kubectl delete "$obj" -n $ns --force --grace-period=0 2>/dev/null || true
+                    done
+
+                    # Also try bulk delete
+                    kubectl delete $resource --all -n $ns --force --grace-period=0 2>/dev/null || true
+
+                    sleep 2
+                    local remaining=$(kubectl get $resource -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
+                    if [ "$remaining" -gt 0 ]; then
+                        echo -e "${YELLOW}      Warning: $remaining $resource still remain${NC}"
+                    else
+                        echo -e "${GREEN}      ✓ All $resource deleted${NC}"
+                    fi
+                    continue
+                fi
 
                 # Enhanced job cleanup with proper pod deletion and finalizer handling
                 if [[ "$resource" == "jobs" ]]; then
@@ -611,10 +638,11 @@ force_delete_namespace() {
     fi
 }
 
-# Function to delete all ArgoCD Applications (removes finalizers)
+# Function to delete all ArgoCD Applications and AppProjects (removes finalizers)
 delete_argocd_applications() {
-    echo -e "${BLUE}→ Checking for ArgoCD Applications...${NC}"
+    echo -e "${BLUE}→ Checking for ArgoCD resources...${NC}"
 
+    # Delete Applications
     local app_count=$(kubectl get applications -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
 
     if [ "$app_count" -gt 0 ]; then
@@ -627,11 +655,45 @@ delete_argocd_applications() {
         done
 
         # Delete all applications
-        kubectl delete applications --all -n argocd --timeout=30s 2>/dev/null || true
+        kubectl delete applications --all -n argocd --force --grace-period=0 2>/dev/null || true
 
         echo -e "${GREEN}  ✓${NC} ArgoCD Applications removed"
     else
         echo -e "${GREEN}  ✓${NC} No ArgoCD Applications found"
+    fi
+
+    # Delete ApplicationSets
+    local appset_count=$(kubectl get applicationsets -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$appset_count" -gt 0 ]; then
+        echo -e "${YELLOW}  Found $appset_count ArgoCD ApplicationSet(s)${NC}"
+
+        kubectl get applicationsets -n argocd -o name 2>/dev/null | while read appset; do
+            kubectl patch $appset -n argocd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        done
+
+        kubectl delete applicationsets --all -n argocd --force --grace-period=0 2>/dev/null || true
+        echo -e "${GREEN}  ✓${NC} ArgoCD ApplicationSets removed"
+    fi
+
+    # Delete AppProjects (IMPORTANT - these can block namespace deletion)
+    local project_count=$(kubectl get appprojects -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$project_count" -gt 0 ]; then
+        echo -e "${YELLOW}  Found $project_count ArgoCD AppProject(s)${NC}"
+        echo -e "${YELLOW}  → Removing finalizers and deleting...${NC}"
+
+        # Remove finalizers from all appprojects
+        kubectl get appprojects -n argocd -o name 2>/dev/null | while read proj; do
+            kubectl patch $proj -n argocd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        done
+
+        # Delete all appprojects (except 'default' which is protected)
+        kubectl delete appprojects --all -n argocd --force --grace-period=0 2>/dev/null || true
+
+        echo -e "${GREEN}  ✓${NC} ArgoCD AppProjects removed"
+    else
+        echo -e "${GREEN}  ✓${NC} No ArgoCD AppProjects found"
     fi
 }
 
@@ -727,6 +789,113 @@ cleanup_sealed_secrets() {
     fi
 
     echo -e "${GREEN}  ✓${NC} Sealed Secrets cleanup complete"
+}
+
+# Function to cleanup Reloader from kube-system
+cleanup_reloader() {
+    echo -e "${BLUE}→ Checking for Reloader in kube-system...${NC}"
+
+    local found=false
+
+    # Check by label
+    if kubectl get deployment -n kube-system -l app.kubernetes.io/name=reloader --no-headers 2>/dev/null | grep -q .; then
+        found=true
+    fi
+
+    # Also check by name pattern
+    if kubectl get deployment -n kube-system reloader-reloader --no-headers 2>/dev/null | grep -q .; then
+        found=true
+    fi
+
+    if [ "$found" = true ]; then
+        echo -e "${YELLOW}  Found Reloader deployment${NC}"
+        echo -e "${YELLOW}  → Deleting Reloader resources...${NC}"
+
+        # Delete by label
+        kubectl delete deployment -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+        kubectl delete serviceaccount -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete by name (fallback)
+        kubectl delete deployment -n kube-system reloader-reloader --force --grace-period=0 2>/dev/null || true
+        kubectl delete serviceaccount -n kube-system reloader-reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete ClusterRole and ClusterRoleBinding
+        kubectl delete clusterrole reloader-reloader-role --force --grace-period=0 2>/dev/null || true
+        kubectl delete clusterrolebinding reloader-reloader-role-binding --force --grace-period=0 2>/dev/null || true
+
+        echo -e "${GREEN}  ✓${NC} Reloader deleted"
+    else
+        echo -e "${GREEN}  ✓${NC} No Reloader found"
+    fi
+}
+
+# Function to cleanup cluster-scoped resources
+cleanup_cluster_scoped_resources() {
+    echo -e "${BLUE}→ Cleaning up cluster-scoped resources...${NC}"
+
+    # ClusterRoles - delete by name pattern (grep for our components)
+    echo -e "${BLUE}  → Deleting ClusterRoles...${NC}"
+
+    # Delete all ArgoCD cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'argocd' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete all cert-manager cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'cert-manager' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete all ingress-nginx cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'ingress-nginx' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete reloader cluster role
+    kubectl delete clusterrole reloader-reloader-role --force --grace-period=0 2>/dev/null || true
+
+    # Also delete by label (in case name doesn't match)
+    kubectl delete clusterroles -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+    # ClusterRoleBindings - delete by name pattern
+    echo -e "${BLUE}  → Deleting ClusterRoleBindings...${NC}"
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'argocd' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'cert-manager' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'ingress-nginx' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl delete clusterrolebinding reloader-reloader-role-binding --force --grace-period=0 2>/dev/null || true
+
+    # Also delete by label
+    kubectl delete clusterrolebindings -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+    # IngressClass
+    echo -e "${BLUE}  → Deleting IngressClass...${NC}"
+    kubectl delete ingressclass nginx --force --grace-period=0 2>/dev/null || true
+
+    # PersistentVolumes (all - since we're doing a full cleanup)
+    echo -e "${BLUE}  → Deleting PersistentVolumes...${NC}"
+    kubectl get pv -o name 2>/dev/null | while read pv; do
+        echo "    Deleting $pv..."
+        kubectl patch "$pv" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        kubectl delete "$pv" --force --grace-period=0 2>/dev/null || true
+    done
+
+    echo -e "${GREEN}  ✓${NC} Cluster-scoped resources cleaned"
 }
 
 # Function to cleanup RDS databases (drop and recreate)
@@ -1032,6 +1201,14 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
 
     # Step 1.5: Cleanup Sealed Secrets from kube-system
     cleanup_sealed_secrets
+    echo ""
+
+    # Step 1.6: Cleanup Reloader from kube-system
+    cleanup_reloader
+    echo ""
+
+    # Step 1.7: Cleanup cluster-scoped resources
+    cleanup_cluster_scoped_resources
     echo ""
 
     # Step 1.75: Run pre-cleanup diagnostics for all target namespaces

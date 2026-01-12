@@ -116,7 +116,21 @@
       "Bash(KUBECONFIG=~/.kube/config-fineract-dev kubectl get:*)",
       "Bash(KUBECONFIG=~/.kube/config-fineract-dev kubectl replace:*)",
       "Bash(export KUBECONFIG=$HOME/.kube/config-fineract-dev:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(# Check all pods in fineract-dev including old ones kubectl get pods -n fineract-dev --kubeconfig ~/.kube/config-fineract-dev)",
+      "Bash(# Check node resources kubectl top nodes --kubeconfig ~/.kube/config-fineract-dev || kubectl describe nodes --kubeconfig ~/.kube/config-fineract-dev)",
+      "Bash(# Check for multiple ReplicaSets \\(old ones consuming resources\\) kubectl get replicasets -n fineract-dev --kubeconfig ~/.kube/config-fineract-dev)",
+      "Bash(echo:*)",
+      "Bash(argocd app diff:*)",
+      "Bash(timeout 60 head:*)",
+      "Bash(tree:*)",
+      "Bash(./scripts/auto-update-lb-dns.sh:*)",
+      "Bash(RDS_DATABASE=\"\")",
+      "Bash(RDS_DATABASE=\"$RDS_DATABASE:-fineract_tenants\")",
+      "Bash(aws eks describe-addon:*)",
+      "Bash(chmod:*)",
+      "Bash(terraform state list:*)",
+      "Bash(/Users/guymoyo/dev/fineract-gitops/scripts/seal-terraform-secrets.sh dev)"
     ],
     "deny": [],
     "ask": []

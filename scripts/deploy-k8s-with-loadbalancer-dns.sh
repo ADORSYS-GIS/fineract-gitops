@@ -543,9 +543,10 @@ echo
 
 # Use the centralized auto-update-lb-dns.sh script (single source of truth)
 # --skip-wait: We already have the LB_DNS from earlier in this script
+# --commit --push: Automatically commit and push changes so ArgoCD can sync
 log_info "Using centralized auto-update-lb-dns.sh script..."
-if "${SCRIPT_DIR}/auto-update-lb-dns.sh" "${ENV}" --skip-wait; then
-    log "✓ All configuration files updated via auto-update-lb-dns.sh"
+if "${SCRIPT_DIR}/auto-update-lb-dns.sh" "${ENV}" --skip-wait --commit --push; then
+    log "✓ All configuration files updated and pushed via auto-update-lb-dns.sh"
 else
     log_error "Failed to update configuration files"
     exit 1
@@ -657,6 +658,31 @@ echo
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}PHASE 5: Deploy Secrets (Sealed Secrets from Terraform)${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+# Always regenerate sealed secrets from Terraform outputs before applying
+# This ensures secrets have the latest values (e.g., database=fineract_tenants)
+log_info "Regenerating sealed secrets from Terraform outputs..."
+if "$REPO_ROOT/scripts/seal-terraform-secrets.sh" "$ENV"; then
+    log "✓ Sealed secrets regenerated with latest Terraform values"
+
+    # Commit regenerated sealed secrets to git for GitOps consistency
+    log_info "Committing regenerated sealed secrets to git..."
+    cd "$REPO_ROOT"
+    if git diff --quiet "secrets/${ENV}/" 2>/dev/null; then
+        log "No changes to sealed secrets (already up to date)"
+    else
+        git add "secrets/${ENV}/"
+        git commit -m "chore: regenerate sealed secrets for ${ENV} environment" || true
+        if git push origin HEAD 2>/dev/null; then
+            log "✓ Sealed secrets committed and pushed to git"
+        else
+            log_warn "Could not push to git (may need manual push later)"
+        fi
+    fi
+else
+    log_warn "Failed to regenerate sealed secrets (will use existing files)"
+fi
 echo
 
 log_info "Running: make deploy-step-3"
@@ -829,12 +855,44 @@ else
     SECRETS_VALID=false
 fi
 
-# Check fineract-db-credentials
-if kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.host}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
-    log "✓ fineract-db-credentials: decrypted successfully"
+# Check fineract-db-credentials (verify both host and database are set)
+DB_HOST=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.host}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.database}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ]; then
+    log "✓ fineract-db-credentials: decrypted successfully (database: $DB_NAME)"
     SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+elif [ -n "$DB_HOST" ] && [ -z "$DB_NAME" ]; then
+    # Database field is empty - auto-fix by regenerating sealed secret
+    log_warn "✗ fineract-db-credentials: database field is empty (auto-fixing...)"
+    log_info "Regenerating fineract-db-credentials sealed secret..."
+
+    # Regenerate the sealed secret from Terraform outputs
+    if "$REPO_ROOT/scripts/seal-terraform-secrets.sh" "$ENV" > /dev/null 2>&1; then
+        # Delete and reapply the sealed secret
+        kubectl delete secret fineract-db-credentials -n fineract-${ENV} 2>/dev/null || true
+        kubectl delete sealedsecret fineract-db-credentials -n fineract-${ENV} 2>/dev/null || true
+        kubectl apply -f "$REPO_ROOT/secrets/${ENV}/fineract-db-credentials-sealed.yaml"
+
+        # Wait for secret to be created by sealed-secrets controller
+        sleep 5
+
+        # Re-check the database field
+        DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.database}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        if [ -n "$DB_NAME" ]; then
+            log "✓ fineract-db-credentials: auto-fixed successfully (database: $DB_NAME)"
+            SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+        else
+            log_error "✗ fineract-db-credentials: auto-fix failed - database still empty"
+            SECRETS_VALID=false
+        fi
+    else
+        log_error "✗ fineract-db-credentials: failed to regenerate sealed secret"
+        SECRETS_VALID=false
+    fi
 else
-    log_error "✗ fineract-db-credentials: failed to decrypt"
+    log_error "✗ fineract-db-credentials: failed to decrypt or missing required fields"
+    [ -z "$DB_HOST" ] && log_error "  - host is empty"
+    [ -z "$DB_NAME" ] && log_error "  - database is empty (should be 'fineract_tenants')"
     SECRETS_VALID=false
 fi
 
