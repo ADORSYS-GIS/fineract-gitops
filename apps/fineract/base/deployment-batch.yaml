@@ -145,7 +145,7 @@ spec:
 
       containers:
       - name: fineract
-        image: apache/fineract:develop
+        image: ghcr.io/adorsys-gis/fineract:5aa35aa15
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
