@@ -381,7 +381,23 @@ roles:
       composite: false
 
     - name: accountant
-      description: Accountant - financial reports, manage accounting
+      description: Accountant - financial reports, manage accounting (lowercase)
+      composite: false
+
+    - name: Accountant
+      description: Accountant role (capitalized for frontend apps)
+      composite: false
+
+    - name: Supervisor Accountant
+      description: Supervisor Accountant - can approve journal entries
+      composite: false
+
+    - name: Manager
+      description: Manager role - can create and view entries but cannot approve
+      composite: false
+
+    - name: Viewer
+      description: Viewer role - read-only access to accounting features
       composite: false
 
     - name: branch-manager
