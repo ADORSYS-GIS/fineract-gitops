@@ -13,4 +13,4 @@ commonLabels:
 
 images:
   - name: ghcr.io/adorsys-gis/fineract-apps/user-sync-service
-    newTag: efa2751
+    newTag: b11a8d7
