@@ -1,39 +1,39 @@
-# apiVersion: argoproj.io/v1alpha1
-# kind: Application
-# metadata:
-#   name: fineract-dev-web-app
-#   namespace: argocd
-#   annotations:
-#     argocd.argoproj.io/sync-wave: "7"  # Frontend application - deploys AFTER Fineract backend (wave 6)
-#   finalizers:
-#     - resources-finalizer.argocd.argoproj.io
-# spec:
-#   project: fineract-dev
-#
-#   source:
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-web-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "7"  # Frontend application - deploys AFTER Fineract backend (wave 6)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-dev
+
+  source:
     repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
     targetRevision: dev/fineract-deployment
     path: apps/web-app/base
-#
-#   destination:
-#     server: https://kubernetes.default.svc
-#     namespace: fineract-dev
-#
-#   syncPolicy:
-#     automated:
-#       prune: true
-#       selfHeal: true
-#     syncOptions:
-#       - CreateNamespace=true
-#     retry:
-#       limit: 5
-#       backoff:
-#         duration: 5s
-#         factor: 2
-#         maxDuration: 3m
-#
-#   info:
-#     - name: Component
-#       value: Frontend Web App
-#     - name: Environment
-#       value: Development
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Frontend Web App
+    - name: Environment
+      value: Development
