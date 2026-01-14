@@ -153,18 +153,12 @@ metadata:
     # Configuration Snippet
     # ============================================================================
     nginx.ingress.kubernetes.io/configuration-snippet: |
-      # Extract OAuth2 Proxy auth response headers
+      # Extract access token for Authorization header
+      # Note: X-Auth-Request-User/Email/Groups are already passed via auth-response-headers annotation
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
-      auth_request_set $auth_user $upstream_http_x_auth_request_user;
-      auth_request_set $auth_email $upstream_http_x_auth_request_email;
-      auth_request_set $auth_groups $upstream_http_x_auth_request_groups;
 
-      # Pass OAuth2 Proxy headers to backend
+      # Set Authorization header (not covered by auth-response-headers)
       proxy_set_header Authorization "Bearer $access_token";
-      proxy_set_header X-Auth-Request-User $auth_user;
-      proxy_set_header X-Auth-Request-Email $auth_email;
-      proxy_set_header X-Auth-Request-Groups $auth_groups;
-      proxy_set_header X-Auth-Request-Access-Token $access_token;
 
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
