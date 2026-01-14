@@ -10,12 +10,12 @@ metadata:
 data:
   # AWS ELB DNS name for the Nginx Ingress Controller LoadBalancer
   # This value is automatically extracted from the cluster after deployment
-  LOADBALANCER_DNS: "a933c7fdf6e67418d97cf23f57fa9da4-03b30b3558f0e49e.elb.eu-central-1.amazonaws.com"
+  LOADBALANCER_DNS: "a724e72fb79224859aad95b44f556362-101175d98c075041.elb.eu-central-1.amazonaws.com"
 
   # For production, this would be replaced with actual domain names:
-  # APPS_HOSTNAME: "a933c7fdf6e67418d97cf23f57fa9da4-03b30b3558f0e49e.elb.eu-central-1.amazonaws.com"
-  # AUTH_HOSTNAME: "a933c7fdf6e67418d97cf23f57fa9da4-03b30b3558f0e49e.elb.eu-central-1.amazonaws.com"
+  # APPS_HOSTNAME: "a724e72fb79224859aad95b44f556362-101175d98c075041.elb.eu-central-1.amazonaws.com"
+  # AUTH_HOSTNAME: "a724e72fb79224859aad95b44f556362-101175d98c075041.elb.eu-central-1.amazonaws.com"
 
   # For dev, both apps and auth use the same LoadBalancer DNS
-  APPS_HOSTNAME: "a933c7fdf6e67418d97cf23f57fa9da4-03b30b3558f0e49e.elb.eu-central-1.amazonaws.com"
-  AUTH_HOSTNAME: "a933c7fdf6e67418d97cf23f57fa9da4-03b30b3558f0e49e.elb.eu-central-1.amazonaws.com"
+  APPS_HOSTNAME: "a724e72fb79224859aad95b44f556362-101175d98c075041.elb.eu-central-1.amazonaws.com"
+  AUTH_HOSTNAME: "a724e72fb79224859aad95b44f556362-101175d98c075041.elb.eu-central-1.amazonaws.com"

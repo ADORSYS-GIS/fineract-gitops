@@ -16,7 +16,7 @@ configMapGenerator:
   - name: fineract-config-vars
     literals:
       - domain=dev.fineract.com
-      - auth-hostname=a933c7fdf6e67418d97cf23f57fa9da4-03b30b3558f0e49e.elb.eu-central-1.amazonaws.com
+      - auth-hostname=a724e72fb79224859aad95b44f556362-101175d98c075041.elb.eu-central-1.amazonaws.com
 
 # Environment-specific patches
 patchesStrategicMerge:
