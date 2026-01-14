@@ -14,4 +14,4 @@ commonLabels:
 
 images:
   - name: ghcr.io/adorsys-gis/fineract-apps/branch-manager-app
-    newTag: 98730a6
+    newTag: 2b1cc85
