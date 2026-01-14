@@ -671,6 +671,8 @@ users:
         temporary: false
     realmRoles:
       - Admin
+      - Super User
+      - Accountant
     groups:
       - /head-office
     attributes:
