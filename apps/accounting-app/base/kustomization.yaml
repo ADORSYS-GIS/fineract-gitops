@@ -14,4 +14,4 @@ commonLabels:
 
 images:
   - name: ghcr.io/adorsys-gis/fineract-apps/accounting-app
-    newTag: 2b1cc85
+    newTag: 61d2394
