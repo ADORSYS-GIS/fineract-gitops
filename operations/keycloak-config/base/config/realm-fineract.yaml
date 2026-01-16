@@ -86,8 +86,6 @@ clients:
     redirectUris:
       - "https://${APPS_HOSTNAME}/oauth2/callback"
       - "https://${APPS_HOSTNAME}/*"
-    attributes:
-        "post.logout.redirect.uris": "+"
     webOrigins:
       - "https://${APPS_HOSTNAME}"
 
