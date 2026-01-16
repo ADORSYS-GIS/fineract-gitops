@@ -87,9 +87,7 @@ clients:
       - "https://${APPS_HOSTNAME}/oauth2/callback"
       - "https://${APPS_HOSTNAME}/*"
     attributes:
-      # Whitelist URLs for redirection after logout.
-      # Note: keycloak-config-cli requires '##' separator for multivalued attributes
-      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/account##https://${APPS_HOSTNAME}/accounting##https://${APPS_HOSTNAME}/branch##https://${APPS_HOSTNAME}/cashier##https://${APPS_HOSTNAME}/reporting##https://${APPS_HOSTNAME}/administration"
+      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/*"
     webOrigins:
       - "https://${APPS_HOSTNAME}"
 
