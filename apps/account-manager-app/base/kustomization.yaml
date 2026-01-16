@@ -14,4 +14,4 @@ commonLabels:
 
 images:
   - name: ghcr.io/adorsys-gis/fineract-apps/account-manager-app
-    newTag: 4a12e44
+    newTag: 46d242a
