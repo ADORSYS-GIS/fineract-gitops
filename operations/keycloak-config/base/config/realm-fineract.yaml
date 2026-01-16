@@ -86,6 +86,15 @@ clients:
     redirectUris:
       - "https://${APPS_HOSTNAME}/oauth2/callback"
       - "https://${APPS_HOSTNAME}/*"
+    attributes:
+      # Whitelist URLs for redirection after logout. 
+      post.logout.redirect.uris:
+        - "https://${APPS_HOSTNAME}/account"
+        - "https://${APPS_HOSTNAME}/accounting"
+        - "https://${APPS_HOSTNAME}/branch"
+        - "https://${APPS_HOSTNAME}/cashier"
+        - "https://${APPS_HOSTNAME}/reporting"
+        - "https://${APPS_HOSTNAME}/administration"
     webOrigins:
       - "https://${APPS_HOSTNAME}"
 
