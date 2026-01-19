@@ -158,7 +158,7 @@ metadata:
             }
       
             # Accountant role
-            if ($http_x_auth_request_roles ~* "accountant") {
+            if ($http_x_auth_request_roles ~* "Accountant") {
                 if ($request_method = GET && $request_uri ~* "^/fineract-provider/api/v1/makercheckers$") { set $allowed 1; }
                 if ($request_method = GET && $request_uri ~* "^/fineract-provider/api/v1/offices$") { set $allowed 1; }
                 if ($request_method = POST && $request_uri ~* "^/fineract-provider/api/v1/glclosures$") { set $allowed 1; }
@@ -222,7 +222,7 @@ metadata:
             }
       
             # Cashier role
-            if ($http_x_auth_request_roles ~* "cashier") {
+            if ($http_x_auth_request_roles ~* "Cashier") {
                 if ($request_method = GET && $request_uri ~* "^/fineract-provider/api/v1/userdetails$") { set $allowed 1; }
                 if ($request_method = GET && $request_uri ~* "^/fineract-provider/api/v1/currencies$") { set $allowed 1; }
                 if ($request_method = GET && $request_uri ~* "^/fineract-provider/api/v1/tellers$") { set $allowed 1; }
