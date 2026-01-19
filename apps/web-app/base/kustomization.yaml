@@ -15,4 +15,4 @@ commonLabels:
 
 images:
   - name: ghcr.io/adorsys-gis/mifos-web-app
-    newTag: mifosweb-11ce49c
+    newTag: dc9ade2
