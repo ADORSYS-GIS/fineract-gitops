@@ -150,6 +150,9 @@ patches:
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"
+                  # External Keycloak URL for browser redirects (logout)
+                  # Uses AUTH_DOMAIN because browsers need to access Keycloak directly
+                  export KEYCLOAK_LOGOUT_URL="https://${AUTH_DOMAIN}/realms/${REALM_NAME}"
 
                   echo "Domain configuration:"
                   echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
@@ -158,6 +161,7 @@ patches:
                   echo ""
                   echo "Generated URLs:"
                   echo "  OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+                  echo "  KEYCLOAK_LOGOUT_URL: ${KEYCLOAK_LOGOUT_URL}"
                   echo "  REDIRECT_URL: ${REDIRECT_URL}"
                   echo "  WHITELIST_DOMAINS: ${WHITELIST_DOMAINS}"
                   echo "  COOKIE_DOMAINS: ${COOKIE_DOMAINS}"
@@ -263,6 +267,16 @@ patches:
           cookie_domains = "${COOKIE_DOMAINS}"
           cookie_expire = "4h"
           cookie_refresh = "20m"
+
+          # ============================================================================
+          # Logout Configuration
+          # ============================================================================
+          # After clearing OAuth2 Proxy session, redirect to Keycloak logout endpoint
+          # to terminate the SSO session. User will then be redirected back via
+          # Keycloak's post_logout_redirect_uris configuration.
+          # NOTE: Uses KEYCLOAK_LOGOUT_URL (external URL) not OIDC_ISSUER_URL (internal)
+          # because the browser needs to access Keycloak directly for the logout redirect
+          backend_logout_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=${REDIRECT_URL}"
 
           # ============================================================================
           # Session Configuration
