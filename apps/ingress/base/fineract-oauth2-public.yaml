@@ -34,7 +34,8 @@ metadata:
         # Clear the OAuth2 Proxy cookie
         add_header Set-Cookie "_oauth2_proxy=; Path=/; Domain=$host; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax" always;
         # Redirect to Keycloak logout endpoint (which will redirect back to app after logout)
-        return 302 https://$host/realms/fineract/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F$host%2F;
+        # client_id must match the Keycloak client: fineract-oauth2-proxy
+        return 302 https://$host/realms/fineract/protocol/openid-connect/logout?client_id=fineract-oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F$host%2F;
       }
 
 spec:
