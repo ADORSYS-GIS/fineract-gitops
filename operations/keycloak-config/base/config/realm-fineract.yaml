@@ -103,12 +103,11 @@ clients:
 
     # Logout Configuration - Enable RP-initiated logout for global logout
     # When user logs out from any app, ALL devices/sessions are terminated
-    frontchannelLogout: false
-    backchannelLogoutSessionRequired: true
-
-    # Post-logout redirect URIs (where users return after logout)
+    # Note: backchannel logout attributes must use dot notation inside 'attributes' block
     attributes:
       post.logout.redirect.uris: "https://${APPS_HOSTNAME}/*"
+      backchannel.logout.session.required: "true"
+      backchannel.logout.revoke.offline.tokens: "false"
 
     # Protocol Mappers for custom claims
     protocolMappers:
