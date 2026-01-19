@@ -20,27 +20,16 @@ metadata:
     # Backend protocol
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
 
-    # Configuration snippet to handle logout and proxy headers
-    # This runs INSIDE the /oauth2 location block, before proxying to backend
+    # Proxy headers for OAuth2 callback redirects
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
 
-      # Determine which app to redirect to after logout (default to web-app)
-      set $post_logout_app "web-app";
-      if ($http_referer ~* "^https://[^/]+/(cashier|web-app|accounting-app|admin-app|reporting-app|branch-manager-app|account-manager-app)/") {
-        set $post_logout_app $1;
-      }
-
-      # Intercept sign_out requests and redirect to Keycloak for SSO logout
-      # Clear OAuth2 Proxy cookie with multiple variations to ensure it's removed
+      # Strip rd parameter from sign_out requests so OAuth2 Proxy uses its logout_redirect_url
+      # This ensures proper OIDC logout flow through Keycloak
       if ($request_uri ~* "^/oauth2/sign_out") {
-        more_clear_headers "Set-Cookie";
-        add_header Set-Cookie "_oauth2_proxy=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax" always;
-        add_header Set-Cookie "_oauth2_proxy=; Path=/; Domain=$host; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax" always;
-        add_header Set-Cookie "_oauth2_proxy_csrf=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax" always;
-        return 302 https://$host/realms/fineract/protocol/openid-connect/logout?client_id=fineract-oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F$host%2F$post_logout_app%2F;
+        set $args "";
       }
 
 spec:

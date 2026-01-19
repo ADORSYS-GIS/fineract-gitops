@@ -137,9 +137,9 @@ patches:
                   echo "===================================="
 
                   # Read domain values from ingress-config (single source of truth)
-                  APPS_DOMAIN=$(cat /ingress-config/apps-hostname)
-                  AUTH_DOMAIN=$(cat /ingress-config/auth-hostname)
-                  REALM_NAME=$(cat /static-config/REALM_NAME)
+                  export APPS_DOMAIN=$(cat /ingress-config/apps-hostname)
+                  export AUTH_DOMAIN=$(cat /ingress-config/auth-hostname)
+                  export REALM_NAME=$(cat /static-config/REALM_NAME)
 
                   # Build full URLs from domain components
                   # DEV: Use internal Keycloak service for OIDC discovery (no DNS/certs for ELB)
@@ -271,12 +271,11 @@ patches:
           # ============================================================================
           # Logout Configuration
           # ============================================================================
-          # After clearing OAuth2 Proxy session, redirect to Keycloak logout endpoint
-          # to terminate the SSO session. User will then be redirected back via
-          # Keycloak's post_logout_redirect_uris configuration.
-          # NOTE: Uses KEYCLOAK_LOGOUT_URL (external URL) not OIDC_ISSUER_URL (internal)
-          # because the browser needs to access Keycloak directly for the logout redirect
-          backend_logout_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=${REDIRECT_URL}"
+          # Browser redirect to Keycloak logout endpoint after clearing OAuth2 Proxy session
+          # This ensures the Keycloak SSO session is terminated (not just OAuth2 Proxy session)
+          # NOTE: Uses KEYCLOAK_LOGOUT_URL (external URL) because browsers access Keycloak directly
+          # The post_logout_redirect_uri sends user to /cashier/ which will trigger login
+          logout_redirect_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=fineract-oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F${APPS_DOMAIN}%2Fcashier%2F"
 
           # ============================================================================
           # Session Configuration
