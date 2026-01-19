@@ -26,10 +26,17 @@ metadata:
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
 
-      # Strip rd parameter from sign_out requests so OAuth2 Proxy uses its logout_redirect_url
-      # This ensures proper OIDC logout flow through Keycloak
+      # Determine which app to redirect to after logout (default to cashier)
+      set $post_logout_app "cashier";
+      if ($http_referer ~* "^https://[^/]+/(cashier|web-app|accounting-app|admin-app|reporting-app|branch-manager-app|account-manager-app)/") {
+        set $post_logout_app $1;
+      }
+
+      # Intercept sign_out: clear cookies and redirect to Keycloak logout
       if ($request_uri ~* "^/oauth2/sign_out") {
-        set $args "";
+        add_header Set-Cookie "_oauth2_proxy=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure" always;
+        add_header Set-Cookie "_oauth2_proxy=; Path=/; Domain=.$host; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure" always;
+        return 302 https://$host/realms/fineract/protocol/openid-connect/logout?client_id=fineract-oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F$host%2Foauth2%2Fstart%3Frd%3D%252F$post_logout_app%252F;
       }
 
 spec:

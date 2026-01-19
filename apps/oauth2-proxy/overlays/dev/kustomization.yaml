@@ -271,11 +271,8 @@ patches:
           # ============================================================================
           # Logout Configuration
           # ============================================================================
-          # Browser redirect to Keycloak logout endpoint after clearing OAuth2 Proxy session
-          # This ensures the Keycloak SSO session is terminated (not just OAuth2 Proxy session)
-          # NOTE: Uses KEYCLOAK_LOGOUT_URL (external URL) because browsers access Keycloak directly
-          # The post_logout_redirect_uri sends user to /cashier/ which will trigger login
-          logout_redirect_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=fineract-oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F${APPS_DOMAIN}%2Fcashier%2F"
+          # NOTE: logout_redirect_url must be set via command-line flag, not config file
+          # See deployment args patch below
 
           # ============================================================================
           # Session Configuration
