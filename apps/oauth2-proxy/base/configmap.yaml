@@ -84,10 +84,11 @@ data:
     # Logout Configuration
     # ============================================================================
     # After clearing OAuth2 Proxy session, redirect to Keycloak logout endpoint
-    # to terminate the SSO session, then redirect back to the app landing page
+    # to terminate the SSO session. User will then be redirected back via
+    # Keycloak's post_logout_redirect_uris configuration.
     # NOTE: Uses KEYCLOAK_LOGOUT_URL (external URL) not OIDC_ISSUER_URL (internal)
     # because the browser needs to access Keycloak directly for the logout redirect
-    logout_redirect_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=${REDIRECT_URL}"
+    backend_logout_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=${REDIRECT_URL}"
 
     # ============================================================================
     # Session Configuration
