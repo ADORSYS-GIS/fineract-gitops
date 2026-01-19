@@ -101,6 +101,15 @@ clients:
       - address
       - phone
 
+    # Logout Configuration - Enable RP-initiated logout for global logout
+    # When user logs out from any app, ALL devices/sessions are terminated
+    frontchannelLogout: false
+    backchannelLogoutSessionRequired: true
+
+    # Post-logout redirect URIs (where users return after logout)
+    attributes:
+      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/*"
+
     # Protocol Mappers for custom claims
     protocolMappers:
       - name: fineract-user-id-mapper
