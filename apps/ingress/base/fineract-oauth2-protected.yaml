@@ -23,9 +23,9 @@ metadata:
      # Pass authentication headers from OAuth2 Proxy to backend
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
 
-    # Auth caching for performance (5 minute cache)
-    nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
-    nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+    # Auth caching disabled to ensure logout works properly
+    # nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
+    # nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
 
     # ============================================================================
     # CORS Configuration

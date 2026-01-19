@@ -105,7 +105,8 @@ clients:
     # When user logs out from any app, ALL devices/sessions are terminated
     # Note: backchannel logout attributes must use dot notation inside 'attributes' block
     attributes:
-      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/*"
+      # Multiple URIs separated by ## - include root URL explicitly for logout redirect
+      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/##https://${APPS_HOSTNAME}/*"
       backchannel.logout.session.required: "true"
       backchannel.logout.revoke.offline.tokens: "false"
 
