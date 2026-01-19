@@ -104,7 +104,6 @@ clients:
     # Logout Configuration - Enable RP-initiated logout for global logout
     # When user logs out from any app, ALL devices/sessions are terminated
     frontchannelLogout: false
-    backchannelLogoutSessionRequired: true
 
     # Post-logout redirect URIs (where users return after logout)
     attributes:
