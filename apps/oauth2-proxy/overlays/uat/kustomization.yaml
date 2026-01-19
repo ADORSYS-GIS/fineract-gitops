@@ -62,6 +62,9 @@ patches:
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"
+                  # External Keycloak URL for browser redirects (logout)
+                  # Uses AUTH_DOMAIN because browsers need to access Keycloak directly
+                  export KEYCLOAK_LOGOUT_URL="https://${AUTH_DOMAIN}/realms/${REALM_NAME}"
 
                   echo "Domain configuration:"
                   echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
@@ -70,6 +73,7 @@ patches:
                   echo ""
                   echo "Generated URLs:"
                   echo "  OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+                  echo "  KEYCLOAK_LOGOUT_URL: ${KEYCLOAK_LOGOUT_URL}"
                   echo "  REDIRECT_URL: ${REDIRECT_URL}"
                   echo "  WHITELIST_DOMAINS: ${WHITELIST_DOMAINS}"
                   echo "  COOKIE_DOMAINS: ${COOKIE_DOMAINS}"
