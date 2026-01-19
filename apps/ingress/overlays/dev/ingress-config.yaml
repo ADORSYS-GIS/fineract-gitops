@@ -13,3 +13,5 @@ data:
   auth-signin-url: https://aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com/oauth2/start?rd=$escaped_request_uri
   cors-allow-origin-url: https://aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com
   auth-url: http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth
+  # Keycloak logout URL - browser redirect to end SSO session
+  keycloak-logout-url: https://aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com/realms/fineract/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2Faa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com%2F

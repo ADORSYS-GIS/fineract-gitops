@@ -26,6 +26,17 @@ metadata:
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
 
+    # Server snippet to handle logout properly
+    # Intercepts /oauth2/sign_out and redirects to Keycloak logout endpoint
+    # This ensures the Keycloak SSO session is terminated (not just OAuth2 Proxy session)
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location = /oauth2/sign_out {
+        # Clear the OAuth2 Proxy cookie
+        add_header Set-Cookie "_oauth2_proxy=; Path=/; Domain=$host; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax" always;
+        # Redirect to Keycloak logout endpoint (which will redirect back to app after logout)
+        return 302 https://$host/realms/fineract/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=https%3A%2F%2F$host%2F;
+      }
+
 spec:
   ingressClassName: nginx
 
