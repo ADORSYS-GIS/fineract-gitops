@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: user-sync-service
+        app.kubernetes.io/name: user-sync-service
+        app.kubernetes.io/component: sync
     spec:
       containers:
         - name: user-sync-service
@@ -35,6 +37,21 @@ spec:
                 secretKeyRef:
                   name: keycloak-client-secrets
                   key: user-sync-service-client-secret
+            # OpenTelemetry Distributed Tracing Configuration
+            - name: OTEL_SERVICE_NAME
+              value: "user-sync-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.tracing.svc.cluster.local:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=fineract,deployment.environment=dev,service.version=1.0.0"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
           resources:
             requests:
               memory: "128Mi"

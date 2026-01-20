@@ -18,6 +18,8 @@ spec:
     metadata:
       labels:
         app: keycloak
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/component: auth
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
@@ -50,6 +52,7 @@ spec:
         - --health-enabled=true
         - --metrics-enabled=true  # Enable Prometheus metrics at /metrics endpoint
         - --proxy-headers=xforwarded
+        - --tracing-enabled=true  # Enable OpenTelemetry tracing
 
         env:
         # Database Configuration - Using RDS PostgreSQL
@@ -130,6 +133,21 @@ spec:
         # JVM Options (optimized for t3a.large with 8GB RAM, conservative for dev)
         - name: JAVA_OPTS
           value: "-Xms192m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=192m"
+
+        # OpenTelemetry Distributed Tracing Configuration
+        # Keycloak 24+ has built-in OpenTelemetry support
+        - name: KC_TRACING_ENABLED
+          value: "true"
+        - name: KC_TRACING_ENDPOINT
+          value: "http://otel-collector.tracing.svc.cluster.local:4317"
+        - name: KC_TRACING_PROTOCOL
+          value: "grpc"
+        - name: KC_TRACING_SAMPLER_TYPE
+          value: "parentbased_always_on"
+        - name: KC_TRACING_SAMPLER_RATIO
+          value: "1.0"
+        - name: KC_TRACING_RESOURCE_ATTRIBUTES
+          value: "service.name=keycloak,service.namespace=fineract,deployment.environment=dev"
 
         ports:
         - name: http
