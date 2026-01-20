@@ -206,7 +206,7 @@ data:
           "~^common-currencies:.*(Accountant|Cashier).*"     1;
           "~^common-paymenttypes:.*(Accountant|Cashier).*"   1;
           "~^common-tellers:.*(branch-manager|Cashier).*"    1;
-          "~^common-savingsaccounts-read:.*(account-manager|branch-manager|Cashier).*" 1;
+        #   "~^common-savingsaccounts-read:.*(account-manager|branch-manager|Cashier).*" 1;
           "~^common-clients-read:.*(account-manager|branch-manager).*" 1;
           "~^common-loans-read:.*(account-manager|branch-manager).*" 1;
       }
