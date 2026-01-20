@@ -34,6 +34,7 @@ resources:
   - grafana-deployment.yaml
   - grafana-service.yaml
   - grafana-configmap.yaml
+  - grafana-admin-credentials.yaml
 
   # AlertManager
   - alertmanager.yaml
