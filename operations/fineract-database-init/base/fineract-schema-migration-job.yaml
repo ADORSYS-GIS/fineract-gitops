@@ -140,7 +140,7 @@ spec:
 
       containers:
       - name: migrate
-        image: ghcr.io/adorsys-gis/fineract:76fcaaa17
+        image: ghcr.io/adorsys-gis/fineract:ccf1ce593
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
