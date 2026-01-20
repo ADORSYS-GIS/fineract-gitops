@@ -45,7 +45,7 @@ data:
       resource:
         attributes:
           - key: deployment.environment
-            value: ${ENVIRONMENT:-dev}
+            value: "dev"
             action: upsert
           - key: service.namespace
             from_attribute: k8s.namespace.name
