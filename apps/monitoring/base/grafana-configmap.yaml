@@ -11,6 +11,7 @@ data:
     datasources:
     - name: Prometheus
       type: prometheus
+      uid: prometheus
       access: proxy
       url: http://prometheus:9090
       isDefault: true
@@ -19,6 +20,7 @@ data:
         timeInterval: 30s
     - name: Loki
       type: loki
+      uid: loki
       access: proxy
       url: http://loki.logging.svc.cluster.local:3100
       editable: false
@@ -26,6 +28,7 @@ data:
         maxLines: 1000
     - name: Jaeger
       type: jaeger
+      uid: jaeger
       access: proxy
       url: http://jaeger-query.tracing.svc.cluster.local:16686
       editable: false
@@ -56,7 +59,7 @@ data:
     providers:
     - name: 'default'
       orgId: 1
-      folder: ''
+      folder: 'Fineract'
       type: file
       disableDeletion: false
       updateIntervalSeconds: 10
@@ -72,609 +75,669 @@ metadata:
   labels:
     app.kubernetes.io/name: grafana
 data:
-  # Kubernetes Cluster Overview Dashboard
-  kubernetes-cluster.json: |
+  cluster-overview.json: |
     {
-      "dashboard": {
-        "title": "Kubernetes Cluster Overview",
-        "tags": ["kubernetes", "cluster"],
-        "timezone": "browser",
-        "panels": [
-          {
-            "title": "Cluster CPU Usage",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "sum(rate(container_cpu_usage_seconds_total[5m]))"
-              }
-            ]
-          },
-          {
-            "title": "Cluster Memory Usage",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "sum(container_memory_usage_bytes)"
-              }
-            ]
-          },
-          {
-            "title": "Pod Count",
-            "type": "stat",
-            "targets": [
-              {
-                "expr": "count(kube_pod_info)"
-              }
-            ]
-          }
-        ]
-      }
-    }
-
-  # Fineract Application Dashboard
-  fineract-dashboard.json: |
-    {
-      "dashboard": {
-        "title": "Fineract Application Metrics",
-        "tags": ["fineract", "application"],
-        "timezone": "browser",
-        "panels": [
-          {
-            "title": "Request Rate",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "rate(http_requests_total{app=\"fineract\"}[5m])"
-              }
-            ]
-          },
-          {
-            "title": "Response Time (p95)",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app=\"fineract\"}[5m]))"
-              }
-            ]
-          },
-          {
-            "title": "Error Rate",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "rate(http_requests_total{app=\"fineract\",status=~\"5..\"}[5m])"
-              }
-            ]
-          },
-          {
-            "title": "Active Connections",
-            "type": "stat",
-            "targets": [
-              {
-                "expr": "sum(fineract_active_connections)"
-              }
-            ]
-          }
-        ]
-      }
-    }
-
-  # PostgreSQL Database Dashboard
-  postgresql-dashboard.json: |
-    {
-      "dashboard": {
-        "title": "PostgreSQL Database Metrics",
-        "tags": ["postgresql", "database"],
-        "timezone": "browser",
-        "panels": [
-          {
-            "title": "Connections",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "pg_stat_database_numbackends{datname=\"fineract\"}"
-              }
-            ]
-          },
-          {
-            "title": "Transactions Per Second",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "rate(pg_stat_database_xact_commit{datname=\"fineract\"}[5m])"
-              }
-            ]
-          },
-          {
-            "title": "Database Size",
-            "type": "graph",
-            "targets": [
-              {
-                "expr": "pg_database_size_bytes{datname=\"fineract\"}"
-              }
-            ]
-          },
-          {
-            "title": "Cache Hit Ratio",
-            "type": "gauge",
-            "targets": [
-              {
-                "expr": "rate(pg_stat_database_blks_hit{datname=\"fineract\"}[5m]) / (rate(pg_stat_database_blks_hit{datname=\"fineract\"}[5m]) + rate(pg_stat_database_blks_read{datname=\"fineract\"}[5m]))"
-              }
-            ]
-          }
-        ]
-      }
-    }
-
-  # Business Metrics Dashboard
-  business-metrics-dashboard.json: |
-    {
-      "dashboard": {
-        "title": "Fineract Business Metrics",
-        "uid": "fineract-business",
-        "tags": ["fineract", "business", "kpi"],
-        "timezone": "browser",
-        "refresh": "30s",
-        "time": {
-          "from": "now-24h",
-          "to": "now"
+      "uid": "cluster-overview",
+      "title": "Kubernetes Cluster Overview",
+      "tags": ["kubernetes", "cluster", "infrastructure"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Nodes",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count(kube_node_info)", "legendFormat": "Nodes"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}]}}}
         },
-        "panels": [
-          {
-            "id": 1,
-            "title": "Loan Applications (Last 24h)",
-            "type": "stat",
-            "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
-            "targets": [
-              {
-                "expr": "sum(increase(http_server_requests_seconds_count{uri=~\"/api/v1/loans.*\",method=\"POST\",status=\"200\"}[24h]))",
-                "legendFormat": "Loan Applications"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "color": {"mode": "thresholds"},
-                "thresholds": {
-                  "steps": [
-                    {"color": "red", "value": 0},
-                    {"color": "yellow", "value": 10},
-                    {"color": "green", "value": 50}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 2,
-            "title": "Active Loans",
-            "type": "stat",
-            "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
-            "targets": [
-              {
-                "expr": "fineract_active_loans_total or vector(0)",
-                "legendFormat": "Active Loans"
-              }
-            ]
-          },
-          {
-            "id": 3,
-            "title": "Savings Accounts Created (Last 24h)",
-            "type": "stat",
-            "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
-            "targets": [
-              {
-                "expr": "sum(increase(http_server_requests_seconds_count{uri=~\"/api/v1/savingsaccounts.*\",method=\"POST\",status=\"200\"}[24h]))",
-                "legendFormat": "New Savings Accounts"
-              }
-            ]
-          },
-          {
-            "id": 4,
-            "title": "User Logins (Last Hour)",
-            "type": "stat",
-            "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
-            "targets": [
-              {
-                "expr": "sum(increase(keycloak_logins_total{realm=\"fineract\"}[1h]))",
-                "legendFormat": "Logins"
-              }
-            ]
-          },
-          {
-            "id": 5,
-            "title": "API Requests by Endpoint",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) by (uri)",
-                "legendFormat": "{{uri}}"
-              }
-            ]
-          },
-          {
-            "id": 6,
-            "title": "Transaction Volume",
-            "type": "timeseries",
-            "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/v1/(loans|savingsaccounts)/[0-9]+/transactions.*\",method=\"POST\"}[5m])) by (uri)",
-                "legendFormat": "{{uri}}"
-              }
-            ]
-          },
-          {
-            "id": 7,
-            "title": "API Response Time by Operation",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (uri, le))",
-                "legendFormat": "{{uri}} p95"
-              }
-            ]
-          },
-          {
-            "id": 8,
-            "title": "Error Rate by Operation",
-            "type": "timeseries",
-            "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) by (uri) * 100",
-                "legendFormat": "{{uri}} error %"
-              }
-            ]
-          },
-          {
-            "id": 9,
-            "title": "Concurrent Users",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 20, "w": 8, "h": 6},
-            "targets": [
-              {
-                "expr": "sum(keycloak_sessions{realm=\"fineract\"})",
-                "legendFormat": "Active Sessions"
-              }
-            ]
-          },
-          {
-            "id": 10,
-            "title": "Failed Login Attempts",
-            "type": "timeseries",
-            "gridPos": {"x": 8, "y": 20, "w": 8, "h": 6},
-            "targets": [
-              {
-                "expr": "sum(rate(keycloak_failed_login_attempts_total{realm=\"fineract\"}[5m]))",
-                "legendFormat": "Failed Logins/s"
-              }
-            ]
-          },
-          {
-            "id": 11,
-            "title": "Database Connection Pool Usage",
-            "type": "gauge",
-            "gridPos": {"x": 16, "y": 20, "w": 8, "h": 6},
-            "targets": [
-              {
-                "expr": "hikaricp_connections_active / hikaricp_connections_max * 100",
-                "legendFormat": "Pool Usage %"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "percent",
-                "min": 0,
-                "max": 100,
-                "thresholds": {
-                  "steps": [
-                    {"color": "green", "value": 0},
-                    {"color": "yellow", "value": 70},
-                    {"color": "red", "value": 90}
-                  ]
-                }
-              }
-            }
-          }
-        ]
-      }
+        {
+          "id": 2,
+          "title": "Running Pods",
+          "type": "stat",
+          "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=\"Running\"})", "legendFormat": "Running"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 3,
+          "title": "Pending Pods",
+          "type": "stat",
+          "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=\"Pending\"}) or vector(0)", "legendFormat": "Pending"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
+        },
+        {
+          "id": 4,
+          "title": "Failed Pods",
+          "type": "stat",
+          "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=\"Failed\"}) or vector(0)", "legendFormat": "Failed"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}}
+        },
+        {
+          "id": 5,
+          "title": "Cluster CPU Usage",
+          "type": "gauge",
+          "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) / sum(kube_node_status_allocatable{resource=\"cpu\"}) * 100", "legendFormat": "CPU %"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}}}
+        },
+        {
+          "id": 6,
+          "title": "Cluster Memory Usage",
+          "type": "gauge",
+          "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(container_memory_working_set_bytes{container!=\"\"}) / sum(kube_node_status_allocatable{resource=\"memory\"}) * 100", "legendFormat": "Memory %"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}}}
+        },
+        {
+          "id": 7,
+          "title": "CPU Usage by Node",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (node)", "legendFormat": "{{node}}"}],
+          "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 8,
+          "title": "Memory Usage by Node",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(container_memory_working_set_bytes{container!=\"\"}) by (node) / 1024 / 1024 / 1024", "legendFormat": "{{node}}"}],
+          "fieldConfig": {"defaults": {"unit": "decgbytes", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 9,
+          "title": "Pods by Namespace",
+          "type": "piechart",
+          "gridPos": {"x": 0, "y": 12, "w": 8, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(kube_pod_status_phase{phase=\"Running\"}) by (namespace)", "legendFormat": "{{namespace}}"}],
+          "options": {"legend": {"displayMode": "table", "placement": "right"}}
+        },
+        {
+          "id": 10,
+          "title": "Pod Restarts (Last 1h)",
+          "type": "table",
+          "gridPos": {"x": 8, "y": 12, "w": 16, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sort_desc(sum(increase(kube_pod_container_status_restarts_total[1h])) by (namespace, pod) > 0)", "format": "table", "instant": true}],
+          "transformations": [{"id": "organize", "options": {"excludeByName": {"Time": true}, "renameByName": {"namespace": "Namespace", "pod": "Pod", "Value": "Restarts"}}}],
+          "fieldConfig": {"defaults": {"custom": {"align": "left"}}}
+        },
+        {
+          "id": 11,
+          "title": "Network Receive by Pod",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(container_network_receive_bytes_total[5m])) by (pod) > 0", "legendFormat": "{{pod}}"}],
+          "fieldConfig": {"defaults": {"unit": "Bps", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 12,
+          "title": "Network Transmit by Pod",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(container_network_transmit_bytes_total[5m])) by (pod) > 0", "legendFormat": "{{pod}}"}],
+          "fieldConfig": {"defaults": {"unit": "Bps", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        }
+      ]
     }
 
-  # SLO Dashboard
+  fineract-application.json: |
+    {
+      "uid": "fineract-app",
+      "title": "Fineract Application",
+      "tags": ["fineract", "application", "jvm"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Application Status",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "up{job=~\".*fineract.*\"}", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}]}}
+        },
+        {
+          "id": 2,
+          "title": "Request Rate",
+          "type": "stat",
+          "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) or vector(0)", "legendFormat": "req/s"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 3,
+          "title": "Error Rate",
+          "type": "stat",
+          "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) * 100 or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}}
+        },
+        {
+          "id": 4,
+          "title": "P95 Latency",
+          "type": "stat",
+          "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000 or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "ms", "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 500}, {"color": "red", "value": 1000}]}}}
+        },
+        {
+          "id": 5,
+          "title": "JVM Heap Used",
+          "type": "gauge",
+          "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(jvm_memory_used_bytes{app=\"fineract\",area=\"heap\"}) / sum(jvm_memory_max_bytes{app=\"fineract\",area=\"heap\"}) * 100 or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}}}
+        },
+        {
+          "id": 6,
+          "title": "Active Threads",
+          "type": "stat",
+          "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(jvm_threads_live_threads{app=\"fineract\"}) or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 7,
+          "title": "Request Rate Over Time",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"2..\"}[5m]))", "legendFormat": "2xx"},
+            {"expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"4..\"}[5m]))", "legendFormat": "4xx"},
+            {"expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[5m]))", "legendFormat": "5xx"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "reqps", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 8,
+          "title": "Response Time Percentiles",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000", "legendFormat": "p50"},
+            {"expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000", "legendFormat": "p95"},
+            {"expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000", "legendFormat": "p99"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "ms", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 9,
+          "title": "JVM Memory",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "sum(jvm_memory_used_bytes{app=\"fineract\",area=\"heap\"}) / 1024 / 1024", "legendFormat": "Heap Used"},
+            {"expr": "sum(jvm_memory_max_bytes{app=\"fineract\",area=\"heap\"}) / 1024 / 1024", "legendFormat": "Heap Max"},
+            {"expr": "sum(jvm_memory_used_bytes{app=\"fineract\",area=\"nonheap\"}) / 1024 / 1024", "legendFormat": "Non-Heap"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 10,
+          "title": "HikariCP Connection Pool",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "hikaricp_connections_active{app=\"fineract\"}", "legendFormat": "Active"},
+            {"expr": "hikaricp_connections_idle{app=\"fineract\"}", "legendFormat": "Idle"},
+            {"expr": "hikaricp_connections_pending{app=\"fineract\"}", "legendFormat": "Pending"},
+            {"expr": "hikaricp_connections_max{app=\"fineract\"}", "legendFormat": "Max"}
+          ],
+          "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 11,
+          "title": "Top Endpoints by Request Count",
+          "type": "table",
+          "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "topk(10, sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) by (uri))", "format": "table", "instant": true}],
+          "transformations": [{"id": "organize", "options": {"excludeByName": {"Time": true}, "renameByName": {"uri": "Endpoint", "Value": "Requests/s"}}}]
+        },
+        {
+          "id": 12,
+          "title": "GC Pause Time",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "rate(jvm_gc_pause_seconds_sum{app=\"fineract\"}[5m])", "legendFormat": "{{gc}} {{action}}"}],
+          "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        }
+      ]
+    }
+
+  keycloak.json: |
+    {
+      "uid": "keycloak",
+      "title": "Keycloak Authentication",
+      "tags": ["keycloak", "authentication", "security"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Keycloak Status",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "up{job=~\".*keycloak.*\"}", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}]}}
+        },
+        {
+          "id": 2,
+          "title": "Active Sessions",
+          "type": "stat",
+          "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(keycloak_sessions) or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 3,
+          "title": "Login Rate",
+          "type": "stat",
+          "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(keycloak_logins_total[5m])) * 60 or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 4,
+          "title": "Failed Logins (1h)",
+          "type": "stat",
+          "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(increase(keycloak_failed_login_attempts_total[1h])) or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 10}, {"color": "red", "value": 50}]}}}
+        },
+        {
+          "id": 5,
+          "title": "Login Success Rate",
+          "type": "gauge",
+          "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(keycloak_logins_total[5m])) / (sum(rate(keycloak_logins_total[5m])) + sum(rate(keycloak_failed_login_attempts_total[5m]))) * 100 or vector(100)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 90}, {"color": "green", "value": 95}]}}}
+        },
+        {
+          "id": 6,
+          "title": "Request Rate",
+          "type": "stat",
+          "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[5m])) or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 7,
+          "title": "Logins Over Time",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "sum(rate(keycloak_logins_total[5m])) * 60", "legendFormat": "Successful"},
+            {"expr": "sum(rate(keycloak_failed_login_attempts_total[5m])) * 60", "legendFormat": "Failed"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 8,
+          "title": "Active Sessions Over Time",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(keycloak_sessions) by (realm)", "legendFormat": "{{realm}}"}],
+          "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 9,
+          "title": "Response Time",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{app=\"keycloak\"}[5m])) by (le)) * 1000", "legendFormat": "p50"},
+            {"expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{app=\"keycloak\"}[5m])) by (le)) * 1000", "legendFormat": "p95"},
+            {"expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"keycloak\"}[5m])) by (le)) * 1000", "legendFormat": "p99"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "ms", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 10,
+          "title": "JVM Memory",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "sum(jvm_memory_used_bytes{app=\"keycloak\",area=\"heap\"}) / 1024 / 1024", "legendFormat": "Heap Used"},
+            {"expr": "sum(jvm_memory_max_bytes{app=\"keycloak\",area=\"heap\"}) / 1024 / 1024", "legendFormat": "Heap Max"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        }
+      ]
+    }
+
+  redis.json: |
+    {
+      "uid": "redis",
+      "title": "Redis Cache",
+      "tags": ["redis", "cache", "database"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Redis Status",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "redis_up", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}]}}
+        },
+        {
+          "id": 2,
+          "title": "Connected Clients",
+          "type": "stat",
+          "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "redis_connected_clients", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 3,
+          "title": "Memory Used",
+          "type": "stat",
+          "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "redis_memory_used_bytes / 1024 / 1024", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "decmbytes", "thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 4,
+          "title": "Hit Rate",
+          "type": "gauge",
+          "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total) * 100 or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 80}, {"color": "green", "value": 95}]}}}
+        },
+        {
+          "id": 5,
+          "title": "Keys",
+          "type": "stat",
+          "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(redis_db_keys) or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 6,
+          "title": "Commands/sec",
+          "type": "stat",
+          "gridPos": {"x": 20, "y": 0, "w": 4, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "rate(redis_commands_processed_total[5m])", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "ops", "thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 7,
+          "title": "Memory Usage",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "redis_memory_used_bytes / 1024 / 1024", "legendFormat": "Used"},
+            {"expr": "redis_memory_max_bytes / 1024 / 1024", "legendFormat": "Max"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "decmbytes", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 8,
+          "title": "Commands Over Time",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "rate(redis_commands_processed_total[5m])", "legendFormat": "Commands/s"}],
+          "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 9,
+          "title": "Hits vs Misses",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "rate(redis_keyspace_hits_total[5m])", "legendFormat": "Hits"},
+            {"expr": "rate(redis_keyspace_misses_total[5m])", "legendFormat": "Misses"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 10,
+          "title": "Connected Clients Over Time",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "redis_connected_clients", "legendFormat": "Clients"}],
+          "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        }
+      ]
+    }
+
+  logs-overview.json: |
+    {
+      "uid": "logs-overview",
+      "title": "Logs Overview",
+      "tags": ["logs", "loki", "observability"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Log Volume by Namespace",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 0, "w": 24, "h": 8},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum(count_over_time({namespace=~\".+\"}[1m])) by (namespace)", "legendFormat": "{{namespace}}"}],
+          "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "bars", "fillOpacity": 80, "stacking": {"mode": "normal"}}}}
+        },
+        {
+          "id": 2,
+          "title": "Error Logs (Last 1h)",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum(count_over_time({namespace=~\".+\"} |~ \"(?i)error|exception|fail\"[1h]))", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 100}, {"color": "red", "value": 500}]}}}
+        },
+        {
+          "id": 3,
+          "title": "Warning Logs (Last 1h)",
+          "type": "stat",
+          "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum(count_over_time({namespace=~\".+\"} |~ \"(?i)warn\"[1h]))", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 200}]}}}
+        },
+        {
+          "id": 4,
+          "title": "Fineract Logs (Last 1h)",
+          "type": "stat",
+          "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum(count_over_time({namespace=\"fineract-dev\"}[1h]))", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 5,
+          "title": "Keycloak Logs (Last 1h)",
+          "type": "stat",
+          "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "sum(count_over_time({namespace=\"keycloak\"}[1h]))", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 6,
+          "title": "Recent Fineract Logs",
+          "type": "logs",
+          "gridPos": {"x": 0, "y": 12, "w": 24, "h": 10},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{namespace=\"fineract-dev\"}", "legendFormat": ""}],
+          "options": {"showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending", "dedupStrategy": "none", "enableLogDetails": true}
+        },
+        {
+          "id": 7,
+          "title": "Recent Errors (All Namespaces)",
+          "type": "logs",
+          "gridPos": {"x": 0, "y": 22, "w": 24, "h": 10},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [{"expr": "{namespace=~\".+\"} |~ \"(?i)error|exception\"", "legendFormat": ""}],
+          "options": {"showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending", "dedupStrategy": "none", "enableLogDetails": true}
+        }
+      ]
+    }
+
   slo-dashboard.json: |
     {
-      "dashboard": {
-        "title": "Service Level Objectives (SLO)",
-        "uid": "fineract-slo",
-        "tags": ["fineract", "slo", "reliability"],
-        "timezone": "browser",
-        "refresh": "1m",
-        "time": {
-          "from": "now-7d",
-          "to": "now"
+      "uid": "slo-dashboard",
+      "title": "Service Level Objectives (SLO)",
+      "tags": ["slo", "reliability", "sre"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "1m",
+      "time": {"from": "now-7d", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Fineract API Availability (Target: 99.9%)",
+          "type": "gauge",
+          "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[7d])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[7d])))) * 100 or vector(100)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 99, "max": 100, "decimals": 3, "thresholds": {"steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 99.5}, {"color": "green", "value": 99.9}]}}}
         },
-        "panels": [
-          {
-            "id": 1,
-            "title": "Fineract API Availability (Target: 99.9%)",
-            "type": "gauge",
-            "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
-            "targets": [
-              {
-                "expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[7d])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[7d])))) * 100",
-                "legendFormat": "Availability %"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "percent",
-                "min": 99,
-                "max": 100,
-                "thresholds": {
-                  "steps": [
-                    {"color": "red", "value": 99},
-                    {"color": "yellow", "value": 99.5},
-                    {"color": "green", "value": 99.9}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 2,
-            "title": "Fineract API Latency p99 (Target: <500ms)",
-            "type": "gauge",
-            "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[7d])) by (le)) * 1000",
-                "legendFormat": "p99 Latency (ms)"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "ms",
-                "min": 0,
-                "max": 1000,
-                "thresholds": {
-                  "steps": [
-                    {"color": "green", "value": 0},
-                    {"color": "yellow", "value": 300},
-                    {"color": "red", "value": 500}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 3,
-            "title": "Keycloak Availability (Target: 99.95%)",
-            "type": "gauge",
-            "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
-            "targets": [
-              {
-                "expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"keycloak\",status=~\"5..\"}[7d])) / sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[7d])))) * 100",
-                "legendFormat": "Availability %"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "percent",
-                "min": 99,
-                "max": 100,
-                "thresholds": {
-                  "steps": [
-                    {"color": "red", "value": 99},
-                    {"color": "yellow", "value": 99.9},
-                    {"color": "green", "value": 99.95}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 4,
-            "title": "Error Budget - Fineract API (30-day rolling)",
-            "description": "Remaining error budget based on 99.9% SLO",
-            "type": "stat",
-            "gridPos": {"x": 0, "y": 8, "w": 12, "h": 4},
-            "targets": [
-              {
-                "expr": "((0.001) - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[30d])))) / 0.001 * 100",
-                "legendFormat": "Error Budget Remaining %"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "percent",
-                "thresholds": {
-                  "steps": [
-                    {"color": "red", "value": -100},
-                    {"color": "yellow", "value": 0},
-                    {"color": "green", "value": 50}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 5,
-            "title": "Error Budget - Keycloak (30-day rolling)",
-            "type": "stat",
-            "gridPos": {"x": 12, "y": 8, "w": 12, "h": 4},
-            "targets": [
-              {
-                "expr": "((0.0005) - (sum(rate(http_server_requests_seconds_count{app=\"keycloak\",status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[30d])))) / 0.0005 * 100",
-                "legendFormat": "Error Budget Remaining %"
-              }
-            ]
-          },
-          {
-            "id": 6,
-            "title": "Availability Over Time - Fineract",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[1h])))) * 100",
-                "legendFormat": "Availability %"
-              },
-              {
-                "expr": "99.9",
-                "legendFormat": "SLO Target (99.9%)"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {"unit": "percent", "min": 98, "max": 100}
-            }
-          },
-          {
-            "id": 7,
-            "title": "Latency Over Time - Fineract p99",
-            "type": "timeseries",
-            "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000",
-                "legendFormat": "p99 Latency"
-              },
-              {
-                "expr": "500",
-                "legendFormat": "SLO Target (500ms)"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {"unit": "ms"}
-            }
-          },
-          {
-            "id": 8,
-            "title": "SLO Burn Rate (Multi-Window)",
-            "description": "How fast the error budget is being consumed",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 20, "w": 24, "h": 8},
-            "targets": [
-              {
-                "expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[1h]))) / 0.001",
-                "legendFormat": "1h burn rate"
-              },
-              {
-                "expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[6h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[6h]))) / 0.001",
-                "legendFormat": "6h burn rate"
-              },
-              {
-                "expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[24h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[24h]))) / 0.001",
-                "legendFormat": "24h burn rate"
-              },
-              {
-                "expr": "1",
-                "legendFormat": "Normal Rate (1.0)"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "custom": {
-                  "thresholdsStyle": {"mode": "line"}
-                },
-                "thresholds": {
-                  "steps": [
-                    {"color": "green", "value": 0},
-                    {"color": "yellow", "value": 1},
-                    {"color": "red", "value": 10}
-                  ]
-                }
-              }
-            }
-          }
-        ]
-      }
-    }
-
-  # Tracing Overview Dashboard
-  tracing-dashboard.json: |
-    {
-      "dashboard": {
-        "title": "Distributed Tracing Overview",
-        "uid": "fineract-tracing",
-        "tags": ["fineract", "tracing", "jaeger"],
-        "timezone": "browser",
-        "refresh": "30s",
-        "panels": [
-          {
-            "id": 1,
-            "title": "Traces Received (per minute)",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "sum(rate(jaeger_collector_traces_received_total[5m])) * 60",
-                "legendFormat": "Traces/min"
-              }
-            ]
-          },
-          {
-            "id": 2,
-            "title": "Spans Received (per minute)",
-            "type": "timeseries",
-            "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
-            "targets": [
-              {
-                "expr": "sum(rate(jaeger_collector_spans_received_total[5m])) * 60",
-                "legendFormat": "Spans/min"
-              }
-            ]
-          },
-          {
-            "id": 3,
-            "title": "Trace Latency by Service",
-            "type": "timeseries",
-            "gridPos": {"x": 0, "y": 8, "w": 24, "h": 8},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.95, sum(rate(jaeger_collector_latency_bucket[5m])) by (service_name, le))",
-                "legendFormat": "{{service_name}} p95"
-              }
-            ]
-          },
-          {
-            "id": 4,
-            "title": "OTEL Collector - Spans Exported",
-            "type": "stat",
-            "gridPos": {"x": 0, "y": 16, "w": 8, "h": 4},
-            "targets": [
-              {
-                "expr": "sum(rate(otelcol_exporter_sent_spans[5m])) * 60",
-                "legendFormat": "Exported/min"
-              }
-            ]
-          },
-          {
-            "id": 5,
-            "title": "OTEL Collector - Spans Dropped",
-            "type": "stat",
-            "gridPos": {"x": 8, "y": 16, "w": 8, "h": 4},
-            "targets": [
-              {
-                "expr": "sum(rate(otelcol_processor_dropped_spans[5m])) * 60",
-                "legendFormat": "Dropped/min"
-              }
-            ]
-          },
-          {
-            "id": 6,
-            "title": "OTEL Collector Memory Usage",
-            "type": "gauge",
-            "gridPos": {"x": 16, "y": 16, "w": 8, "h": 4},
-            "targets": [
-              {
-                "expr": "otelcol_process_memory_rss / 1024 / 1024",
-                "legendFormat": "Memory (MB)"
-              }
-            ]
-          }
-        ]
-      }
+        {
+          "id": 2,
+          "title": "Fineract API Latency P99 (Target: <500ms)",
+          "type": "gauge",
+          "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[7d])) by (le)) * 1000 or vector(0)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "ms", "min": 0, "max": 1000, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 300}, {"color": "red", "value": 500}]}}}
+        },
+        {
+          "id": 3,
+          "title": "Keycloak Availability (Target: 99.95%)",
+          "type": "gauge",
+          "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"keycloak\",status=~\"5..\"}[7d])) / sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[7d])))) * 100 or vector(100)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 99, "max": 100, "decimals": 3, "thresholds": {"steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 99.9}, {"color": "green", "value": 99.95}]}}}
+        },
+        {
+          "id": 4,
+          "title": "Fineract Error Budget (30-day)",
+          "description": "Remaining error budget based on 99.9% SLO. 100% = full budget remaining, 0% = budget exhausted",
+          "type": "stat",
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "clamp_min(((0.001 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[30d])))) / 0.001) * 100, 0) or vector(100)", "legendFormat": "Error Budget %"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 25}, {"color": "green", "value": 50}]}}}
+        },
+        {
+          "id": 5,
+          "title": "Keycloak Error Budget (30-day)",
+          "type": "stat",
+          "gridPos": {"x": 12, "y": 8, "w": 12, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "clamp_min(((0.0005 - (sum(rate(http_server_requests_seconds_count{app=\"keycloak\",status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[30d])))) / 0.0005) * 100, 0) or vector(100)", "legendFormat": ""}],
+          "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 25}, {"color": "green", "value": 50}]}}}
+        },
+        {
+          "id": 6,
+          "title": "Availability Over Time - Fineract",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[1h])))) * 100 or vector(100)", "legendFormat": "Availability"},
+            {"expr": "99.9", "legendFormat": "SLO (99.9%)"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 98, "max": 100, "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 7,
+          "title": "Latency Over Time - Fineract P99",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000", "legendFormat": "P99 Latency"},
+            {"expr": "500", "legendFormat": "SLO (500ms)"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "ms", "custom": {"drawStyle": "line", "fillOpacity": 10}}}
+        },
+        {
+          "id": 8,
+          "title": "Error Rate Burn Rate (Multi-Window)",
+          "description": "How fast the error budget is being consumed. >1 means burning faster than allowed",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 20, "w": 24, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[1h]))) / 0.001 or vector(0)", "legendFormat": "1h burn rate"},
+            {"expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[6h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[6h]))) / 0.001 or vector(0)", "legendFormat": "6h burn rate"},
+            {"expr": "1", "legendFormat": "Normal (1.0)"}
+          ],
+          "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 10}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 10}]}}}
+        }
+      ]
     }
