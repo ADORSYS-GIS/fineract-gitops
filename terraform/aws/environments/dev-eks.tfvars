@@ -6,7 +6,7 @@ cluster_name = "apache-fineract-dev"
 # EKS Configuration
 eks_cluster_version = "1.31"
 node_instance_types = ["t3.large"]
-node_desired_size   = 2
+node_desired_size   = 3
 node_min_size       = 2
 node_max_size       = 4
 cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Allow from anywhere for dev

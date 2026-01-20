@@ -34,7 +34,7 @@ resources:
   - grafana-deployment.yaml
   - grafana-service.yaml
   - grafana-configmap.yaml
-  - grafana-admin-credentials.yaml
+  # Note: grafana-admin-credentials is managed via SealedSecret in secrets/dev/
 
   # AlertManager
   - alertmanager.yaml
