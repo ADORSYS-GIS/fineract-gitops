@@ -185,6 +185,14 @@ data:
           "~^GET:/fineract-provider/api/v1/savingsaccounts/[^/]+$"     "common-savingsaccounts-read";
           "~^GET:/fineract-provider/api/v1/clients/[^/]+$"             "common-clients-read";
           "~^GET:/fineract-provider/api/v1/loans/[^/]+$"               "common-loans-read";
+  
+          # Frontend UI Applications
+          "~^GET:/account"          "ui-account-manager";
+          "~^GET:/accounting"       "ui-accounting";
+          "~^GET:/administration"   "ui-admin";
+          "~^GET:/branch"           "ui-branch-manager";
+          "~^GET:/cashier"          "ui-cashier";
+          "~^GET:/reporting"        "ui-reporting";
       }
   
       # Check if user has required role for endpoint category
@@ -200,6 +208,14 @@ data:
           "~^admin:.*admin.*"                               1;
           "~^branch-manager:.*branch-manager.*"             1;
           "~^Cashier:.*Cashier.*"                           1;
+  
+          # Frontend UI Permissions
+          "~^ui-account-manager:.*account-manager.*"           1;
+          "~^ui-accounting:.*(Accountant|admin).*"             1;
+          "~^ui-admin:.*(admin).*"                             1;
+          "~^ui-branch-manager:.*(branch-manager|admin).*"     1;
+          "~^ui-cashier:.*(Cashier|branch-manager|admin).*"    1;
+          "~^ui-reporting:.*(reporting-user|admin|branch-manager|account-manager|Accountant).*" 1;
   
           # Shared Endpoint Permissions
           "~^common-offices:.*(account-manager|Accountant|admin|branch-manager).*" 1;
