@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-registration-service
+  labels:
+    app: customer-registration-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-registration-service
+  template:
+    metadata:
+      labels:
+        app: customer-registration-service
+        app.kubernetes.io/name: customer-registration-service
+        app.kubernetes.io/component: registration
+        app.kubernetes.io/part-of: self-service
+    spec:
+      containers:
+        - name: customer-registration-service
+          image: ghcr.io/adorsys-gis/fineract-apps/customer-registration-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: customer-registration-config
+          env:
+            # Keycloak Admin Client credentials
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: customer-registration-client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: customer-registration-client-secret
+            # Fineract API credentials
+            - name: FINERACT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-api-secrets
+                  key: username
+                  optional: true
+            - name: FINERACT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-api-secrets
+                  key: password
+                  optional: true
+            # Database credentials (for transaction logging)
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://fineract-postgresql:5432/customer_registration"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: customer-registration-db-secrets
+                  key: username
+                  optional: true
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: customer-registration-db-secrets
+                  key: password
+                  optional: true
+            # OpenTelemetry Distributed Tracing Configuration
+            - name: OTEL_SERVICE_NAME
+              value: "customer-registration-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.tracing.svc.cluster.local:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=fineract,deployment.environment=dev,service.version=1.0.0"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: customer-registration-config
+            items:
+              - key: transaction-limits.yaml
+                path: transaction-limits.yaml

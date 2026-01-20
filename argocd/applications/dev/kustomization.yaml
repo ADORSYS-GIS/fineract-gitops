@@ -26,6 +26,7 @@ resources:
   - branch-manager-app.yaml # Branch Manager frontend application
   - admin-app.yaml # Admin frontend application
   - user-sync-service.yaml # User Sync service
+  - customer-registration-service.yaml # Self-service customer registration
   - smoke-tests.yaml # Post-deployment health tests
   # Observability Stack
   - monitoring.yaml  # Prometheus, Grafana, AlertManager
