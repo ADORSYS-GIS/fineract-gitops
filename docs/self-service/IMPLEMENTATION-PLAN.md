@@ -1797,6 +1797,148 @@ gh pr create --title "feat: add self-service banking application" \
 
 ---
 
+## Branching & Testing Strategy
+
+### Branch Structure
+```
+main (or deploy-key)     ← Production/EKS deployment branch
+    │
+    └── self-service     ← Feature branch for self-service implementation
+```
+
+### How to Test Before Merging
+
+**Option A: Deploy self-service branch to dev environment (Recommended)**
+
+1. **Update ArgoCD to track self-service branch for dev**:
+   ```yaml
+   # In argocd/applications/dev/*.yaml, temporarily change:
+   spec:
+     source:
+       targetRevision: self-service  # Instead of main/deploy-key
+   ```
+
+2. **Or create a separate ArgoCD Application Set for testing**:
+   ```yaml
+   # argocd/applications/dev/self-service-test.yaml
+   apiVersion: argoproj.io/v1alpha1
+   kind: Application
+   metadata:
+     name: self-service-test
+   spec:
+     source:
+       repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+       targetRevision: self-service
+       path: apps/self-service-app/overlays/dev
+   ```
+
+3. **Sync and test**:
+   ```bash
+   # ArgoCD will deploy from self-service branch
+   argocd app sync self-service-test
+   ```
+
+**Option B: Use Kustomize overlays for feature testing**
+
+Create a dedicated overlay for testing the self-service feature:
+```
+apps/self-service-app/
+└── overlays/
+    ├── dev/           # Regular dev
+    ├── self-service-test/  # Feature testing
+    └── production/
+```
+
+### Testing Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ FEATURE TESTING WORKFLOW                                                 │
+│                                                                          │
+│ 1. Implement on self-service branch                                      │
+│    └── All commits go to self-service branch                             │
+│                                                                          │
+│ 2. Push changes                                                          │
+│    └── git push origin self-service                                      │
+│                                                                          │
+│ 3. Deploy to dev for testing                                             │
+│    └── ArgoCD syncs from self-service branch                             │
+│    └── Access at: https://apps.dev.domain.com/self-service               │
+│                                                                          │
+│ 4. Run test checklist:                                                   │
+│    □ Customer registration works                                         │
+│    □ WebAuthn passwordless login works                                   │
+│    □ Keycloak user created with correct attributes                       │
+│    □ Fineract client created with externalId                             │
+│    □ Deposit via MTN/Orange works                                        │
+│    □ Withdrawal with limits enforced                                     │
+│    □ KYC document upload works                                           │
+│    □ Staff can review KYC in Account Manager                             │
+│                                                                          │
+│ 5. Fix issues, repeat steps 1-4                                          │
+│                                                                          │
+│ 6. When ready, create PR:                                                │
+│    └── gh pr create --base deploy-key --head self-service                │
+│                                                                          │
+│ 7. Code review + approval                                                │
+│                                                                          │
+│ 8. Merge to deploy-key                                                   │
+│    └── Feature goes to production                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Commands for Testing
+
+```bash
+# 1. Ensure you're on self-service branch
+git checkout self-service
+
+# 2. Make changes and commit
+git add .
+git commit -m "feat: implement X"
+
+# 3. Push to remote
+git push origin self-service
+
+# 4. Check ArgoCD sync status (if configured)
+argocd app list | grep self-service
+
+# 5. When testing complete, create PR
+gh pr create \
+  --base deploy-key \
+  --head self-service \
+  --title "feat: add self-service banking application" \
+  --body "## Summary
+- Self-service customer portal with WebAuthn passwordless
+- Customer registration service
+- Payment gateway for MTN/Orange
+- Tiered KYC with transaction limits
+
+## Testing Done
+- [x] Registration flow tested
+- [x] Login flow tested
+- [x] Deposit/withdrawal tested
+- [x] KYC workflow tested"
+
+# 6. After PR approved and merged
+git checkout deploy-key
+git pull origin deploy-key
+```
+
+### Keeping Branches in Sync
+
+If `deploy-key` gets updates while you're working on `self-service`:
+
+```bash
+# On self-service branch
+git checkout self-service
+git fetch origin
+git rebase origin/deploy-key  # Or merge: git merge origin/deploy-key
+git push origin self-service --force-with-lease  # If rebased
+```
+
+---
+
 ## Session Resume Instructions
 
 When resuming implementation in a new session:
