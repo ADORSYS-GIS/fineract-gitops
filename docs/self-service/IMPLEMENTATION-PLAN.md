@@ -6,6 +6,42 @@ Build a customer-facing self-service application enabling user self-registration
 
 ---
 
+## Implementation Progress
+
+| Phase | Description | Status | Commit |
+|-------|-------------|--------|--------|
+| **Phase 1** | Keycloak & GL Configuration | ✅ Complete | `64eb9e0` |
+| **Phase 2** | Customer Registration Service | ✅ Complete | `b10d99a` |
+| **Phase 3** | Self-Service Frontend App | ✅ Complete | `4da00ca` |
+| **Phase 4** | Documentation | 🔄 In Progress | - |
+| **Phase 5** | Payment Gateway Service | ⏳ Pending | - |
+| **Phase 6** | Security & Testing | ⏳ Pending | - |
+| **Phase 7** | Staff KYC Review Interface | ⏳ Pending | - |
+
+### Phase 1 Details (Complete)
+- ✅ Self-service roles added: `self-service-customer`, `self-service-deposit`, `self-service-withdrawal`
+- ✅ Self-service group added: `/self-service-customers`
+- ✅ Self-service client added: `self-service-app` (public, PKCE)
+- ✅ WebAuthn passwordless flow: `self-service-browser`
+- ✅ GL accounts added: UBA (45), Afriland (46)
+- ✅ Payment types added: MTN Transfer, Orange Transfer, UBA Bank Transfer, Afriland Bank Transfer
+
+### Phase 2 Details (Complete)
+- ✅ `apps/customer-registration-service/base/` created
+- ✅ Deployment with Java Spring Boot configuration
+- ✅ Transaction limits ConfigMap (Tier 1/Tier 2)
+- ✅ ArgoCD application added
+
+### Phase 3 Details (Complete)
+- ✅ `apps/self-service-app/base/` created (GitOps manifests)
+- ✅ OIDC ConfigMap with Keycloak settings
+- ✅ NGINX ConfigMap with API proxies
+- ✅ Public Ingress (no OAuth2-Proxy) at `/self-service/*`
+- ✅ ArgoCD application added
+- ✅ React app scaffolding in `fineract-apps` repo (branch: `self-service`)
+
+---
+
 ## Current State Analysis
 
 ### Existing Architecture
