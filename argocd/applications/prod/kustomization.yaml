@@ -13,6 +13,7 @@ resources:
   - keycloak.yaml
   - logging.yaml
   - monitoring.yaml
+  - tracing.yaml
   - network-policies.yaml
   - oauth2-proxy.yaml
   - platform-services-app-of-apps.yaml

@@ -1,0 +1,91 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: keycloak-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    # Add pod name label
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    # Add namespace label
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    # Add node label
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    # Add container name
+    - sourceLabels: [__meta_kubernetes_pod_container_name]
+      targetLabel: container
+    metricRelabelings:
+    # Keep essential Keycloak metrics
+    - sourceLabels: [__name__]
+      regex: 'keycloak_.*|jvm_memory_used_bytes|jvm_threads_.*|http_server_requests_.*'
+      action: keep
+---
+# PodMonitor for Redis pods
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: redis-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+---
+# PodMonitor for OAuth2 Proxy pods
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: oauth2-proxy-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: oauth2-proxy
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace

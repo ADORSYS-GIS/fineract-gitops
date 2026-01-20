@@ -24,6 +24,24 @@ data:
       editable: false
       jsonData:
         maxLines: 1000
+    - name: Jaeger
+      type: jaeger
+      access: proxy
+      url: http://jaeger-query.tracing.svc.cluster.local:16686
+      editable: false
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: 'loki'
+          spanStartTimeShift: '-1h'
+          spanEndTimeShift: '1h'
+          filterByTraceID: true
+          filterBySpanID: true
+        tracesToMetrics:
+          datasourceUid: 'prometheus'
+          spanStartTimeShift: '-1h'
+          spanEndTimeShift: '1h'
+        nodeGraph:
+          enabled: true
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -182,6 +200,478 @@ data:
             "targets": [
               {
                 "expr": "rate(pg_stat_database_blks_hit{datname=\"fineract\"}[5m]) / (rate(pg_stat_database_blks_hit{datname=\"fineract\"}[5m]) + rate(pg_stat_database_blks_read{datname=\"fineract\"}[5m]))"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  # Business Metrics Dashboard
+  business-metrics-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Fineract Business Metrics",
+        "uid": "fineract-business",
+        "tags": ["fineract", "business", "kpi"],
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Loan Applications (Last 24h)",
+            "type": "stat",
+            "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(increase(http_server_requests_seconds_count{uri=~\"/api/v1/loans.*\",method=\"POST\",status=\"200\"}[24h]))",
+                "legendFormat": "Loan Applications"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 10},
+                    {"color": "green", "value": 50}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Active Loans",
+            "type": "stat",
+            "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "fineract_active_loans_total or vector(0)",
+                "legendFormat": "Active Loans"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Savings Accounts Created (Last 24h)",
+            "type": "stat",
+            "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(increase(http_server_requests_seconds_count{uri=~\"/api/v1/savingsaccounts.*\",method=\"POST\",status=\"200\"}[24h]))",
+                "legendFormat": "New Savings Accounts"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "User Logins (Last Hour)",
+            "type": "stat",
+            "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(increase(keycloak_logins_total{realm=\"fineract\"}[1h]))",
+                "legendFormat": "Logins"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "API Requests by Endpoint",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) by (uri)",
+                "legendFormat": "{{uri}}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Transaction Volume",
+            "type": "timeseries",
+            "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/v1/(loans|savingsaccounts)/[0-9]+/transactions.*\",method=\"POST\"}[5m])) by (uri)",
+                "legendFormat": "{{uri}}"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "API Response Time by Operation",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (uri, le))",
+                "legendFormat": "{{uri}} p95"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "title": "Error Rate by Operation",
+            "type": "timeseries",
+            "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[5m])) by (uri) * 100",
+                "legendFormat": "{{uri}} error %"
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "title": "Concurrent Users",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 20, "w": 8, "h": 6},
+            "targets": [
+              {
+                "expr": "sum(keycloak_sessions{realm=\"fineract\"})",
+                "legendFormat": "Active Sessions"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "title": "Failed Login Attempts",
+            "type": "timeseries",
+            "gridPos": {"x": 8, "y": 20, "w": 8, "h": 6},
+            "targets": [
+              {
+                "expr": "sum(rate(keycloak_failed_login_attempts_total{realm=\"fineract\"}[5m]))",
+                "legendFormat": "Failed Logins/s"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "title": "Database Connection Pool Usage",
+            "type": "gauge",
+            "gridPos": {"x": 16, "y": 20, "w": 8, "h": 6},
+            "targets": [
+              {
+                "expr": "hikaricp_connections_active / hikaricp_connections_max * 100",
+                "legendFormat": "Pool Usage %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 90}
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+
+  # SLO Dashboard
+  slo-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Service Level Objectives (SLO)",
+        "uid": "fineract-slo",
+        "tags": ["fineract", "slo", "reliability"],
+        "timezone": "browser",
+        "refresh": "1m",
+        "time": {
+          "from": "now-7d",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Fineract API Availability (Target: 99.9%)",
+            "type": "gauge",
+            "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+            "targets": [
+              {
+                "expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[7d])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[7d])))) * 100",
+                "legendFormat": "Availability %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 99,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 99},
+                    {"color": "yellow", "value": 99.5},
+                    {"color": "green", "value": 99.9}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Fineract API Latency p99 (Target: <500ms)",
+            "type": "gauge",
+            "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[7d])) by (le)) * 1000",
+                "legendFormat": "p99 Latency (ms)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "ms",
+                "min": 0,
+                "max": 1000,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 300},
+                    {"color": "red", "value": 500}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Keycloak Availability (Target: 99.95%)",
+            "type": "gauge",
+            "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+            "targets": [
+              {
+                "expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"keycloak\",status=~\"5..\"}[7d])) / sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[7d])))) * 100",
+                "legendFormat": "Availability %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 99,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 99},
+                    {"color": "yellow", "value": 99.9},
+                    {"color": "green", "value": 99.95}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Error Budget - Fineract API (30-day rolling)",
+            "description": "Remaining error budget based on 99.9% SLO",
+            "type": "stat",
+            "gridPos": {"x": 0, "y": 8, "w": 12, "h": 4},
+            "targets": [
+              {
+                "expr": "((0.001) - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[30d])))) / 0.001 * 100",
+                "legendFormat": "Error Budget Remaining %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": -100},
+                    {"color": "yellow", "value": 0},
+                    {"color": "green", "value": 50}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Error Budget - Keycloak (30-day rolling)",
+            "type": "stat",
+            "gridPos": {"x": 12, "y": 8, "w": 12, "h": 4},
+            "targets": [
+              {
+                "expr": "((0.0005) - (sum(rate(http_server_requests_seconds_count{app=\"keycloak\",status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count{app=\"keycloak\"}[30d])))) / 0.0005 * 100",
+                "legendFormat": "Error Budget Remaining %"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Availability Over Time - Fineract",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "(1 - (sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[1h])))) * 100",
+                "legendFormat": "Availability %"
+              },
+              {
+                "expr": "99.9",
+                "legendFormat": "SLO Target (99.9%)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {"unit": "percent", "min": 98, "max": 100}
+            }
+          },
+          {
+            "id": 7,
+            "title": "Latency Over Time - Fineract p99",
+            "type": "timeseries",
+            "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{app=\"fineract\"}[5m])) by (le)) * 1000",
+                "legendFormat": "p99 Latency"
+              },
+              {
+                "expr": "500",
+                "legendFormat": "SLO Target (500ms)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {"unit": "ms"}
+            }
+          },
+          {
+            "id": 8,
+            "title": "SLO Burn Rate (Multi-Window)",
+            "description": "How fast the error budget is being consumed",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 20, "w": 24, "h": 8},
+            "targets": [
+              {
+                "expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[1h]))) / 0.001",
+                "legendFormat": "1h burn rate"
+              },
+              {
+                "expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[6h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[6h]))) / 0.001",
+                "legendFormat": "6h burn rate"
+              },
+              {
+                "expr": "(sum(rate(http_server_requests_seconds_count{app=\"fineract\",status=~\"5..\"}[24h])) / sum(rate(http_server_requests_seconds_count{app=\"fineract\"}[24h]))) / 0.001",
+                "legendFormat": "24h burn rate"
+              },
+              {
+                "expr": "1",
+                "legendFormat": "Normal Rate (1.0)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "thresholdsStyle": {"mode": "line"}
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 10}
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+
+  # Tracing Overview Dashboard
+  tracing-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Distributed Tracing Overview",
+        "uid": "fineract-tracing",
+        "tags": ["fineract", "tracing", "jaeger"],
+        "timezone": "browser",
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Traces Received (per minute)",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(jaeger_collector_traces_received_total[5m])) * 60",
+                "legendFormat": "Traces/min"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Spans Received (per minute)",
+            "type": "timeseries",
+            "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(jaeger_collector_spans_received_total[5m])) * 60",
+                "legendFormat": "Spans/min"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Trace Latency by Service",
+            "type": "timeseries",
+            "gridPos": {"x": 0, "y": 8, "w": 24, "h": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(jaeger_collector_latency_bucket[5m])) by (service_name, le))",
+                "legendFormat": "{{service_name}} p95"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "OTEL Collector - Spans Exported",
+            "type": "stat",
+            "gridPos": {"x": 0, "y": 16, "w": 8, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(rate(otelcol_exporter_sent_spans[5m])) * 60",
+                "legendFormat": "Exported/min"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "OTEL Collector - Spans Dropped",
+            "type": "stat",
+            "gridPos": {"x": 8, "y": 16, "w": 8, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(rate(otelcol_processor_dropped_spans[5m])) * 60",
+                "legendFormat": "Dropped/min"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "OTEL Collector Memory Usage",
+            "type": "gauge",
+            "gridPos": {"x": 16, "y": 16, "w": 8, "h": 4},
+            "targets": [
+              {
+                "expr": "otelcol_process_memory_rss / 1024 / 1024",
+                "legendFormat": "Memory (MB)"
               }
             ]
           }

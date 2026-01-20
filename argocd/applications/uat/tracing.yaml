@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tracing-uat
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: tracing
+    app.kubernetes.io/part-of: fineract-platform
+    environment: uat
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-uat
+
+  source:
+    repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
+    targetRevision: main
+    path: apps/tracing/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tracing
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+
+  revisionHistoryLimit: 10
+
+  info:
+    - name: Component
+      value: Distributed Tracing (Jaeger, OpenTelemetry)
+    - name: Environment
+      value: UAT
+    - name: Auto-Deploy
+      value: "false"

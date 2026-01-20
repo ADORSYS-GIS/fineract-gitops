@@ -254,3 +254,154 @@ spec:
       annotations:
         summary: "Deployment is down"
         description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has no available replicas"
+
+  # SLO Burn Rate Alerts (Multi-Window, Multi-Burn-Rate)
+  # Based on Google SRE book methodology
+  - name: slo-burn-rate-alerts
+    interval: 30s
+    rules:
+    # Fineract API Availability SLO: 99.9% (error budget = 0.1%)
+    # Fast burn (1h window) - catches sudden spikes
+    - alert: FineractAPIHighErrorBurnRate
+      expr: |
+        (
+          sum(rate(http_server_requests_seconds_count{app="fineract",status=~"5.."}[1h]))
+          / sum(rate(http_server_requests_seconds_count{app="fineract"}[1h]))
+        ) > (14.4 * 0.001)
+        and
+        (
+          sum(rate(http_server_requests_seconds_count{app="fineract",status=~"5.."}[5m]))
+          / sum(rate(http_server_requests_seconds_count{app="fineract"}[5m]))
+        ) > (14.4 * 0.001)
+      for: 2m
+      labels:
+        severity: critical
+        component: slo
+        service: fineract
+        slo: availability
+        window: 1h
+      annotations:
+        summary: "Fineract API error budget burning too fast (critical)"
+        description: "Error rate is {{ $value | humanizePercentage }} which will exhaust 99.9% SLO budget in less than 2 hours"
+        runbook_url: "https://docs.fineract.io/runbooks/slo-burn-rate"
+        dashboard_url: "/d/fineract-slo/service-level-objectives"
+
+    # Slow burn (6h window) - catches gradual degradation
+    - alert: FineractAPISlowErrorBurnRate
+      expr: |
+        (
+          sum(rate(http_server_requests_seconds_count{app="fineract",status=~"5.."}[6h]))
+          / sum(rate(http_server_requests_seconds_count{app="fineract"}[6h]))
+        ) > (6 * 0.001)
+        and
+        (
+          sum(rate(http_server_requests_seconds_count{app="fineract",status=~"5.."}[30m]))
+          / sum(rate(http_server_requests_seconds_count{app="fineract"}[30m]))
+        ) > (6 * 0.001)
+      for: 15m
+      labels:
+        severity: warning
+        component: slo
+        service: fineract
+        slo: availability
+        window: 6h
+      annotations:
+        summary: "Fineract API error budget burning slowly"
+        description: "Error rate is elevated at {{ $value | humanizePercentage }}, will exhaust budget in less than 1 day at this rate"
+
+    # Fineract API Latency SLO: 99% of requests < 500ms
+    - alert: FineractAPIHighLatencyBurnRate
+      expr: |
+        (
+          1 - (
+            sum(rate(http_server_requests_seconds_bucket{app="fineract",le="0.5"}[1h]))
+            / sum(rate(http_server_requests_seconds_count{app="fineract"}[1h]))
+          )
+        ) > (14.4 * 0.01)
+      for: 2m
+      labels:
+        severity: critical
+        component: slo
+        service: fineract
+        slo: latency
+      annotations:
+        summary: "Fineract API latency SLO burn rate is high"
+        description: "More than {{ $value | humanizePercentage }} of requests are exceeding 500ms latency threshold"
+
+    # Keycloak Availability SLO: 99.95%
+    - alert: KeycloakHighErrorBurnRate
+      expr: |
+        (
+          sum(rate(http_server_requests_seconds_count{app="keycloak",status=~"5.."}[1h]))
+          / sum(rate(http_server_requests_seconds_count{app="keycloak"}[1h]))
+        ) > (14.4 * 0.0005)
+        and
+        (
+          sum(rate(http_server_requests_seconds_count{app="keycloak",status=~"5.."}[5m]))
+          / sum(rate(http_server_requests_seconds_count{app="keycloak"}[5m]))
+        ) > (14.4 * 0.0005)
+      for: 2m
+      labels:
+        severity: critical
+        component: slo
+        service: keycloak
+        slo: availability
+      annotations:
+        summary: "Keycloak error budget burning critically fast"
+        description: "Keycloak auth service error rate is {{ $value | humanizePercentage }}"
+
+    # Error Budget Exhausted (30-day window)
+    - alert: FineractAPIErrorBudgetExhausted
+      expr: |
+        (
+          1 - (
+            sum(rate(http_server_requests_seconds_count{app="fineract",status=~"5.."}[30d]))
+            / sum(rate(http_server_requests_seconds_count{app="fineract"}[30d]))
+          )
+        ) < 0.999
+      for: 5m
+      labels:
+        severity: critical
+        component: slo
+        service: fineract
+        slo: availability
+      annotations:
+        summary: "Fineract API error budget exhausted"
+        description: "30-day availability is {{ $value | humanizePercentage }} which is below 99.9% SLO target"
+
+  # Tracing Infrastructure Alerts
+  - name: tracing-alerts
+    interval: 30s
+    rules:
+    - alert: JaegerCollectorDown
+      expr: |
+        up{job="jaeger"} == 0
+      for: 2m
+      labels:
+        severity: warning
+        component: tracing
+      annotations:
+        summary: "Jaeger collector is down"
+        description: "Jaeger tracing collector is not responding"
+
+    - alert: OTELCollectorDown
+      expr: |
+        up{job="otel-collector"} == 0
+      for: 2m
+      labels:
+        severity: warning
+        component: tracing
+      annotations:
+        summary: "OpenTelemetry Collector is down"
+        description: "OTEL Collector is not responding, traces may be lost"
+
+    - alert: HighTraceDropRate
+      expr: |
+        (sum(rate(otelcol_processor_dropped_spans[5m])) / sum(rate(otelcol_receiver_accepted_spans[5m]))) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+        component: tracing
+      annotations:
+        summary: "High trace drop rate detected"
+        description: "More than 1% of spans are being dropped by OTEL Collector"

@@ -47,6 +47,10 @@ resources:
   - servicemonitor-oauth2-proxy.yaml
   - servicemonitor-redis.yaml
 
+  # Pod Monitors (granular pod-level metrics)
+  - podmonitor-fineract.yaml
+  - podmonitor-keycloak.yaml
+
   # Alert Rules
   - alert-rules.yaml
   - auto-rollback-alerts.yaml
