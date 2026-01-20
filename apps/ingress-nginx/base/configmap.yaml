@@ -57,103 +57,159 @@ data:
   # Map block for determining backend service based on HTTP method
   # This will be used in Ingress annotations via configuration-snippet
   http-snippet: |
-    # Map HTTP method to backend service for read/write separation
-    map $request_method $fineract_backend {
-        GET     "fineract-read-service.fineract-dev.svc.cluster.local:8080";
-        HEAD    "fineract-read-service.fineract-dev.svc.cluster.local:8080";
-        OPTIONS "fineract-read-service.fineract-dev.svc.cluster.local:8080";
-        default "fineract-write-service.fineract-dev.svc.cluster.local:8080";
-    }
-
-    # Map for admin endpoints (always route to write service)
-    map $request_uri $is_admin_endpoint {
-        default 0;
-        "~^/fineract-provider/api/v1/users"                 1;
-        "~^/fineract-provider/api/v1/permissions"           1;
-        "~^/fineract-provider/api/v1/roles"                 1;
-        "~^/fineract-provider/api/v1/codes"                 1;
-        "~^/fineract-provider/api/v1/hooks"                 1;
-        "~^/fineract-provider/api/v1/jobs"                  1;
-        "~^/fineract-provider/api/v1/configurations"        1;
-        "~^/fineract-provider/api/v1/systemconfig"          1;
-        "~^/fineract-provider/api/v1/audits"                1;
-        "~^/fineract-provider/api/v1/datatables"            1;
-        "~^/fineract-provider/api/v1/entitytoentitymapping" 1;
-        "~^/fineract-provider/api/v1/globalconfig"          1;
-    }
-
-    # Determine final backend service
-    map $is_admin_endpoint $final_backend {
-        1       "fineract-write-service.fineract-dev.svc.cluster.local:8080";
-        default $fineract_backend;
-    }
-
-    # OAuth2 Proxy auth endpoint
-    map $request_uri $oauth2_proxy_auth_url {
-        default "http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth";
-    }
-
-    # Rate limiting zones
-    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=100r/s;
-    limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=10r/s;
-
-    # ============================================================================
-    # RBAC Endpoint Categorization
-    # ============================================================================
-
-    # Map for RBAC endpoint categorization
-    map $request_uri $endpoint_category {
-        default                                           "general";
-
-        # Admin-only endpoints (level 4 - highest privilege)
-        "~^/fineract-provider/api/v1/users"               "admin-only";
-        "~^/fineract-provider/api/v1/staff"               "admin-only";
-        "~^/fineract-provider/api/v1/permissions"         "admin-only";
-        "~^/fineract-provider/api/v1/roles"               "admin-only";
-        "~^/fineract-provider/api/v1/systemconfig"        "admin-only";
-        "~^/fineract-provider/api/v1/codes"               "admin-only";
-        "~^/fineract-provider/api/v1/hooks"               "admin-only";
-        "~^/fineract-provider/api/v1/jobs"                "admin-only";
-        "~^/fineract-provider/api/v1/configurations"      "admin-only";
-
-        # Accounting endpoints (level 3 - admin + accountant)
-        "~^/fineract-provider/api/v1/glaccounts"          "accounting";
-        "~^/fineract-provider/api/v1/journalentries"      "accounting";
-        "~^/fineract-provider/api/v1/accountingrules"     "accounting";
-
-        # Management endpoints (level 2 - admin + branch-manager)
-        "~^/fineract-provider/api/v1/offices"             "management";
-        "~^/fineract-provider/api/v1/clients"             "management";
-        "~^/fineract-provider/api/v1/groups"              "management";
-        "~^/fineract-provider/api/v1/centers"             "management";
-        "~^/fineract-provider/api/v1/loanproducts"        "management";
-        "~^/fineract-provider/api/v1/savingsproducts"     "management";
-
-        # Teller operations (level 2 - admin + branch-manager + teller)
-        "~^/fineract-provider/api/v1/teller"              "teller-ops";
-        "~^/fineract-provider/api/v1/cashiers"            "teller-ops";
-    }
-
-    # Check if user has required role for endpoint category
-    map "$endpoint_category:$http_x_auth_request_roles" $rbac_allowed {
-        default                                           1;  # Allow by default if authenticated
-
-        # Admin-only endpoints
-        "~^admin-only:.*admin.*"                          1;
-        "~^admin-only:.*"                                 0;
-
-        # Accounting endpoints (admin or accountant)
-        "~^accounting:.*(admin|accountant).*"             1;
-        "~^accounting:.*"                                 0;
-
-        # Management endpoints (admin or branch-manager)
-        "~^management:.*(admin|branch-manager).*"         1;
-        "~^management:.*"                                 0;
-
-        # Teller operations (admin, branch-manager, or teller)
-        "~^teller-ops:.*(admin|branch-manager|teller).*"  1;
-        "~^teller-ops:.*"                                 0;
-    }
+      # Map HTTP method to backend service for read/write separation
+      map $request_method $fineract_backend {
+          GET     "fineract-read-service.fineract-dev.svc.cluster.local:8080";
+          HEAD    "fineract-read-service.fineract-dev.svc.cluster.local:8080";
+          OPTIONS "fineract-read-service.fineract-dev.svc.cluster.local:8080";
+          default "fineract-write-service.fineract-dev.svc.cluster.local:8080";
+      }
+  
+      # Map for admin endpoints (always route to write service)
+      map $request_uri $is_admin_endpoint {
+          default 0;
+          "~^/fineract-provider/api/v1/users"                 1;
+          "~^/fineract-provider/api/v1/permissions"           1;
+          "~^/fineract-provider/api/v1/roles"                 1;
+          "~^/fineract-provider/api/v1/codes"                 1;
+          "~^/fineract-provider/api/v1/hooks"                 1;
+          "~^/fineract-provider/api/v1/jobs"                  1;
+          "~^/fineract-provider/api/v1/configurations"        1;
+          "~^/fineract-provider/api/v1/systemconfig"          1;
+          "~^/fineract-provider/api/v1/datatables"            1;
+          "~^/fineract-provider/api/v1/entitytoentitymapping" 1;
+          "~^/fineract-provider/api/v1/globalconfig"          1;
+      }
+  
+      # Determine final backend service
+      map $is_admin_endpoint $final_backend {
+          1       "fineract-write-service.fineract-dev.svc.cluster.local:8080";
+          default $fineract_backend;
+      }
+  
+      # OAuth2 Proxy auth endpoint
+      map $request_uri $oauth2_proxy_auth_url {
+          default "http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth";
+      }
+  
+      # Rate limiting zones
+      limit_req_zone $binary_remote_addr zone=api_limit:10m rate=100r/s;
+      limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=10r/s;
+  
+      # ============================================================================
+      # RBAC Endpoint Categorization
+      # ============================================================================
+  
+      map "$request_method:$request_uri" $endpoint_category {
+          default                                                     "public";
+  
+          # Account Manager Endpoints
+          "~^POST:/fineract-provider/api/v1/authentication$"           "account-manager";
+          "~^POST:/fineract-provider/api/v1/clients$"                  "account-manager";
+          "~^GET:/fineract-provider/api/v1/runreports/Savings%20Transactions$" "account-manager";
+          "~^GET:/fineract-provider/api/v1/clients/[^/]+/accounts$"    "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=activate$" "account-manager";
+          "~^DELETE:/fineract-provider/api/v1/loans/[^/]+$"            "account-manager";
+          "~^DELETE:/fineract-provider/api/v1/savingsaccounts/[^/]+$"  "account-manager";
+          "~^GET:/fineract-provider/api/v1/clients/[^/]+/images$"      "account-manager";
+          "~^POST:/fineract-provider/api/v1/clients/[^/]+/images$"     "account-manager";
+          "~^DELETE:/fineract-provider/api/v1/clients/[^/]+/images$"   "account-manager";
+          "~^GET:/fineract-provider/api/v1/clients$"                   "account-manager";
+          "~^POST:/fineract-provider/api/v2/clients/search$"           "account-manager";
+          "~^POST:/fineract-provider/api/v1/loans$"                    "account-manager";
+          "~^PUT:/fineract-provider/api/v1/loans/[^/]+$"               "account-manager";
+          "~^GET:/fineract-provider/api/v1/loans/template$"            "account-manager";
+          "~^POST:/fineract-provider/api/v1/loans\?command=calculateLoanSchedule$" "account-manager";
+          "~^GET:/fineract-provider/api/v1/savingsproducts$"           "account-manager";
+          "~^GET:/fineract-provider/api/v1/loanproducts$"              "account-manager";
+          "~^GET:/fineract-provider/api/v1/products/[^/]+$"            "account-manager";
+          "~^GET:/fineract-provider/api/v1/recurringdepositproducts$"  "account-manager";
+          "~^GET:/fineract-provider/api/v1/fixeddepositproducts$"      "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts$"          "account-manager";
+          "~^POST:/fineract-provider/api/v1/accounts/[^/]+$"           "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=unblock$" "account-manager";
+          "~^GET:/fineract-provider/api/v1/codes/[^/]+/codevalues$"    "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=block$" "account-manager";
+  
+          # Accountant Endpoints
+          "~^GET:/fineract-provider/api/v1/makercheckers$"             "accountant";
+          "~^POST:/fineract-provider/api/v1/glclosures$"               "accountant";
+          "~^GET:/fineract-provider/api/v1/glaccounts$"                "accountant";
+          "~^POST:/fineract-provider/api/v1/journalentries$"           "accountant";
+          "~^GET:/fineract-provider/api/v1/journalentries$"            "accountant";
+          "~^DELETE:/fineract-provider/api/v1/glaccounts/[^/]+$"       "accountant";
+          "~^GET:/fineract-provider/api/v1/journalentries/[^/]+$"      "accountant";
+          "~^POST:/fineract-provider/api/v1/journalentries/[^/]+$"     "accountant";
+          "~^POST:/fineract-provider/api/v1/makercheckers/[^/]+$"      "accountant";
+  
+          # Admin Endpoints
+          "~^POST:/fineract-provider/api/v1/adorsys/employees$"        "admin";
+          "~^GET:/fineract-provider/api/v1/adorsys/employees$"         "admin";
+          "~^GET:/fineract-provider/api/v1/adorsys/employees/[^/]+$"   "admin";
+          "~^PUT:/fineract-provider/api/v1/adorsys/employees/[^/]+$"   "admin";
+          "~^POST:/fineract-provider/api/user-sync/sync/user$"         "admin";
+          "~^POST:/fineract-provider/api/user-sync/users/[^/]+/reset-password$" "admin";
+          "~^PUT:/fineract-provider/api/user-sync/users/[^/]+/status$" "admin";
+          "~^POST:/fineract-provider/api/user-sync/users/[^/]+/force-password-change$" "admin";
+          "~^GET:/fineract-provider/api/user-sync/users/[^/]+/keycloak-status$" "admin";
+          "~^GET:/fineract-provider/api/v1/roles$"                     "admin";
+          "~^GET:/fineract-provider/api/v1/users$"                     "admin";
+  
+          # Branch Manager Endpoints
+          "~^GET:/fineract-provider/api/v1/savingsaccounts$"           "branch-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=approve$" "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+/allocate$" "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+/settle$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+/summaryandtransactions$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers$"    "branch-manager";
+          "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=approve$" "branch-manager";
+          "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=reject$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/staff$"                     "branch-manager";
+          "~^GET:/fineract-provider/api/v1/staff/[^/]+$"               "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers/template$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+$"             "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/cashiers$"   "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers$"                  "branch-manager";
+  
+          # Cashier Endpoints
+          "~^GET:/fineract-provider/api/v1/userdetails$"               "cashier";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+/transactions$" "cashier";
+          "~^POST:/fineract-provider/api/v1/loans/[^/]+/transactions$" "cashier";
+  
+          # Shared Endpoints - These are accessible by multiple roles
+          "~^GET:/fineract-provider/api/v1/offices$"                   "common-offices";
+          "~^GET:/fineract-provider/api/v1/currencies$"                "common-currencies";
+          "~^GET:/fineract-provider/api/v1/paymenttypes$"              "common-paymenttypes";
+          "~^GET:/fineract-provider/api/v1/tellers$"                   "common-tellers";
+          "~^GET:/fineract-provider/api/v1/savingsaccounts/[^/]+$"     "common-savingsaccounts-read";
+          "~^GET:/fineract-provider/api/v1/clients/[^/]+$"             "common-clients-read";
+          "~^GET:/fineract-provider/api/v1/loans/[^/]+$"               "common-loans-read";
+      }
+  
+      # Check if user has required role for endpoint category
+      map "$endpoint_category:$http_x_auth_request_roles" $rbac_allowed {
+          default                                           0;
+  
+          # Public endpoints are accessible by any authenticated user
+          "~^public:.*"                                     1;
+  
+          # Role-specific endpoint permissions
+          "~^account-manager:.*account-manager.*"           1;
+          "~^accountant:.*accountant.*"                     1;
+          "~^admin:.*admin.*"                               1;
+          "~^branch-manager:.*branch-manager.*"             1;
+          "~^cashier:.*cashier.*"                           1;
+  
+          # Shared Endpoint Permissions
+          "~^common-offices:.*(account-manager|accountant|admin|branch-manager).*" 1;
+          "~^common-currencies:.*(accountant|cashier).*"     1;
+          "~^common-paymenttypes:.*(accountant|cashier).*"   1;
+          "~^common-tellers:.*(branch-manager|cashier).*"    1;
+          "~^common-savingsaccounts-read:.*(account-manager|branch-manager|cashier).*" 1;
+          "~^common-clients-read:.*(account-manager|branch-manager).*" 1;
+          "~^common-loans-read:.*(account-manager|branch-manager).*" 1;
+      }
 
   # ============================================================================
   # Performance Tuning

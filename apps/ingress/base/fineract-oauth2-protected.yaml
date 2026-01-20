@@ -116,7 +116,9 @@ metadata:
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
-
+            if ($rbac_allowed = 0) {
+              return 403;
+            }
 spec:
   ingressClassName: nginx
 
