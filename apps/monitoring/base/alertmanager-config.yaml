@@ -8,21 +8,12 @@ metadata:
 type: Opaque
 stringData:
   alertmanager.yaml: |
+    # AlertManager Configuration for Dev Environment
+    # External notifications (Slack/Email) are disabled
+    # For production, create an overlay with proper credentials
+
     global:
       resolve_timeout: 5m
-      # SMTP settings for email notifications
-      # These use environment variables from alertmanager-secrets
-      smtp_smarthost: 'smtp.example.com:587'
-      smtp_from: 'alertmanager@fineract.io'
-      smtp_auth_username: 'alertmanager@fineract.io'
-      smtp_auth_password: ''
-      smtp_require_tls: true
-      # Slack API URL (global default, can be overridden per receiver)
-      slack_api_url: ''
-
-    # Notification templates
-    templates:
-    - '/etc/alertmanager/template/*.tmpl'
 
     # Routing tree
     route:
@@ -43,154 +34,46 @@ stringData:
 
       # Child routes
       routes:
-      # Auto-rollback alerts - highest priority
+      # Auto-rollback alerts - webhook to ArgoCD
       - match:
           auto_rollback: enabled
         receiver: auto-rollback-webhook
         group_wait: 10s
         group_interval: 1m
         repeat_interval: 15m
-        continue: true  # Also send to other receivers
+        continue: true
 
-      # Critical alerts - send immediately
+      # Critical alerts
       - match:
           severity: critical
-        receiver: critical-alerts
+        receiver: 'default'
         group_wait: 10s
         repeat_interval: 1h
-
-      # Database alerts
-      - match:
-          component: database
-        receiver: database-alerts
-        repeat_interval: 2h
-
-      # Certificate expiration alerts
-      - match:
-          alertname: CertificateExpiringSoon
-        receiver: security-alerts
-        repeat_interval: 24h
 
       # Warning alerts
       - match:
           severity: warning
-        receiver: warning-alerts
+        receiver: 'default'
         repeat_interval: 4h
 
     # Alert receivers
     receivers:
-    # Default receiver - Slack channel for all unmatched alerts
+    # Default receiver - no external notifications in dev
+    # Alerts are visible in AlertManager UI
     - name: 'default'
-      slack_configs:
-      - channel: '#fineract-alerts'
-        send_resolved: true
-        title: '{{ template "slack.default.title" . }}'
-        text: '{{ template "slack.default.text" . }}'
-        actions:
-        - type: button
-          text: 'Runbook'
-          url: '{{ (index .Alerts 0).Annotations.runbook_url }}'
-        - type: button
-          text: 'Dashboard'
-          url: '{{ (index .Alerts 0).Annotations.dashboard_url }}'
+      # For production, add slack_configs or email_configs here
+      # Example:
+      # slack_configs:
+      # - api_url: 'https://hooks.slack.com/services/...'
+      #   channel: '#fineract-alerts'
+      #   send_resolved: true
 
-    # Auto-rollback webhook
+    # Auto-rollback webhook for ArgoCD integration
     - name: 'auto-rollback-webhook'
       webhook_configs:
       - url: 'http://auto-rollback-webhook.argocd.svc.cluster.local:8080/alerts'
         send_resolved: false
         max_alerts: 10
-
-    # Critical alerts - multiple channels (Slack + Email)
-    - name: 'critical-alerts'
-      slack_configs:
-      - channel: '#fineract-alerts-critical'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[CRITICAL] {{ .GroupLabels.alertname }}'
-        title_link: '{{ (index .Alerts 0).Annotations.dashboard_url }}'
-        text: |-
-          *Alert:* {{ .GroupLabels.alertname }}
-          *Severity:* {{ .CommonLabels.severity }}
-          *Namespace:* {{ .CommonLabels.namespace }}
-          {{ range .Alerts }}
-          *Description:* {{ .Annotations.description }}
-          *Details:*
-          {{ range .Labels.SortedPairs }} - *{{ .Name }}:* {{ .Value }}
-          {{ end }}
-          {{ end }}
-        actions:
-        - type: button
-          text: 'View Runbook'
-          url: '{{ (index .Alerts 0).Annotations.runbook_url }}'
-          style: 'danger'
-        - type: button
-          text: 'Silence Alert'
-          url: '{{ template "alertmanager.url" . }}/#/silences/new?filter={alertname="{{ .GroupLabels.alertname }}"}'
-      email_configs:
-      - to: 'platform-oncall@fineract.io'
-        send_resolved: true
-        headers:
-          Subject: '[CRITICAL] Fineract Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          <h2>Critical Alert: {{ .GroupLabels.alertname }}</h2>
-          <p><strong>Status:</strong> {{ .Status }}</p>
-          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
-          {{ range .Alerts }}
-          <h3>Details</h3>
-          <p>{{ .Annotations.description }}</p>
-          <ul>
-          {{ range .Labels.SortedPairs }}<li><strong>{{ .Name }}:</strong> {{ .Value }}</li>{{ end }}
-          </ul>
-          {{ end }}
-
-    # Warning alerts - Slack only
-    - name: 'warning-alerts'
-      slack_configs:
-      - channel: '#fineract-alerts'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
-        title: '[WARNING] {{ .GroupLabels.alertname }}'
-        text: |-
-          {{ range .Alerts }}
-          *Description:* {{ .Annotations.description }}
-          *Namespace:* {{ .Labels.namespace }}
-          {{ end }}
-
-    # Database alerts - dedicated channel + DBA email
-    - name: 'database-alerts'
-      slack_configs:
-      - channel: '#fineract-database-alerts'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[DATABASE] {{ .GroupLabels.alertname }}'
-        text: |-
-          {{ range .Alerts }}
-          *Description:* {{ .Annotations.description }}
-          *Database:* {{ .Labels.instance }}
-          {{ end }}
-      email_configs:
-      - to: 'dba-team@fineract.io'
-        send_resolved: true
-        headers:
-          Subject: '[DATABASE] Fineract Alert: {{ .GroupLabels.alertname }}'
-
-    # Security alerts (certificates, suspicious activity)
-    - name: 'security-alerts'
-      slack_configs:
-      - channel: '#fineract-security-alerts'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[SECURITY] {{ .GroupLabels.alertname }}'
-        text: |-
-          {{ range .Alerts }}
-          *Description:* {{ .Annotations.description }}
-          {{ end }}
-      email_configs:
-      - to: 'security-team@fineract.io'
-        send_resolved: true
-        headers:
-          Subject: '[SECURITY] Fineract Alert: {{ .GroupLabels.alertname }}'
 
     # Inhibition rules - suppress alerts if others are firing
     inhibit_rules:
@@ -207,10 +90,3 @@ stringData:
       target_match:
         alertname: 'PodDown'
       equal: ['deployment']
-
-    # Suppress database read replica alerts if primary is down
-    - source_match:
-        alertname: 'PostgreSQLDown'
-      target_match:
-        alertname: 'PostgreSQLReplicationLag'
-      equal: ['cluster']
