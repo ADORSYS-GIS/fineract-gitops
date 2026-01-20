@@ -192,7 +192,7 @@ spec:
 
       containers:
       - name: fineract
-        image: ghcr.io/adorsys-gis/fineract:ccf1ce593
+        image: ghcr.io/adorsys-gis/fineract:db6c32ee9
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
