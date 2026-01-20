@@ -104,87 +104,87 @@ data:
           default                                                     "public";
   
           # Account Manager Endpoints
-          "~^POST:/fineract-provider/api/v1/authentication$"           "account-manager";
-          "~^POST:/fineract-provider/api/v1/clients$"                  "account-manager";
-          "~^GET:/fineract-provider/api/v1/runreports/Savings%20Transactions$" "account-manager";
-          "~^GET:/fineract-provider/api/v1/clients/[^/]+/accounts$"    "account-manager";
-          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=activate$" "account-manager";
-          "~^DELETE:/fineract-provider/api/v1/loans/[^/]+$"            "account-manager";
-          "~^DELETE:/fineract-provider/api/v1/savingsaccounts/[^/]+$"  "account-manager";
-          "~^GET:/fineract-provider/api/v1/clients/[^/]+/images$"      "account-manager";
-          "~^POST:/fineract-provider/api/v1/clients/[^/]+/images$"     "account-manager";
-          "~^DELETE:/fineract-provider/api/v1/clients/[^/]+/images$"   "account-manager";
-          "~^GET:/fineract-provider/api/v1/clients$"                   "account-manager";
-          "~^POST:/fineract-provider/api/v2/clients/search$"           "account-manager";
-          "~^POST:/fineract-provider/api/v1/loans$"                    "account-manager";
-          "~^PUT:/fineract-provider/api/v1/loans/[^/]+$"               "account-manager";
-          "~^GET:/fineract-provider/api/v1/loans/template$"            "account-manager";
-          "~^POST:/fineract-provider/api/v1/loans\?command=calculateLoanSchedule$" "account-manager";
-          "~^GET:/fineract-provider/api/v1/savingsproducts$"           "account-manager";
-          "~^GET:/fineract-provider/api/v1/loanproducts$"              "account-manager";
-          "~^GET:/fineract-provider/api/v1/products/[^/]+$"            "account-manager";
-          "~^GET:/fineract-provider/api/v1/recurringdepositproducts$"  "account-manager";
-          "~^GET:/fineract-provider/api/v1/fixeddepositproducts$"      "account-manager";
-          "~^POST:/fineract-provider/api/v1/savingsaccounts$"          "account-manager";
-          "~^POST:/fineract-provider/api/v1/accounts/[^/]+$"           "account-manager";
-          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=unblock$" "account-manager";
-          "~^GET:/fineract-provider/api/v1/codes/[^/]+/codevalues$"    "account-manager";
-          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=block$" "account-manager";
+          "~^POST:/fineract-provider/api/v1/authentication([?].*)?$"           "account-manager";
+          "~^POST:/fineract-provider/api/v1/clients([?].*)?$"                  "account-manager";
+          "~^GET:/fineract-provider/api/v1/runreports/Savings%20Transactions([?].*)?$" "account-manager";
+          "~^GET:/fineract-provider/api/v1/clients/[^/]+/accounts([?].*)?$"    "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=activate([?].*)?$" "account-manager";
+          "~^DELETE:/fineract-provider/api/v1/loans/[^/]+([?].*)?$"            "account-manager";
+          "~^DELETE:/fineract-provider/api/v1/savingsaccounts/[^/]+([?].*)?$"  "account-manager";
+          "~^GET:/fineract-provider/api/v1/clients/[^/]+/images([?].*)?$"      "account-manager";
+          "~^POST:/fineract-provider/api/v1/clients/[^/]+/images([?].*)?$"     "account-manager";
+          "~^DELETE:/fineract-provider/api/v1/clients/[^/]+/images([?].*)?$"   "account-manager";
+          "~^GET:/fineract-provider/api/v1/clients([?].*)?$"                   "account-manager";
+          "~^POST:/fineract-provider/api/v2/clients/search([?].*)?$"           "account-manager";
+          "~^POST:/fineract-provider/api/v1/loans([?].*)?$"                    "account-manager";
+          "~^PUT:/fineract-provider/api/v1/loans/[^/]+([?].*)?$"               "account-manager";
+          "~^GET:/fineract-provider/api/v1/loans/template([?].*)?$"            "account-manager";
+          "~^POST:/fineract-provider/api/v1/loans\?command=calculateLoanSchedule([?].*)?$" "account-manager";
+          "~^GET:/fineract-provider/api/v1/savingsproducts([?].*)?$"           "account-manager";
+          "~^GET:/fineract-provider/api/v1/loanproducts([?].*)?$"              "account-manager";
+          "~^GET:/fineract-provider/api/v1/products/[^/]+([?].*)?$"            "account-manager";
+          "~^GET:/fineract-provider/api/v1/recurringdepositproducts([?].*)?$"  "account-manager";
+          "~^GET:/fineract-provider/api/v1/fixeddepositproducts([?].*)?$"      "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts([?].*)?$"          "account-manager";
+          "~^POST:/fineract-provider/api/v1/accounts/[^/]+([?].*)?$"           "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=unblock([?].*)?$" "account-manager";
+          "~^GET:/fineract-provider/api/v1/codes/[^/]+/codevalues([?].*)?$"    "account-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=block([?].*)?$" "account-manager";
   
           # Accountant Endpoints
-          "~^GET:/fineract-provider/api/v1/makercheckers$"             "Accountant";
-          "~^POST:/fineract-provider/api/v1/glclosures$"               "Accountant";
-          "~^GET:/fineract-provider/api/v1/glaccounts$"                "Accountant";
-          "~^POST:/fineract-provider/api/v1/journalentries$"           "Accountant";
-          "~^GET:/fineract-provider/api/v1/journalentries$"            "Accountant";
-          "~^DELETE:/fineract-provider/api/v1/glaccounts/[^/]+$"       "Accountant";
-          "~^GET:/fineract-provider/api/v1/journalentries/[^/]+$"      "Accountant";
-          "~^POST:/fineract-provider/api/v1/journalentries/[^/]+$"     "Accountant";
-          "~^POST:/fineract-provider/api/v1/makercheckers/[^/]+$"      "Accountant";
+          "~^GET:/fineract-provider/api/v1/makercheckers([?].*)?$"             "Accountant";
+          "~^POST:/fineract-provider/api/v1/glclosures([?].*)?$"               "Accountant";
+          "~^GET:/fineract-provider/api/v1/glaccounts([?].*)?$"                "Accountant";
+          "~^POST:/fineract-provider/api/v1/journalentries([?].*)?$"           "Accountant";
+          "~^GET:/fineract-provider/api/v1/journalentries([?].*)?$"            "Accountant";
+          "~^DELETE:/fineract-provider/api/v1/glaccounts/[^/]+([?].*)?$"       "Accountant";
+          "~^GET:/fineract-provider/api/v1/journalentries/[^/]+([?].*)?$"      "Accountant";
+          "~^POST:/fineract-provider/api/v1/journalentries/[^/]+([?].*)?$"     "Accountant";
+          "~^POST:/fineract-provider/api/v1/makercheckers/[^/]+([?].*)?$"      "Accountant";
   
           # Admin Endpoints
-          "~^POST:/fineract-provider/api/v1/adorsys/employees$"        "admin";
-          "~^GET:/fineract-provider/api/v1/adorsys/employees$"         "admin";
-          "~^GET:/fineract-provider/api/v1/adorsys/employees/[^/]+$"   "admin";
-          "~^PUT:/fineract-provider/api/v1/adorsys/employees/[^/]+$"   "admin";
-          "~^POST:/fineract-provider/api/user-sync/sync/user$"         "admin";
-          "~^POST:/fineract-provider/api/user-sync/users/[^/]+/reset-password$" "admin";
-          "~^PUT:/fineract-provider/api/user-sync/users/[^/]+/status$" "admin";
-          "~^POST:/fineract-provider/api/user-sync/users/[^/]+/force-password-change$" "admin";
-          "~^GET:/fineract-provider/api/user-sync/users/[^/]+/keycloak-status$" "admin";
-          "~^GET:/fineract-provider/api/v1/roles$"                     "admin";
-          "~^GET:/fineract-provider/api/v1/users$"                     "admin";
+          "~^POST:/fineract-provider/api/v1/adorsys/employees([?].*)?$"        "admin";
+          "~^GET:/fineract-provider/api/v1/adorsys/employees([?].*)?$"         "admin";
+          "~^GET:/fineract-provider/api/v1/adorsys/employees/[^/]+([?].*)?$"   "admin";
+          "~^PUT:/fineract-provider/api/v1/adorsys/employees/[^/]+([?].*)?$"   "admin";
+          "~^POST:/fineract-provider/api/user-sync/sync/user([?].*)?$"         "admin";
+          "~^POST:/fineract-provider/api/user-sync/users/[^/]+/reset-password([?].*)?$" "admin";
+          "~^PUT:/fineract-provider/api/user-sync/users/[^/]+/status([?].*)?$" "admin";
+          "~^POST:/fineract-provider/api/user-sync/users/[^/]+/force-password-change([?].*)?$" "admin";
+          "~^GET:/fineract-provider/api/user-sync/users/[^/]+/keycloak-status([?].*)?$" "admin";
+          "~^GET:/fineract-provider/api/v1/roles([?].*)?$"                     "admin";
+          "~^GET:/fineract-provider/api/v1/users([?].*)?$"                     "admin";
   
           # Branch Manager Endpoints
-          "~^GET:/fineract-provider/api/v1/savingsaccounts$"           "branch-manager";
-          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=approve$" "branch-manager";
-          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+/allocate$" "branch-manager";
-          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+/settle$" "branch-manager";
-          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+$" "branch-manager";
-          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+/summaryandtransactions$" "branch-manager";
-          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers$"    "branch-manager";
-          "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=approve$" "branch-manager";
-          "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=reject$" "branch-manager";
-          "~^GET:/fineract-provider/api/v1/staff$"                     "branch-manager";
-          "~^GET:/fineract-provider/api/v1/staff/[^/]+$"               "branch-manager";
-          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/template$" "branch-manager";
-          "~^GET:/fineract-provider/api/v1/tellers/[^/]+$"             "branch-manager";
-          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/Cashiers$"   "branch-manager";
-          "~^POST:/fineract-provider/api/v1/tellers$"                  "branch-manager";
+          "~^GET:/fineract-provider/api/v1/savingsaccounts([?].*)?$"           "branch-manager";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+\?command=approve([?].*)?$" "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+/allocate([?].*)?$" "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+/settle([?].*)?$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+([?].*)?$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/[^/]+/summaryandtransactions([?].*)?$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers([?].*)?$"    "branch-manager";
+          "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=approve([?].*)?$" "branch-manager";
+          "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=reject([?].*)?$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/staff([?].*)?$"                     "branch-manager";
+          "~^GET:/fineract-provider/api/v1/staff/[^/]+([?].*)?$"               "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/Cashiers/template([?].*)?$" "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+([?].*)?$"             "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers/[^/]+/Cashiers([?].*)?$"   "branch-manager";
+          "~^POST:/fineract-provider/api/v1/tellers([?].*)?$"                  "branch-manager";
   
           # Cashier Endpoints
-          "~^GET:/fineract-provider/api/v1/userdetails$"               "Cashier";
-          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+/transactions$" "Cashier";
-          "~^POST:/fineract-provider/api/v1/loans/[^/]+/transactions$" "Cashier";
+          "~^GET:/fineract-provider/api/v1/userdetails([?].*)?$"               "Cashier";
+          "~^POST:/fineract-provider/api/v1/savingsaccounts/[^/]+/transactions([?].*)?$" "Cashier";
+          "~^POST:/fineract-provider/api/v1/loans/[^/]+/transactions([?].*)?$" "Cashier";
   
           # Shared Endpoints - These are accessible by multiple roles
-          "~^GET:/fineract-provider/api/v1/offices$"                   "common-offices";
-          "~^GET:/fineract-provider/api/v1/currencies$"                "common-currencies";
-          "~^GET:/fineract-provider/api/v1/paymenttypes$"              "common-paymenttypes";
-          "~^GET:/fineract-provider/api/v1/tellers$"                   "common-tellers";
-          "~^GET:/fineract-provider/api/v1/savingsaccounts/[^/]+$"     "common-savingsaccounts-read";
-          "~^GET:/fineract-provider/api/v1/clients/[^/]+$"             "common-clients-read";
-          "~^GET:/fineract-provider/api/v1/loans/[^/]+$"               "common-loans-read";
+          "~^GET:/fineract-provider/api/v1/offices([?].*)?$"                   "common-offices";
+          "~^GET:/fineract-provider/api/v1/currencies([?].*)?$"                "common-currencies";
+          "~^GET:/fineract-provider/api/v1/paymenttypes([?].*)?$"              "common-paymenttypes";
+          "~^GET:/fineract-provider/api/v1/tellers([?].*)?$"                   "common-tellers";
+          "~^GET:/fineract-provider/api/v1/savingsaccounts/[^/]+([?].*)?$"     "common-savingsaccounts-read";
+          "~^GET:/fineract-provider/api/v1/clients/[^/]+([?].*)?$"             "common-clients-read";
+          "~^GET:/fineract-provider/api/v1/loans/[^/]+([?].*)?$"               "common-loans-read";
       }
   
       # Check if user has required role for endpoint category
@@ -192,23 +192,23 @@ data:
           default                                           0;
   
           # Public endpoints are accessible by any authenticated user
-          "~^public:.*"                                     1;
+          "~*^public:.*"                                     1;
   
           # Role-specific endpoint permissions
-          "~^account-manager:.*account-manager.*"           1;
-          "~^Accountant:.*Accountant.*"                     1;
-          "~^admin:.*admin.*"                               1;
-          "~^branch-manager:.*branch-manager.*"             1;
-          "~^Cashier:.*Cashier.*"                           1;
+          "~*^account-manager:.*account-manager.*"           1;
+          "~*^Accountant:.*Accountant.*"                     1;
+          "~*^admin:.*admin.*"                               1;
+          "~*^branch-manager:.*branch-manager.*"             1;
+          "~*^Cashier:.*Cashier.*"                           1;
   
           # Shared Endpoint Permissions
-          "~^common-offices:.*(account-manager|Accountant|admin|branch-manager).*" 1;
-          "~^common-currencies:.*(Accountant|Cashier).*"     1;
-          "~^common-paymenttypes:.*(Accountant|Cashier).*"   1;
-          "~^common-tellers:.*(branch-manager|Cashier).*"    1;
-        #   "~^common-savingsaccounts-read:.*(account-manager|branch-manager|Cashier).*" 1;
-          "~^common-clients-read:.*(account-manager|branch-manager).*" 1;
-          "~^common-loans-read:.*(account-manager|branch-manager).*" 1;
+          "~*^common-offices:.*(account-manager|Accountant|admin|branch-manager).*" 1;
+          "~*^common-currencies:.*(Accountant|Cashier).*"     1;
+          "~*^common-paymenttypes:.*(Accountant|Cashier).*"   1;
+          "~*^common-tellers:.*(branch-manager|Cashier).*"    1;
+          "~*^common-savingsaccounts-read:.*(account-manager|branch-manager|Cashier).*" 1;
+          "~*^common-clients-read:.*(account-manager|branch-manager).*" 1;
+          "~*^common-loans-read:.*(account-manager|branch-manager).*" 1;
       }
 
   # ============================================================================
