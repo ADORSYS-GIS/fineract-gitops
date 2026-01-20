@@ -1368,6 +1368,18 @@ chartOfAccounts:
   accountUsage: Detail
   manualEntriesAllowed: true
   description: Orange Money balance
+- name: UBA Bank Account
+  glCode: 45
+  accountType: Asset
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: UBA bank transfer settlement account (self-service)
+- name: Afriland Bank Account
+  glCode: 46
+  accountType: Asset
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: Afriland bank transfer settlement account (self-service)
 - name: Mobile Money Transfer Fees
   glCode: 85
   accountType: Expense
@@ -1407,6 +1419,23 @@ paymentTypes:
   description: Cheque payment
   isCashPayment: false
   position: 5
+# Self-Service Payment Types
+- name: MTN Transfer
+  description: MTN Mobile Money transfer (self-service portal)
+  isCashPayment: false
+  position: 10
+- name: Orange Transfer
+  description: Orange Money transfer (self-service portal)
+  isCashPayment: false
+  position: 11
+- name: UBA Bank Transfer
+  description: UBA bank transfer (self-service portal - Tier 2 only)
+  isCashPayment: false
+  position: 12
+- name: Afriland Bank Transfer
+  description: Afriland bank transfer (self-service portal - Tier 2 only)
+  isCashPayment: false
+  position: 13
 fundSources:
 - name: Own Capital
   externalId: FUND-001
