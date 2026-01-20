@@ -47,6 +47,7 @@ resources:
   - servicemonitor-kubernetes.yaml
   - servicemonitor-oauth2-proxy.yaml
   - servicemonitor-redis.yaml
+  - servicemonitor-user-sync.yaml
 
   # Pod Monitors (granular pod-level metrics)
   - podmonitor-fineract.yaml
@@ -61,6 +62,10 @@ resources:
 
   # Pod Disruption Budgets
   - pdb.yaml
+
+  # Kubernetes Metrics Exporters
+  - kube-state-metrics.yaml
+  - node-exporter.yaml
 
 # Use labels transformer to avoid adding labels to service selectors
 # This prevents issues with Prometheus Operator pods that don't have these labels
