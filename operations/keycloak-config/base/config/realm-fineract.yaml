@@ -479,7 +479,7 @@ groups:
   - name: tellers
     path: /tellers
     realmRoles:
-      - teller
+      - cashier
       - staff
 
   - name: clients
