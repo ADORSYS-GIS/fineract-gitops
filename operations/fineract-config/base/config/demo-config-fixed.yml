@@ -858,11 +858,11 @@ offices:
   externalId: BR-BAM-001
   parentName: Head Office
 roles:
-- name: System Administrator
+- name: admin
   description: Super user with full system access
   permissions:
   - ALL_FUNCTIONS
-- name: Branch Manager
+- name: branch-manager
   description: Branch manager with approval authority
   permissions:
   - READ_PAYMENTTYPE
@@ -913,7 +913,7 @@ roles:
   - UPDATECASHIERALLOCATION_TELLER
   - DELETECASHIERALLOCATION_TELLER
   - READ_REPORT
-- name: Loan Officer
+- name: account-manager
   description: Loan officer for client and loan management
   permissions:
   - READ_PAYMENTTYPE
@@ -947,7 +947,7 @@ roles:
   - READ_Active Loans - Summary
   - READ_Loans Awaiting Disbursal
   - READ_Portfolio at Risk
-- name: Cashier
+- name: cashier
   description: Cashier for handling cash transactions
   permissions:
   - READ_PAYMENTTYPE
@@ -972,7 +972,7 @@ roles:
   - ALLOCATECASHIER_TELLER_CHECKER
   - SETTLECASHFROMCASHIER_TELLER_CHECKER
   - UPDATECASHIERALLOCATION_TELLER_CHECKER
-- name: Accountant
+- name: accountant
   description: Accountant for financial management (Maker)
   permissions:
   - READ_PAYMENTTYPE
@@ -1012,7 +1012,7 @@ roles:
   - READ_STAFF
   - READ_CURRENCY
   - READ_AUDIT
-- name: Supervisor Accountant
+- name: supervisor-accountant
   description: Senior accountant for audit and approval (Checker)
   permissions:
   - READ_PAYMENTTYPE
@@ -1237,7 +1237,7 @@ users:
   email: t.ndongo@mfi.cm
   officeName: Head Office
   roles:
-  - System Administrator
+  - admin
   password: Adm1n$yst3m@2024
   staffName: Thomas Ndongo
   passwordNeverExpires: true
@@ -1247,7 +1247,7 @@ users:
   email: c.biaka@mfi.cm
   officeName: Head Office
   roles:
-  - Accountant
+  - accountant
   password: Ac0untant@2024!
   staffName: Christine Biaka
 - username: supervisor
@@ -1256,7 +1256,7 @@ users:
   email: s.accountant@mfi.cm
   officeName: Head Office
   roles:
-  - Supervisor Accountant
+  - supervisor-accountant
   password: sUp3rV1sor@2024!
   staffName: Supervisor Accountant
 - username: manager.yaounde
@@ -1265,7 +1265,7 @@ users:
   email: j.mbarga@mfi.cm
   officeName: Yaounde Branch
   roles:
-  - Branch Manager
+  - branch-manager
   password: Man4ger@Yde2024
   staffName: Jean Mbarga
 - username: loan.yaounde
@@ -1274,7 +1274,7 @@ users:
   email: m.ngoballa@mfi.cm
   officeName: Yaounde Branch
   roles:
-  - Loan Officer
+  - account-manager
   password: Lo4n0ficer@Yde1
   staffName: Marie Ngo Balla
 - username: cashier.yaounde
@@ -1283,7 +1283,7 @@ users:
   email: p.atangana@mfi.cm
   officeName: Yaounde Branch
   roles:
-  - Cashier
+  - cashier
   password: Cash1er@Yde2024
   staffName: Paul Atangana
 - username: manager.douala
@@ -1292,7 +1292,7 @@ users:
   email: g.douala@mfi.cm
   officeName: Douala Branch
   roles:
-  - Branch Manager
+  - branch-manager
   password: Man4ger@Dla2024
   staffName: Grace Douala
 - username: loan.douala
@@ -1301,7 +1301,7 @@ users:
   email: e.ewondo@mfi.cm
   officeName: Douala Branch
   roles:
-  - Loan Officer
+  - account-manager
   password: Lo4n0ficer@Dla1
   staffName: Emmanuel Ewondo
 - username: cashier.douala
@@ -1310,7 +1310,7 @@ users:
   email: f.makang@mfi.cm
   officeName: Douala Branch
   roles:
-  - Cashier
+  - cashier
   password: Cash1er@Dla2024
   staffName: Francine Makang
 - username: manager.bafoussam
@@ -1319,7 +1319,7 @@ users:
   email: b.kamga@mfi.cm
   officeName: Bafoussam Branch
   roles:
-  - Branch Manager
+  - branch-manager
   password: Man4ger@Baf2024
   staffName: Bernard Kamga
 - username: loan.bafoussam
@@ -1328,7 +1328,7 @@ users:
   email: j.tchuente@mfi.cm
   officeName: Bafoussam Branch
   roles:
-  - Loan Officer
+  - account-manager
   password: Lo4n0ficer@Baf1
   staffName: Justine Tchuente
 - username: cashier.bafoussam
@@ -1337,7 +1337,7 @@ users:
   email: d.fotso@mfi.cm
   officeName: Bafoussam Branch
   roles:
-  - Cashier
+  - cashier
   password: Cash1er@Baf2024
   staffName: David Fotso
 - username: manager.bamenda
@@ -1346,7 +1346,7 @@ users:
   email: p.nkeng@mfi.cm
   officeName: Bamenda Branch
   roles:
-  - Branch Manager
+  - branch-manager
   password: Man4ger@Bam2024
   staffName: Peter Nkeng
 - username: loan.bamenda
@@ -1355,7 +1355,7 @@ users:
   email: a.fon@mfi.cm
   officeName: Bamenda Branch
   roles:
-  - Loan Officer
+  - account-manager
   password: Lo4n0ficer@Bam1
   staffName: Alice Fon
 - username: cashier.bamenda
@@ -1364,7 +1364,7 @@ users:
   email: j.tanyi@mfi.cm
   officeName: Bamenda Branch
   roles:
-  - Cashier
+  - cashier
   password: Cash1er@Bam2024
   staffName: Joseph Tanyi
 chartOfAccounts:
