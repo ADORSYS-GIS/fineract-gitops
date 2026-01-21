@@ -27,6 +27,13 @@ data:
             add_header X-Content-Type-Options "nosniff" always;
         }
 
+        # Userinfo endpoint - returns OAuth2 Proxy headers as JSON
+        # These headers are passed from nginx ingress after OAuth2 authentication
+        location = /api/userinfo {
+            default_type application/json;
+            return 200 '{"user":"$http_x_auth_request_user","email":"$http_x_auth_request_email","roles":"$http_x_auth_request_groups"}';
+        }
+
         # Fineract API proxy
         location /fineract-provider/ {
             proxy_pass https://fineract-read-service.fineract-dev.svc.cluster.local:8443/fineract-provider/;
