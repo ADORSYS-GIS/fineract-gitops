@@ -385,7 +385,11 @@ roles:
       description: Loan officer - create and manage loans, clients
       composite: false
 
-    - name: teller
+    - name: account-manager
+      description: Loan officer - create and manage loans, clients
+      composite: false
+
+    - name: cashier
       description: Teller/cashier - cash transactions, deposits, withdrawals
       composite: false
 
@@ -399,6 +403,11 @@ roles:
 
     - name: Supervisor Accountant
       description: Supervisor Accountant - can approve journal entries
+      composite: false
+
+    
+    - name: supervisor-accountant
+      description: Supervisor Accountant - can approve journal entries (lowercase)
       composite: false
 
     - name: Manager
