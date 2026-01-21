@@ -52,7 +52,7 @@ spec:
         - --health-enabled=true
         - --metrics-enabled=true  # Enable Prometheus metrics at /metrics endpoint
         - --proxy-headers=xforwarded
-        # - --tracing-enabled=true  # Enable OpenTelemetry tracing
+        # Note: Tracing is configured via KC_TRACING_* env vars (Keycloak 24.x)
 
         env:
         # Database Configuration - Using RDS PostgreSQL
