@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-gateway-config
+data:
+  # Keycloak Configuration
+  KEYCLOAK_ISSUER_URI: "http://keycloak-service:8080/realms/fineract"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/certs"
+
+  # Fineract API Configuration
+  FINERACT_URL: "https://fineract-service:8443/fineract-provider"
+  FINERACT_TENANT: "default"
+  FINERACT_AUTH_TYPE: "oauth"
+  FINERACT_TOKEN_URL: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/token"
+  FINERACT_SAVINGS_PRODUCT_ID: "1"
+
+  # MTN MoMo Configuration (non-sensitive)
+  MTN_BASE_URL: "https://sandbox.momodeveloper.mtn.com"
+  MTN_TARGET_ENV: "sandbox"
+  MTN_CALLBACK_URL: "https://payments.webank.cm/api/callbacks"
+  MTN_FINERACT_PAYMENT_TYPE_ID: "1"
+
+  # Orange Money Configuration (non-sensitive)
+  ORANGE_BASE_URL: "https://api.orange.com/orange-money-webpay/dev/v1"
+  ORANGE_TOKEN_URL: "https://api.orange.com/oauth/v3/token"
+  ORANGE_CALLBACK_URL: "https://payments.webank.cm/api/callbacks"
+  ORANGE_RETURN_URL: "https://self-service.webank.cm/transactions"
+  ORANGE_CANCEL_URL: "https://self-service.webank.cm/transactions"
+  ORANGE_FINERACT_PAYMENT_TYPE_ID: "2"
+
+  # Spring Boot Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  SERVER_PORT: "8082"
+
+  # Logging Configuration
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_ADORSYS: "DEBUG"
