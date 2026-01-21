@@ -58,4 +58,12 @@ data:
         gzip_proxied any;
         gzip_comp_level 6;
         gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
+
+        # Nginx metrics endpoint for prometheus
+        location /nginx_status {
+            stub_status on;
+            access_log off;
+            allow 127.0.0.1;
+            deny all;
+        }
     }
