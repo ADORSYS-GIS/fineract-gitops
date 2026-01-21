@@ -67,6 +67,9 @@ resources:
   - kube-state-metrics.yaml
   - node-exporter.yaml
 
+  # Frontend Apps Monitoring
+  - servicemonitor-frontend-apps.yaml
+
 # Use labels transformer to avoid adding labels to service selectors
 # This prevents issues with Prometheus Operator pods that don't have these labels
 labels:
