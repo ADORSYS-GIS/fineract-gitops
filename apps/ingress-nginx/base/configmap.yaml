@@ -102,7 +102,14 @@ data:
   
       map "$request_method:$request_uri" $endpoint_category {
           default                                                     "public";
-  
+
+          # Frontend App Access Restrictions
+          "~^GET:/account([/?].*)?$"                           "account-manager";
+          "~^GET:/cashier([/?].*)?$"                           "cashier";
+          "~^GET:/branch([/?].*)?$"                            "branch-manager";
+          "~^GET:/administration([/?].*)?$"                    "admin";
+          "~^GET:/accounting([/?].*)?$"                        "accountant";
+
           # Account Manager Endpoints
           "~^POST:/fineract-provider/api/v1/authentication([?].*)?$"           "account-manager";
           "~^POST:/fineract-provider/api/v1/clients([?].*)?$"                  "account-manager";
