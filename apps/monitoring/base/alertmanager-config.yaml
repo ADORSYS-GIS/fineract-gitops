@@ -8,12 +8,12 @@ metadata:
 type: Opaque
 stringData:
   alertmanager.yaml: |
+    # AlertManager Configuration for Dev Environment
+    # External notifications (Slack/Email) are disabled
+    # For production, create an overlay with proper credentials
+
     global:
       resolve_timeout: 5m
-
-    # Notification templates
-    templates:
-    - '/etc/alertmanager/template/*.tmpl'
 
     # Routing tree
     route:
@@ -21,7 +21,7 @@ stringData:
       receiver: 'default'
 
       # Group alerts by these labels
-      group_by: ['alertname', 'cluster', 'service']
+      group_by: ['alertname', 'cluster', 'service', 'namespace']
 
       # Wait before sending notification for new group
       group_wait: 30s
@@ -34,88 +34,46 @@ stringData:
 
       # Child routes
       routes:
-      # Auto-rollback alerts - highest priority
+      # Auto-rollback alerts - webhook to ArgoCD
       - match:
           auto_rollback: enabled
         receiver: auto-rollback-webhook
         group_wait: 10s
         group_interval: 1m
         repeat_interval: 15m
-        continue: true  # Also send to other receivers
+        continue: true
 
-      # Critical alerts - send immediately
+      # Critical alerts
       - match:
           severity: critical
-        receiver: critical-alerts
+        receiver: 'default'
         group_wait: 10s
         repeat_interval: 1h
 
-      # Database alerts
+      # Warning alerts
       - match:
-          component: database
-        receiver: database-alerts
-        repeat_interval: 2h
-
-      # Certificate expiration alerts
-      - match:
-          alertname: CertificateExpiringSoon
-        receiver: security-alerts
-        repeat_interval: 24h
+          severity: warning
+        receiver: 'default'
+        repeat_interval: 4h
 
     # Alert receivers
     receivers:
-    # Default receiver - logs only
+    # Default receiver - no external notifications in dev
+    # Alerts are visible in AlertManager UI
     - name: 'default'
-      # webhook_configs:
-      # - url: 'http://webhook-receiver:8080/alerts'
+      # For production, add slack_configs or email_configs here
+      # Example:
+      # slack_configs:
+      # - api_url: 'https://hooks.slack.com/services/...'
+      #   channel: '#fineract-alerts'
+      #   send_resolved: true
 
-    # Auto-rollback webhook
+    # Auto-rollback webhook for ArgoCD integration
     - name: 'auto-rollback-webhook'
       webhook_configs:
       - url: 'http://auto-rollback-webhook.argocd.svc.cluster.local:8080/alerts'
         send_resolved: false
         max_alerts: 10
-
-    # Critical alerts - multiple channels
-    - name: 'critical-alerts'
-      # Email configuration (update with actual SMTP details)
-      # email_configs:
-      # - to: 'platform-team@yourcompany.com'
-      #   from: 'alertmanager@yourcompany.com'
-      #   smarthost: 'smtp.yourcompany.com:587'
-      #   auth_username: 'alertmanager@yourcompany.com'
-      #   auth_password: 'SMTP_PASSWORD'
-      #   headers:
-      #     Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
-
-      # Slack configuration (update with actual webhook URL)
-      # slack_configs:
-      # - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-      #   channel: '#alerts-critical'
-      #   title: '[CRITICAL] {{ .GroupLabels.alertname }}'
-      #   text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-
-    # Database alerts
-    - name: 'database-alerts'
-      # email_configs:
-      # - to: 'dba-team@yourcompany.com'
-      #   from: 'alertmanager@yourcompany.com'
-      #   smarthost: 'smtp.yourcompany.com:587'
-      #   auth_username: 'alertmanager@yourcompany.com'
-      #   auth_password: 'SMTP_PASSWORD'
-      #   headers:
-      #     Subject: '[DATABASE] {{ .GroupLabels.alertname }}'
-
-    # Security alerts (certificates, etc.)
-    - name: 'security-alerts'
-      # email_configs:
-      # - to: 'security-team@yourcompany.com'
-      #   from: 'alertmanager@yourcompany.com'
-      #   smarthost: 'smtp.yourcompany.com:587'
-      #   auth_username: 'alertmanager@yourcompany.com'
-      #   auth_password: 'SMTP_PASSWORD'
-      #   headers:
-      #     Subject: '[SECURITY] {{ .GroupLabels.alertname }}'
 
     # Inhibition rules - suppress alerts if others are firing
     inhibit_rules:

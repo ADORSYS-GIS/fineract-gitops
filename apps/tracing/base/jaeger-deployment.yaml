@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: tracing
+  labels:
+    app: jaeger
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: all-in-one
+    app.kubernetes.io/part-of: tracing-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: jaeger
+        app.kubernetes.io/name: jaeger
+        app.kubernetes.io/component: all-in-one
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "14269"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:1.53.0
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--memory.max-traces=50000"
+          - "--query.base-path=/jaeger"
+          - "--prometheus.server-url=http://prometheus.monitoring.svc.cluster.local:9090"
+        env:
+          - name: COLLECTOR_OTLP_ENABLED
+            value: "true"
+          - name: SPAN_STORAGE_TYPE
+            value: "memory"
+          - name: METRICS_STORAGE_TYPE
+            value: "prometheus"
+        ports:
+          # Collector ports
+          - name: grpc-otlp
+            containerPort: 4317
+            protocol: TCP
+          - name: http-otlp
+            containerPort: 4318
+            protocol: TCP
+          - name: jaeger-thrift
+            containerPort: 14268
+            protocol: TCP
+          - name: jaeger-grpc
+            containerPort: 14250
+            protocol: TCP
+          # Query port
+          - name: http-query
+            containerPort: 16686
+            protocol: TCP
+          # Admin port (metrics)
+          - name: admin
+            containerPort: 14269
+            protocol: TCP
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 14269
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 14269
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      serviceAccountName: jaeger

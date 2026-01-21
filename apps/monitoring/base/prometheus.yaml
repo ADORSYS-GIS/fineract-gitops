@@ -28,16 +28,18 @@ spec:
     matchLabels:
       app.kubernetes.io/part-of: monitoring-stack
 
-  # Resources
+  # Resources - Conservative settings for dev environment
+  # Increase for production: cpu: 500m/1000m, memory: 2Gi/4Gi
   resources:
     requests:
-      cpu: 500m
-      memory: 2Gi
+      cpu: 200m
+      memory: 512Mi
     limits:
-      cpu: 1000m
-      memory: 4Gi
+      cpu: 500m
+      memory: 1Gi
 
-  # Storage
+  # Storage - Conservative settings for dev environment
+  # Increase for production: storage: 50Gi, retention: 30d
   storage:
     volumeClaimTemplate:
       spec:
@@ -45,11 +47,11 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 50Gi
+            storage: 10Gi
 
-  # Retention
-  retention: 30d
-  retentionSize: 45GB
+  # Retention - 7 days for dev, increase for production
+  retention: 7d
+  retentionSize: 9GB
 
   # AlertManager configuration
   alerting:

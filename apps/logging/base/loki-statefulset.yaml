@@ -57,12 +57,14 @@ spec:
         - name: storage
           mountPath: /loki
         resources:
+          # Conservative settings for dev environment
+          # Increase for production: cpu: 200m/1000m, memory: 512Mi/2Gi
           requests:
-            cpu: 200m
-            memory: 512Mi
+            cpu: 100m
+            memory: 256Mi
           limits:
-            cpu: 1000m
-            memory: 2Gi
+            cpu: 500m
+            memory: 512Mi
         livenessProbe:
           httpGet:
             path: /ready
@@ -89,7 +91,8 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 100Gi
+          # 10Gi for dev, increase for production: 100Gi
+          storage: 10Gi
 ---
 apiVersion: v1
 kind: ServiceAccount

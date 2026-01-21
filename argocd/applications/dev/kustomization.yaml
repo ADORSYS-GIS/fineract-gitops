@@ -27,6 +27,10 @@ resources:
   - admin-app.yaml # Admin frontend application
   - user-sync-service.yaml # User Sync service
   - smoke-tests.yaml # Post-deployment health tests
+  # Observability Stack
+  - monitoring.yaml  # Prometheus, Grafana, AlertManager
+  - logging.yaml     # Loki, Promtail
+  - tracing.yaml     # Jaeger, OpenTelemetry Collector
 
 # Replacements to inject environment-specific values into all Application manifests
 # This eliminates hardcoded repoURL, targetRevision, namespace, and project values

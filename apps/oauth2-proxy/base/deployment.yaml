@@ -203,6 +203,13 @@ spec:
               name: fineract-redis-secret
               key: redis-password
 
+        # OpenTelemetry Context Propagation
+        # OAuth2-proxy forwards trace context headers to upstream services
+        - name: OTEL_SERVICE_NAME
+          value: "oauth2-proxy"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.namespace=fineract,deployment.environment=dev"
+
         volumeMounts:
         - name: config
           mountPath: /etc/oauth2-proxy

@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: user-sync-service
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: user-sync-service
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  namespaceSelector:
+    matchNames:
+    - fineract-dev
+  selector:
+    matchLabels:
+      app: user-sync-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s

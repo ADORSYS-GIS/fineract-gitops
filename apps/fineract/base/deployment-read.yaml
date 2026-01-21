@@ -14,6 +14,9 @@ spec:
     metadata:
       labels:
         app: fineract-read
+        app.kubernetes.io/name: fineract
+        app.kubernetes.io/component: read
+        fineract.instance.type: read
       annotations:
         # Auto-restart pod when ConfigMap changes (requires Stakater Reloader or similar)
         configmap.reloader.stakater.com/reload: "fineract-oauth2-config"
@@ -361,6 +364,27 @@ spec:
             configMapKeyRef:
               name: fineract-oauth2-config
               key: jwk-set-uri-internal
+
+        # OpenTelemetry Distributed Tracing Configuration
+        - name: OTEL_SERVICE_NAME
+          value: "fineract-read"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector.tracing.svc.cluster.local:4317"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "grpc"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.namespace=fineract,service.instance.id=$(POD_NAME),deployment.environment=dev,service.version=1.0.0,fineract.instance.type=read"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        # Spring Boot Micrometer Tracing Configuration
+        - name: MANAGEMENT_TRACING_ENABLED
+          value: "true"
+        - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+          value: "1.0"
+        - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+          value: "http://otel-collector.tracing.svc.cluster.local:4318/v1/traces"
 
         resources:
           requests:

@@ -23,9 +23,12 @@ resources:
   # Pod Disruption Budget
   - pdb.yaml
 
-commonLabels:
-  app.kubernetes.io/part-of: logging-stack
-  managed-by: argocd
+# Use labels transformer to avoid adding labels to service selectors
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: logging-stack
+      managed-by: argocd
+    includeSelectors: false
 
 commonAnnotations:
   component: "logging"
