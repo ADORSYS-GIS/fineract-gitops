@@ -21,7 +21,7 @@ metadata:
     nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
  
      # Pass authentication headers from OAuth2 Proxy to backend
-    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Groups,X-Auth-Request-Access-Token"
 
     # Auth caching disabled to ensure logout works properly
     # nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
@@ -114,7 +114,7 @@ metadata:
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
 
       # Capture roles for RBAC map
-      auth_request_set $auth_roles $upstream_http_x_auth_request_roles;
+      auth_request_set $auth_roles $upstream_http_x_auth_request_groups;
 
       proxy_set_header Authorization "Bearer $access_token";
       more_set_headers "X-Forwarded-Host: $host";
