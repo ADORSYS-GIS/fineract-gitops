@@ -162,7 +162,7 @@ data:
           "~^POST:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+/settle([?].*)?$" "branch-manager";
           "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+([?].*)?$" "branch-manager";
           "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers/[^/]+/summaryandtransactions([?].*)?$" "branch-manager";
-          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers([?].*)?$"    "branch-manager";
+          "~^GET:/fineract-provider/api/v1/tellers/[^/]+/cashiers([?].*)?$"    "common-tellers";
           "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=approve([?].*)?$" "branch-manager";
           "~^POST:/fineract-provider/api/v1/loans/[^/]+\?command=reject([?].*)?$" "branch-manager";
           "~^GET:/fineract-provider/api/v1/staff([?].*)?$"                     "branch-manager";
