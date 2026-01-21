@@ -112,13 +112,21 @@ metadata:
 
       # OAuth2 token handling
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+
+      # Capture roles for RBAC map
+      auth_request_set $auth_roles $upstream_http_x_auth_request_roles;
+
       proxy_set_header Authorization "Bearer $access_token";
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
-            if ($rbac_allowed = 0) {
-              return 403;
-            }
+
+      # Enforce RBAC using Lua to ensure variables are populated
+      access_by_lua_block {
+        if ngx.var.rbac_allowed == "0" then
+          ngx.exit(403)
+        end
+      }
 spec:
   ingressClassName: nginx
 

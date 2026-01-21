@@ -188,7 +188,7 @@ data:
       }
   
       # Check if user has required role for endpoint category
-      map "$endpoint_category:$http_x_auth_request_roles" $rbac_allowed {
+      map "$endpoint_category:$auth_roles" $rbac_allowed {
           default                                           0;
   
           # Public endpoints are accessible by any authenticated user
