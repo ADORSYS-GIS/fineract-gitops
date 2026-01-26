@@ -210,7 +210,7 @@ data:
   
           # Shared Endpoint Permissions
           "~*^common-offices:.*(account-manager|accountant|admin|branch-manager).*" 1;
-          "~*^common-currencies:.*(accountant|cashier).*"     1;
+          "~*^common-currencies:.*(accountant|cashier|branch-manager).*"     1;
           "~*^common-paymenttypes:.*(accountant|cashier).*"   1;
           "~*^common-tellers:.*(branch-manager|cashier).*"    1;
           "~*^common-savingsaccounts-read:.*(account-manager|branch-manager|cashier).*" 1;
