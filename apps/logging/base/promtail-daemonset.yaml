@@ -48,10 +48,10 @@ spec:
           # Conservative settings for dev environment
           requests:
             cpu: 25m
-            memory: 64Mi
+            memory: 48Mi
           limits:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 75m
+            memory: 96Mi
         env:
         - name: HOSTNAME
           valueFrom:

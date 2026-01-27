@@ -29,11 +29,11 @@ spec:
           containerPort: 8080
         resources:
           limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 50m
+            cpu: 75m
             memory: 64Mi
+          requests:
+            cpu: 25m
+            memory: 32Mi
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

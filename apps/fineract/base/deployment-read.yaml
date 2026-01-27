@@ -388,11 +388,11 @@ spec:
 
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "768Mi"
+            cpu: "400m"
           limits:
-            memory: "2Gi"
-            cpu: "2000m"
+            memory: "1536Mi"
+            cpu: "1000m"
 
         startupProbe:
           httpGet:

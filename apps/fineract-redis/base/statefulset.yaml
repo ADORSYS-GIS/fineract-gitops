@@ -55,11 +55,11 @@ spec:
 
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "512Mi"  # Increased for Fineract application caching
-            cpu: "200m"
+            memory: "256Mi"
+            cpu: "150m"
 
         livenessProbe:
           tcpSocket:
