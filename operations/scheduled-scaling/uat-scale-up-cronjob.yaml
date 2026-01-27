@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: uat-scale-up
+  namespace: argocd
+  labels:
+    environment: uat
+    workload: "scheduled-scaling"
+    cost-optimization: "enabled"
+spec:
+  concurrencyPolicy: Forbid
+  schedule: "0 7 * * 1-5"  # 7 AM UTC, weekdays
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          serviceAccountName: fineract-scaler
+          restartPolicy: OnFailure
+          containers:
+          - name: scale-up
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Scaling up UAT cluster to 2 nodes..."
+              aws eks update-nodegroup-config \
+                --cluster-name apache-fineract-uat \
+                --nodegroup-name apache-fineract-uat-node-group \
+                --scaling-config '{"minSize":1,"desiredSize":2}'
+            env:
+            - name: AWS_DEFAULT_REGION
+              value: "eu-central-1"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-scaler-aws-credentials
+                  key: aws-access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-scaler-aws-credentials
+                  key: aws-secret-access-key
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

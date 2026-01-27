@@ -19,11 +19,14 @@ resource "aws_s3_bucket" "documents" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-fineract-documents"
+      Name        = "${var.cluster_name}-${var.environment}-docs-${data.aws_caller_identity.current.account_id}"
       Environment = var.environment
       Component   = "storage"
+      Subcomponent = "s3"
       Purpose     = "documents"
     }
+  )
+}
   )
 }
 
@@ -35,9 +38,10 @@ resource "aws_s3_bucket" "backups" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-fineract-backups"
+      Name        = "${var.cluster_name}-${var.environment}-backups-${data.aws_caller_identity.current.account_id}"
       Environment = var.environment
       Component   = "storage"
+      Subcomponent = "s3"
       Purpose     = "backups"
     }
   )

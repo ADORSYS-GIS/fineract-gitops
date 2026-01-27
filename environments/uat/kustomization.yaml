@@ -53,6 +53,14 @@ images:
 # UAT-Specific Labels
 commonLabels:
   environment: uat
+  # NEW: Cost tracking labels
+  cost-center: "qa-testing"
+  team: "qa"
+  owner: "qa-team"
+  component: "testing"
+  workload: "testing"
+  auto-stop: "true"
+  billing-code: "UAT-001"
 
 # UAT-Specific Annotations
 commonAnnotations:

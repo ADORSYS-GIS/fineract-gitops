@@ -19,8 +19,10 @@ resource "aws_vpc" "eks_vpc" {
   tags = merge(
     var.tags,
     {
-      Name                                           = "${var.cluster_name}-vpc"
-      "kubernetes.io/cluster/${var.cluster_name}"    = "shared"
+      Name                                        = "${var.cluster_name}-vpc"
+      Component                                   = "networking"
+      Subcomponent                                = "vpc"
+      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
     }
   )
 }
@@ -36,9 +38,12 @@ resource "aws_subnet" "public" {
   tags = merge(
     var.tags,
     {
-      Name                                           = "${var.cluster_name}-public-${count.index + 1}"
-      "kubernetes.io/cluster/${var.cluster_name}"    = "shared"
-      "kubernetes.io/role/elb"                       = "1"
+      Name                                        = "${var.cluster_name}-public-${count.index + 1}"
+      Component                                   = "networking"
+      Subcomponent                                = "subnet"
+      Type                                        = "public"
+      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+      "kubernetes.io/role/elb"                    = "1"
     }
   )
 }
@@ -53,9 +58,12 @@ resource "aws_subnet" "private" {
   tags = merge(
     var.tags,
     {
-      Name                                           = "${var.cluster_name}-private-${count.index + 1}"
-      "kubernetes.io/cluster/${var.cluster_name}"    = "shared"
-      "kubernetes.io/role/internal-elb"              = "1"
+      Name                                        = "${var.cluster_name}-private-${count.index + 1}"
+      Component                                   = "networking"
+      Subcomponent                                = "subnet"
+      Type                                        = "private"
+      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+      "kubernetes.io/role/internal-elb"           = "1"
     }
   )
 }
@@ -67,7 +75,9 @@ resource "aws_internet_gateway" "main" {
   tags = merge(
     var.tags,
     {
-      Name = "${var.cluster_name}-igw"
+      Name         = "${var.cluster_name}-igw"
+      Component    = "networking"
+      Subcomponent = "internet-gateway"
     }
   )
 }
@@ -96,7 +106,9 @@ resource "aws_nat_gateway" "main" {
   tags = merge(
     var.tags,
     {
-      Name = "${var.cluster_name}-nat"
+      Name         = "${var.cluster_name}-nat"
+      Component    = "networking"
+      Subcomponent = "nat-gateway"
     }
   )
 
@@ -167,7 +179,14 @@ resource "aws_iam_role" "eks_cluster" {
     }]
   })
 
-  tags = var.tags
+  tags = merge(
+    var.tags,
+    {
+      Name         = "${var.cluster_name}"
+      Component    = "compute"
+      Subcomponent = "eks-cluster"
+    }
+  )
 }
 
 # Attach required policies to EKS cluster role

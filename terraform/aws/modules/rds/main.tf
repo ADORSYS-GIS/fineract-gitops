@@ -13,38 +13,38 @@ locals {
   # Map instance classes to memory in MB
   # Based on AWS RDS instance specifications
   instance_memory_mb = {
-    "db.t3.micro"    = 1024    # 1 GB
-    "db.t3.small"    = 2048    # 2 GB
-    "db.t3.medium"   = 4096    # 4 GB
-    "db.t3.large"    = 8192    # 8 GB
-    "db.t3.xlarge"   = 16384   # 16 GB
-    "db.t3.2xlarge"  = 32768   # 32 GB
-    "db.t4g.micro"   = 1024    # 1 GB
-    "db.t4g.small"   = 2048    # 2 GB
-    "db.t4g.medium"  = 4096    # 4 GB
-    "db.t4g.large"   = 8192    # 8 GB
-    "db.t4g.xlarge"  = 16384   # 16 GB
-    "db.t4g.2xlarge" = 32768   # 32 GB
-    "db.m5.large"    = 8192    # 8 GB
-    "db.m5.xlarge"   = 16384   # 16 GB
-    "db.m5.2xlarge"  = 32768   # 32 GB
-    "db.m5.4xlarge"  = 65536   # 64 GB
-    "db.m5.8xlarge"  = 131072  # 128 GB
-    "db.m6g.large"   = 8192    # 8 GB
-    "db.m6g.xlarge"  = 16384   # 16 GB
-    "db.m6g.2xlarge" = 32768   # 32 GB
-    "db.m6g.4xlarge" = 65536   # 64 GB
-    "db.r5.large"    = 16384   # 16 GB
-    "db.r5.xlarge"   = 32768   # 32 GB
-    "db.r5.2xlarge"  = 65536   # 64 GB
-    "db.r5.4xlarge"  = 131072  # 128 GB
+    "db.t3.micro"    = 1024   # 1 GB
+    "db.t3.small"    = 2048   # 2 GB
+    "db.t3.medium"   = 4096   # 4 GB
+    "db.t3.large"    = 8192   # 8 GB
+    "db.t3.xlarge"   = 16384  # 16 GB
+    "db.t3.2xlarge"  = 32768  # 32 GB
+    "db.t4g.micro"   = 1024   # 1 GB
+    "db.t4g.small"   = 2048   # 2 GB
+    "db.t4g.medium"  = 4096   # 4 GB
+    "db.t4g.large"   = 8192   # 8 GB
+    "db.t4g.xlarge"  = 16384  # 16 GB
+    "db.t4g.2xlarge" = 32768  # 32 GB
+    "db.m5.large"    = 8192   # 8 GB
+    "db.m5.xlarge"   = 16384  # 16 GB
+    "db.m5.2xlarge"  = 32768  # 32 GB
+    "db.m5.4xlarge"  = 65536  # 64 GB
+    "db.m5.8xlarge"  = 131072 # 128 GB
+    "db.m6g.large"   = 8192   # 8 GB
+    "db.m6g.xlarge"  = 16384  # 16 GB
+    "db.m6g.2xlarge" = 32768  # 32 GB
+    "db.m6g.4xlarge" = 65536  # 64 GB
+    "db.r5.large"    = 16384  # 16 GB
+    "db.r5.xlarge"   = 32768  # 32 GB
+    "db.r5.2xlarge"  = 65536  # 64 GB
+    "db.r5.4xlarge"  = 131072 # 128 GB
   }
 
   # Calculate memory-based parameters
   instance_memory    = lookup(local.instance_memory_mb, var.instance_class, 4096)
-  shared_buffers_kb  = floor(local.instance_memory * 1024 / 4)  # 25% of RAM
-  effective_cache_kb = floor(local.instance_memory * 1024 / 2)  # 50% of RAM
-  work_mem_kb        = min(32768, floor(local.instance_memory * 1024 / 100))  # ~1% of RAM, max 32MB
+  shared_buffers_kb  = floor(local.instance_memory * 1024 / 4)               # 25% of RAM
+  effective_cache_kb = floor(local.instance_memory * 1024 / 2)               # 50% of RAM
+  work_mem_kb        = min(32768, floor(local.instance_memory * 1024 / 100)) # ~1% of RAM, max 32MB
 
   # Calculate max_connections based on instance memory
   # Formula: max_connections = (RAM_MB - 256) / 10, with min 20 and max 5000
@@ -60,9 +60,10 @@ resource "aws_db_subnet_group" "fineract" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-fineract-db"
-      Environment = var.environment
-      Component   = "database"
+      Name         = "${var.cluster_name}-${var.environment}-fineract-db"
+      Environment  = var.environment
+      Component    = "database"
+      Subcomponent = "subnet-group"
     }
   )
 }
@@ -92,8 +93,10 @@ resource "aws_security_group" "rds" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-rds-sg"
-      Environment = var.environment
+      Name         = "${var.cluster_name}-${var.environment}-rds-sg"
+      Environment  = var.environment
+      Component    = "database"
+      Subcomponent = "security-group"
     }
   )
 }
@@ -227,9 +230,11 @@ resource "aws_db_instance" "fineract" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-fineract"
-      Environment = var.environment
-      Component   = "database"
+      Name         = "${var.cluster_name}-${var.environment}-fineract"
+      Environment  = var.environment
+      Component    = "database"
+      Subcomponent = "postgresql"
+      Engine       = "postgres${split(".", var.postgres_version)[0]}"
     }
   )
 
@@ -313,8 +318,10 @@ resource "aws_db_parameter_group" "fineract" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-fineract-pg"
-      Environment = var.environment
+      Name         = "${var.cluster_name}-${var.environment}-fineract-pg"
+      Environment  = var.environment
+      Component    = "database"
+      Subcomponent = "parameter-group"
     }
   )
 }
@@ -340,8 +347,10 @@ resource "aws_iam_role" "rds_monitoring" {
   tags = merge(
     var.tags,
     {
-      Name        = "${var.cluster_name}-${var.environment}-rds-monitoring"
-      Environment = var.environment
+      Name         = "${var.cluster_name}-${var.environment}-rds-monitoring"
+      Environment  = var.environment
+      Component    = "database"
+      Subcomponent = "iam-role"
     }
   )
 }

@@ -26,6 +26,8 @@ locals {
       ManagedBy   = "terraform"
       Repository  = "fineract-gitops"
       Migration   = "k3s-to-eks"
+
+      BillingCode = "${var.environment}-001"
     }
   )
 }
@@ -39,13 +41,14 @@ module "eks" {
   cluster_version = var.eks_cluster_version
   environment     = var.environment
   vpc_cidr        = var.vpc_cidr
+  az_count        = var.az_count
 
   # Node configuration
   node_instance_types = var.node_instance_types
   node_desired_size   = var.node_desired_size
   node_min_size       = var.node_min_size
   node_max_size       = var.node_max_size
-  node_capacity_type  = var.node_capacity_type  # SPOT for dev (70% cost savings)
+  node_capacity_type  = var.node_capacity_type # SPOT for dev (70% cost savings)
 
   # Cluster access configuration
   cluster_endpoint_public_access_cidrs = var.cluster_endpoint_public_access_cidrs
@@ -57,9 +60,9 @@ module "eks" {
   enable_vpc_endpoints = var.enable_vpc_endpoints
 
   # IRSA configuration
-  app_namespace             = var.kubernetes_namespace
-  app_service_account_name  = "fineract-app"
-  s3_bucket_name            = module.s3.documents_bucket_id
+  app_namespace            = var.kubernetes_namespace
+  app_service_account_name = "fineract-app"
+  s3_bucket_name           = module.s3.documents_bucket_id
 
   tags = local.common_tags
 }
@@ -77,13 +80,13 @@ module "route53" {
 module "rds" {
   source = "./modules/rds"
 
-  cluster_name            = var.cluster_name
-  environment             = var.environment
-  vpc_id                  = module.eks.vpc_id
-  subnet_ids              = module.eks.private_subnet_ids
+  cluster_name = var.cluster_name
+  environment  = var.environment
+  vpc_id       = module.eks.vpc_id
+  subnet_ids   = module.eks.private_subnet_ids
   allowed_security_groups = [
-    module.eks.node_security_group_id,     # Node-to-RDS communication
-    module.eks.cluster_security_group_id   # Pod-to-RDS communication (critical)
+    module.eks.node_security_group_id,   # Node-to-RDS communication
+    module.eks.cluster_security_group_id # Pod-to-RDS communication (critical)
   ]
 
   postgres_version      = var.rds_postgres_version
