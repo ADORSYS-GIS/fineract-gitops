@@ -146,6 +146,12 @@ variable "enable_cloudwatch_observability" {
   default     = true
 }
 
+variable "enable_vpc_endpoints" {
+  description = "Enable VPC endpoints for AWS services (S3, ECR) to reduce NAT Gateway data transfer costs"
+  type        = bool
+  default     = true
+}
+
 # IRSA variables
 variable "app_namespace" {
   description = "Namespace for application service accounts"

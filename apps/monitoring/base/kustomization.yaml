@@ -56,6 +56,10 @@ resources:
   # Alert Rules
   - alert-rules.yaml
   - auto-rollback-alerts.yaml
+  - cost-alerts.yaml  # Cost optimization alerts
+
+  # Cost Optimization Dashboard
+  - grafana-dashboard-cost.yaml
 
   # Additional Scrape Configs
   - prometheus-additional-scrape-configs.yaml

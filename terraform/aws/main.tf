@@ -45,12 +45,16 @@ module "eks" {
   node_desired_size   = var.node_desired_size
   node_min_size       = var.node_min_size
   node_max_size       = var.node_max_size
+  node_capacity_type  = var.node_capacity_type  # SPOT for dev (70% cost savings)
 
   # Cluster access configuration
   cluster_endpoint_public_access_cidrs = var.cluster_endpoint_public_access_cidrs
 
   # Add-ons configuration
   enable_cloudwatch_observability = var.enable_cloudwatch_observability
+
+  # Cost Optimization: VPC endpoints to reduce NAT Gateway costs
+  enable_vpc_endpoints = var.enable_vpc_endpoints
 
   # IRSA configuration
   app_namespace             = var.kubernetes_namespace

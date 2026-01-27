@@ -1,0 +1,52 @@
+---
+# Pod Priority Classes for Resource Allocation
+# Cost Optimization: Ensures critical workloads get resources during contention
+# Higher priority pods can preempt lower priority pods when resources are scarce
+
+# Critical priority for core Fineract write operations
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: fineract-critical
+  labels:
+    app.kubernetes.io/part-of: cost-optimization
+value: 1000000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Critical Fineract components (write instances, keycloak). These pods should never be evicted."
+---
+# High priority for read operations
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: fineract-high
+  labels:
+    app.kubernetes.io/part-of: cost-optimization
+value: 100000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "High priority Fineract components (read instances, batch workers)."
+---
+# Normal priority for frontend and supporting services
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: fineract-normal
+  labels:
+    app.kubernetes.io/part-of: cost-optimization
+value: 10000
+globalDefault: true
+preemptionPolicy: PreemptLowerPriority
+description: "Normal priority for frontend apps and supporting services."
+---
+# Low priority for monitoring and logging
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: fineract-low
+  labels:
+    app.kubernetes.io/part-of: cost-optimization
+value: 1000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Low priority for monitoring, logging, and non-critical workloads."

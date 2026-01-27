@@ -9,8 +9,13 @@ node_instance_types = ["t3.large"]
 node_desired_size   = 3
 node_min_size       = 2
 node_max_size       = 4
+# Cost Optimization: Use Spot instances for dev (70% savings)
+# Note: Spot instances may be interrupted with 2-minute warning
+node_capacity_type = "SPOT"
 cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Allow from anywhere for dev
 enable_cloudwatch_observability = false  # Disabled - using Grafana/Prometheus instead
+# Cost Optimization: Enable VPC endpoints to reduce NAT Gateway data transfer costs
+enable_vpc_endpoints = true
 
 # VPC Configuration
 vpc_cidr = "10.0.0.0/16"
@@ -45,7 +50,8 @@ s3_enable_versioning           = true
 s3_documents_lifecycle_enabled = true
 s3_backups_expiration_days     = 365
 s3_enable_transfer_acceleration = false
-s3_enable_intelligent_tiering   = false
+# Cost Optimization: Enable intelligent tiering for automatic storage class transitions
+s3_enable_intelligent_tiering   = true
 # Dev: Enable force_destroy to allow terraform destroy to delete buckets with objects
 # Production should set this to false for data protection
 s3_force_destroy               = true

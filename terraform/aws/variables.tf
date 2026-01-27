@@ -62,6 +62,23 @@ variable "node_max_size" {
   default     = 4
 }
 
+variable "node_capacity_type" {
+  description = "Capacity type for EKS managed node group (ON_DEMAND or SPOT). SPOT provides 70% cost savings but instances may be interrupted."
+  type        = string
+  default     = "ON_DEMAND"
+
+  validation {
+    condition     = contains(["ON_DEMAND", "SPOT"], var.node_capacity_type)
+    error_message = "node_capacity_type must be either ON_DEMAND or SPOT"
+  }
+}
+
+variable "enable_vpc_endpoints" {
+  description = "Enable VPC endpoints for AWS services (S3, ECR) to reduce NAT Gateway data transfer costs"
+  type        = bool
+  default     = true
+}
+
 variable "cluster_endpoint_public_access_cidrs" {
   description = "List of CIDR blocks that can access the EKS cluster endpoint"
   type        = list(string)
