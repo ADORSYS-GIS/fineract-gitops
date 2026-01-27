@@ -45,7 +45,7 @@ spec:
       # Step 1: Wait for ConfigMap to have valid ELB URL before starting
       # This ensures the pod doesn't start with placeholder/old DNS values
       - name: wait-for-elb-dns-config
-        image: curlimages/curl
+        image: curlimages/curl:8.11.1
         command:
         - sh
         - -c
@@ -99,7 +99,7 @@ spec:
       # applies the realm configuration (including frontendUrl/auth endpoint settings)
       # which OAuth2 Proxy needs for OIDC discovery.
       - name: wait-for-fineract-realm
-        image: curlimages/curl
+        image: curlimages/curl:8.11.1
         command:
         - sh
         - -c
@@ -156,7 +156,7 @@ spec:
 
       containers:
       - name: oauth2-proxy
-        image: quay.io/oauth2-proxy/oauth2-proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
         imagePullPolicy: IfNotPresent
 
         args:

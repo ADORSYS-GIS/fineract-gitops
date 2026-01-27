@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: redis
-        image: redis
+        image: redis:7.4.2-alpine
         imagePullPolicy: IfNotPresent
 
         command:
@@ -95,7 +95,7 @@ spec:
 
       # Redis Exporter for Prometheus metrics
       - name: redis-exporter
-        image: oliver006/redis_exporter
+        image: oliver006/redis_exporter:v1.67.0
         imagePullPolicy: IfNotPresent
 
         ports:

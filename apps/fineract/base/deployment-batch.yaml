@@ -63,7 +63,7 @@ spec:
       # Wait for database schema migration to complete
       initContainers:
       - name: wait-for-schema-migration
-        image: postgres:15-alpine
+        image: postgres:17-alpine
         securityContext:
           runAsNonRoot: true
           runAsUser: 999  # postgres user in official postgres image

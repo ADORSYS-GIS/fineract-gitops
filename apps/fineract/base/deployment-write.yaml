@@ -52,7 +52,7 @@ spec:
       # Step 1: Wait for ConfigMap to have valid OIDC issuer URL with ELB DNS
       # This ensures the pod doesn't start with placeholder/old DNS values
       - name: wait-for-oidc-config
-        image: curlimages/curl
+        image: curlimages/curl:8.11.1
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
@@ -110,7 +110,7 @@ spec:
 
       # Step 2: Wait for database schema migration to complete
       - name: wait-for-schema-migration
-        image: postgres:15-alpine
+        image: postgres:17-alpine
         securityContext:
           runAsNonRoot: true
           runAsUser: 999  # postgres user in official postgres image
