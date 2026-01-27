@@ -21,6 +21,14 @@ metadata:
     # nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
     # Server snippet to bypass OAuth2 for static assets in frontend app paths only
     nginx.ingress.kubernetes.io/server-snippet: |
+      # Portal app static assets
+      location ~* ^/home/.+\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        auth_request off;
+        rewrite ^/home/(.*)$ /$1 break;
+        proxy_pass http://portal-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
       # Cashier app static assets
       location ~* ^/cashier/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
         auth_request off;
@@ -235,5 +243,12 @@ spec:
         backend:
           service:
             name: cashier-app
+            port:
+              number: 80
+      - path: /home(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: portal-app
             port:
               number: 80
