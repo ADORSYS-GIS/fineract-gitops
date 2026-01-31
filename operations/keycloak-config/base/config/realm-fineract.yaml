@@ -390,7 +390,7 @@ clients:
 
     # Protocol Mappers for self-service specific claims
     protocolMappers:
-      # Map Fineract external ID to JWT
+      # Map Fineract external ID (UUID) to JWT - used for fallback lookup
       - name: fineract-external-id-mapper
         protocol: openid-connect
         protocolMapper: oidc-usermodel-attribute-mapper
@@ -402,6 +402,22 @@ clients:
           access.token.claim: "true"
           claim.name: "fineract_external_id"
           jsonType.label: "String"
+
+      # Map Fineract client ID (numeric) to JWT - used for fast ownership verification
+      # This is the primary identifier for account ownership checks.
+      # Set by customer-self-service during registration after Fineract client creation.
+      # Falls back to fineract_external_id lookup if missing.
+      - name: fineract-client-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_client_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_client_id"
+          jsonType.label: "long"
 
       # Map KYC tier to JWT
       - name: kyc-tier-mapper
