@@ -8,11 +8,11 @@ resources:
   - serviceaccount.yaml
 
 commonLabels:
-  app.kubernetes.io/name: customer-registration-service
+  app.kubernetes.io/name: customer-self-service
   app.kubernetes.io/component: backend
   app.kubernetes.io/part-of: self-service
   app.kubernetes.io/managed-by: kustomize
 
 images:
-  - name: ghcr.io/adorsys-gis/fineract-apps/customer-registration-service
+  - name: ghcr.io/adorsys-gis/fineract-apps/customer-self-service
     newTag: latest

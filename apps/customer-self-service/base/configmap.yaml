@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: customer-registration-config
+  name: customer-self-service-config
 data:
   # Keycloak Configuration (Keycloak 17+ serves from root path)
   KEYCLOAK_URL: "http://keycloak-service:8080"
@@ -32,7 +32,7 @@ data:
   # Loaded by Spring Boot from /app/config/transaction-limits.yaml
   transaction-limits.yaml: |
     # Self-Service Transaction Limits by KYC Tier
-    # These limits are enforced by the customer-registration-service
+    # These limits are enforced by the customer-self-service
     # before forwarding transactions to Fineract
 
     tiers:

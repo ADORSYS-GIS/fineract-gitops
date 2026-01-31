@@ -32,11 +32,25 @@ data:
         }
 
         # =======================================================================
-        # Customer Registration Service Proxy
-        # Proxies to the customer-registration-service for signup/onboarding
+        # Customer Self-Service Proxy
+        # Proxies to customer-self-service for registration/onboarding
         # =======================================================================
         location /api/registration/ {
-            proxy_pass http://customer-registration-service.fineract-dev.svc.cluster.local:80/;
+            proxy_pass http://customer-self-service.fineract-dev.svc.cluster.local:80/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Authorization $http_authorization;
+            add_header Cache-Control "no-store, no-cache, must-revalidate";
+        }
+
+        # =======================================================================
+        # Account Data Proxy (with ownership verification)
+        # Proxies to customer-self-service for account queries & transactions
+        # =======================================================================
+        location /api/accounts/ {
+            proxy_pass http://customer-self-service.fineract-dev.svc.cluster.local:80/api/accounts/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

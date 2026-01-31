@@ -1,32 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: customer-registration-service
+  name: customer-self-service
   labels:
-    app: customer-registration-service
+    app: customer-self-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: customer-registration-service
+      app: customer-self-service
   template:
     metadata:
       labels:
-        app: customer-registration-service
-        app.kubernetes.io/name: customer-registration-service
-        app.kubernetes.io/component: registration
+        app: customer-self-service
+        app.kubernetes.io/name: customer-self-service
+        app.kubernetes.io/component: self-service
         app.kubernetes.io/part-of: self-service
     spec:
       containers:
-        - name: customer-registration-service
-          image: ghcr.io/adorsys-gis/fineract-apps/customer-registration-service:latest
+        - name: customer-self-service
+          image: ghcr.io/adorsys-gis/fineract-apps/customer-self-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
           envFrom:
             - configMapRef:
-                name: customer-registration-config
+                name: customer-self-service-config
           env:
             # Keycloak Admin Client credentials
             - name: KEYCLOAK_CLIENT_ID
@@ -58,18 +58,18 @@ spec:
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: customer-registration-db-secrets
+                  name: customer-self-service-db-secrets
                   key: username
                   optional: true
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: customer-registration-db-secrets
+                  name: customer-self-service-db-secrets
                   key: password
                   optional: true
             # OpenTelemetry Distributed Tracing Configuration
             - name: OTEL_SERVICE_NAME
-              value: "customer-registration-service"
+              value: "customer-self-service"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.tracing.svc.cluster.local:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -117,7 +117,7 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: customer-registration-config
+            name: customer-self-service-config
             items:
               - key: transaction-limits.yaml
                 path: transaction-limits.yaml
