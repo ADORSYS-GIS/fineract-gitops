@@ -28,6 +28,15 @@ data:
   ORANGE_CANCEL_URL: "https://self-service.webank.cm/transactions"
   ORANGE_FINERACT_PAYMENT_TYPE_ID: "2"
 
+  # CinetPay Configuration (non-sensitive)
+  # CinetPay is a gateway - GL mapping is dynamic based on payment method (MOMO->MTN, OM->Orange)
+  CINETPAY_BASE_URL: "https://api-checkout.cinetpay.com"
+  CINETPAY_TRANSFER_URL: "https://client.cinetpay.com"
+
+  # Base URLs for dynamic callback/return URL construction
+  PAYMENT_GATEWAY_BASE_URL: "https://payments.webank.cm"
+  SELF_SERVICE_APP_BASE_URL: "https://self-service.webank.cm"
+
   # Spring Boot Configuration
   SPRING_PROFILES_ACTIVE: "kubernetes"
   SERVER_PORT: "8082"

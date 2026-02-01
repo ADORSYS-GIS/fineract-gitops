@@ -124,6 +124,22 @@ spec:
                 secretKeyRef:
                   name: payment-gateway-secrets
                   key: orange-gl-account-code
+            # CinetPay Credentials (Gateway - uses existing MTN/Orange GL accounts)
+            - name: CINETPAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-api-key
+            - name: CINETPAY_SITE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-site-id
+            - name: CINETPAY_API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-api-password
             # OpenTelemetry Distributed Tracing Configuration
             - name: OTEL_SERVICE_NAME
               value: "payment-gateway-service"
