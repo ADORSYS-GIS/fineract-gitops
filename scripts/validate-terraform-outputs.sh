@@ -38,7 +38,13 @@ fi
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TERRAFORM_DIR="$SCRIPT_DIR/../terraform/aws"
-AWS_REGION="${AWS_REGION:-us-east-2}"
+
+# Get AWS region from tfvars file or environment variable
+TFVARS_FILE="$TERRAFORM_DIR/environments/${ENV}-eks.tfvars"
+if [ -f "$TFVARS_FILE" ]; then
+    DETECTED_REGION=$(grep -E "^aws_region\s*=" "$TFVARS_FILE" 2>/dev/null | sed 's/.*=\s*"\([^"]*\)".*/\1/' | tr -d ' ')
+fi
+AWS_REGION="${AWS_REGION:-${DETECTED_REGION:-eu-central-1}}"
 
 # Logging functions
 log() {

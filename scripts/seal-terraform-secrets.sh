@@ -287,9 +287,11 @@ OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
 
 # Generate random secrets for service account clients (admin-cli, fineract-api, user-sync-service)
 # These are used by backend services for machine-to-machine authentication
-ADMIN_CLI_SECRET=$(openssl rand -base64 32)
-FINERACT_API_SECRET=$(openssl rand -base64 32)
-USER_SYNC_SERVICE_SECRET=$(openssl rand -base64 32)
+# IMPORTANT: Use hex encoding (not base64) to avoid URL-unsafe characters (+, /, =)
+# that can cause authentication failures when secrets aren't properly URL-encoded
+ADMIN_CLI_SECRET=$(openssl rand -hex 32)
+FINERACT_API_SECRET=$(openssl rand -hex 32)
+USER_SYNC_SERVICE_SECRET=$(openssl rand -hex 32)
 
 # Create consolidated keycloak-client-secrets with:
 # - Both client-id AND client-secret for all OAuth clients
@@ -355,7 +357,8 @@ if [ -n "$ELASTICACHE_ENDPOINT" ] && [ -n "$ELASTICACHE_PORT" ]; then
 else
     # For in-cluster Redis, create fineract-redis-secret with a generated password
     echo "  SKIPPED (ElastiCache not provisioned). Creating in-cluster Redis secret..."
-    REDIS_PASSWORD=$(openssl rand -base64 24)
+    # Use hex encoding to avoid special characters
+    REDIS_PASSWORD=$(openssl rand -hex 24)
     create_sealed_secret "fineract-redis-credentials" "${NAMESPACE}" \
         "endpoint=fineract-redis" \
         "port=6379" \
@@ -364,7 +367,8 @@ fi
 
 # Also create fineract-redis-secret (used by Redis StatefulSet and OAuth2 Proxy)
 echo "   Creating fineract-redis-secret for in-cluster Redis..."
-REDIS_PASSWORD_FOR_SECRET=$(openssl rand -base64 24)
+# Use hex encoding to avoid special characters that may cause issues
+REDIS_PASSWORD_FOR_SECRET=$(openssl rand -hex 24)
 create_sealed_secret "fineract-redis-secret" "${NAMESPACE}" \
     "redis-password=${REDIS_PASSWORD_FOR_SECRET}"
 
