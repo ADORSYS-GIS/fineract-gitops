@@ -35,6 +35,7 @@ spec:
                 matchLabels:
                   app: keycloak
               topologyKey: kubernetes.io/hostname
+      priorityClassName: fineract-critical
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

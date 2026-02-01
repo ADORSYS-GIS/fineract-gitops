@@ -40,6 +40,7 @@ spec:
                   app: fineract-read
               topologyKey: kubernetes.io/hostname
       serviceAccountName: fineract-aws
+      priorityClassName: fineract-high
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

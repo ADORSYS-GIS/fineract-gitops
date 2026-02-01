@@ -27,8 +27,6 @@ resource "aws_s3_bucket" "documents" {
     }
   )
 }
-  )
-}
 
 # Backups Bucket (with account ID suffix for global uniqueness)
 resource "aws_s3_bucket" "backups" {

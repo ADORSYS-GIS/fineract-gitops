@@ -40,6 +40,7 @@ spec:
                   app: fineract-write
               topologyKey: kubernetes.io/hostname
       serviceAccountName: fineract-aws
+      priorityClassName: fineract-critical
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

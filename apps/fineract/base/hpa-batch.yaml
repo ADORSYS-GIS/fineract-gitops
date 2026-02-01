@@ -9,7 +9,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: fineract-batch
-  minReplicas: 1
+  minReplicas: 0
   maxReplicas: 3
   metrics:
   # Scale on CPU utilization

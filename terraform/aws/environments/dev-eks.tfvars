@@ -19,7 +19,7 @@ enable_vpc_endpoints = true
 
 # VPC Configuration
 vpc_cidr = "10.0.0.0/16"
-az_count = 1 # OPTIMIZATION: Reduced from 2 to 1
+az_count = 2 # High availability with 2 NAT Gateways (single AZ too risky)
 
 # Route53 Configuration (leave empty to skip DNS setup)
 domain_name = "" # Update to your domain when ready (e.g., "fineract.com")

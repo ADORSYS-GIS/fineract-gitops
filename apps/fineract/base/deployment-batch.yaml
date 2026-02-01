@@ -52,6 +52,7 @@ spec:
         fineract.instance.type: batch
     spec:
       serviceAccountName: fineract-aws
+      priorityClassName: fineract-high
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
