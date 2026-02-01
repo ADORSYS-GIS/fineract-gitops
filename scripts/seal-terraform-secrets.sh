@@ -353,8 +353,20 @@ if [ -n "$ELASTICACHE_ENDPOINT" ] && [ -n "$ELASTICACHE_PORT" ]; then
     fi
     echo -e "${GREEN}  ✓ ElastiCache Redis credentials sealed.${NC}"
 else
-    echo "  SKIPPED (ElastiCache not provisioned by Terraform). If using in-cluster Redis, use create-all-sealed-secrets.sh."
+    # For in-cluster Redis, create fineract-redis-secret with a generated password
+    echo "  SKIPPED (ElastiCache not provisioned). Creating in-cluster Redis secret..."
+    REDIS_PASSWORD=$(openssl rand -base64 24)
+    create_sealed_secret "fineract-redis-credentials" "${NAMESPACE}" \
+        "endpoint=fineract-redis" \
+        "port=6379" \
+        "auth-token=${REDIS_PASSWORD}"
 fi
+
+# Also create fineract-redis-secret (used by Redis StatefulSet and OAuth2 Proxy)
+echo "   Creating fineract-redis-secret for in-cluster Redis..."
+REDIS_PASSWORD_FOR_SECRET=$(openssl rand -base64 24)
+create_sealed_secret "fineract-redis-secret" "${NAMESPACE}" \
+    "redis-password=${REDIS_PASSWORD_FOR_SECRET}"
 
 echo
 
@@ -395,9 +407,8 @@ echo "  ✓ s3-connection (S3 buckets and region)"
 if [ -n "$SES_SMTP_PASS" ]; then
     echo "  ✓ smtp-credentials (SES email)"
 fi
-if [ -n "$ELASTICACHE_ENDPOINT" ]; then
-    echo "  ✓ fineract-redis-credentials (ElastiCache)"
-fi
+echo "  ✓ fineract-redis-credentials (Redis connection)"
+echo "  ✓ fineract-redis-secret (Redis password for StatefulSet)"
 echo "  ✓ service-account.yaml (IRSA manifest)"
 echo
 echo -e "${YELLOW}Next Steps:${NC}"
