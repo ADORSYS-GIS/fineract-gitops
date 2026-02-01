@@ -18,7 +18,7 @@ defaultLocale: en
 registrationAllowed: false  # Users created by admin only
 registrationEmailAsUsername: false
 rememberMe: true
-verifyEmail: true  # Enable email verification for security compliance
+verifyEmail: false  # Disabled - email verification not required for customer login
 loginWithEmailAllowed: true
 duplicateEmailsAllowed: false
 resetPasswordAllowed: true  # Enable password reset for better user experience
