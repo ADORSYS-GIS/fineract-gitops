@@ -15,7 +15,7 @@ REPO_URL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
 
 # Branch/Revision Strategy:
 # Updated for EKS migration - dev environment uses eks branch
-TARGET_REVISION_DEV: "dev/fineract-deployment"
+TARGET_REVISION_DEV: "feature/aws-cost-optimization"
 TARGET_REVISION_UAT: "main"
 TARGET_REVISION_PRODUCTION: "main"
 
