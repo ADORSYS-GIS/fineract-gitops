@@ -33,7 +33,7 @@ Add CinetPay as a payment gateway alongside MTN MoMo and Orange Money for the se
 |------|--------|----------|
 | Create and seal CinetPay secrets with kubeseal | ⏳ Pending | High |
 | Build and deploy updated payment-gateway-service | ⏳ Pending | High |
-| Add CinetPay to frontend payment method selection | ⏳ Pending | Medium |
+| Add CinetPay to frontend payment method selection | ✅ Done | `99f3ba0` |
 | Unit tests for CinetPayClient | ⏳ Pending | Medium |
 | Integration testing with CinetPay sandbox | ⏳ Pending | Medium |
 
@@ -432,12 +432,15 @@ This ensures:
 | `secrets/dev/payment-gateway-secrets.yaml.template` | MODIFY | ✅ Done |
 | `docs/PAYMENT_GATEWAY_SECRETS.md` | MODIFY | ✅ Done |
 
-### Frontend (self-service-app) ⏳ Pending
+### Frontend (self-service-app) ✅ Complete
 
 | File | Action | Status |
 |------|--------|--------|
-| Payment types/constants | MODIFY | ⏳ Pending |
-| Payment method selection UI | MODIFY | ⏳ Pending |
+| `src/types/index.ts` | MODIFY - add cinetpay to PaymentMethodId | ✅ Done |
+| `src/components/transactions/PaymentMethodSelector.tsx` | MODIFY - add CinetPay option | ✅ Done |
+| `src/hooks/useLimits.ts` | MODIFY - add CinetPay to default methods | ✅ Done |
+| `src/routes/transactions.tsx` | MODIFY - add CinetPay mapping | ✅ Done |
+| `packages/i18n/src/locales/self-service/en.json` | MODIFY - add translation | ✅ Done |
 
 ---
 
