@@ -658,9 +658,9 @@ authenticationFlows:
         requirement: ALTERNATIVE
         priority: 20
 
-  # Sub-flow for username + WebAuthn passwordless
+  # Sub-flow for username + 2FA (WebAuthn or OTP)
   - alias: self-service-passwordless-forms
-    description: Username form followed by WebAuthn passwordless authentication
+    description: Username form followed by 2FA authentication (WebAuthn or OTP)
     providerId: basic-flow
     topLevel: false
     builtIn: false
@@ -670,10 +670,29 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: REQUIRED
         priority: 10
-      # WebAuthn passwordless authentication
+      # 2FA options sub-flow (WebAuthn OR OTP)
+      - flowAlias: self-service-2fa-options
+        authenticatorFlow: true
+        requirement: REQUIRED
+        priority: 20
+
+  # Sub-flow for 2FA options - WebAuthn (primary) or OTP (fallback)
+  # This provides account recovery for customers who lose their WebAuthn device
+  - alias: self-service-2fa-options
+    description: WebAuthn or OTP authentication for self-service customers
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      # WebAuthn passwordless (primary authentication method)
       - authenticator: webauthn-authenticator-passwordless
         authenticatorFlow: false
-        requirement: REQUIRED
+        requirement: ALTERNATIVE
+        priority: 10
+      # OTP fallback (for device recovery)
+      - authenticator: auth-otp-form
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
         priority: 20
 
 # Required Actions (Configured for First Login Flow)

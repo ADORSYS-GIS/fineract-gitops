@@ -118,15 +118,21 @@ Add new client:
     pkce.code.challenge.method: "S256"
 ```
 
-**1.2 Configure WebAuthn Passwordless Flow**
+**1.2 Configure WebAuthn Passwordless Flow with OTP Fallback**
 
-Create custom authentication flow:
+Create custom authentication flow with OTP fallback for device recovery:
 ```
 self-service-browser:
   1. Cookie (ALTERNATIVE)
-  2. Username Form (REQUIRED)
-  3. WebAuthn Passwordless (REQUIRED)
+  2. self-service-passwordless-forms (ALTERNATIVE):
+     - Username Form (REQUIRED)
+     - self-service-2fa-options (REQUIRED):
+       - WebAuthn Passwordless (ALTERNATIVE) - primary
+       - OTP Form (ALTERNATIVE) - fallback for device recovery
 ```
+
+**Important**: Customers must set up BOTH WebAuthn and TOTP during first login.
+This ensures they can recover their account if they lose their WebAuthn device.
 
 Bind flow to `self-service-app` client.
 
@@ -196,7 +202,7 @@ paymentTypes:
    - `kyc_tier`: "1" (unverified)
    - `kyc_status`: "pending"
 5. Assign to `/self-service-customers` group
-6. Set required actions: `VERIFY_EMAIL`, `webauthn-register-passwordless`
+6. Set required actions: `VERIFY_EMAIL`, `webauthn-register-passwordless`, `CONFIGURE_TOTP`
 7. Handle rollback if any step fails
 
 **KYC Document Upload Flow** (in self-service app):
@@ -556,7 +562,7 @@ Flow:
 │            "kyc_status": ["pending"]                                     │
 │          },                                                              │
 │          "groups": ["/self-service-customers"],                          │
-│          "requiredActions": ["VERIFY_EMAIL", "webauthn-register-..."]    │
+│          "requiredActions": ["VERIFY_EMAIL", "webauthn-register-...", "CONFIGURE_TOTP"] │
 │        }                                                                 │
 │                                                                          │
 │ 5. UUID is now the link between systems                                  │
@@ -609,7 +615,7 @@ public class RegistrationService {
                     "kyc_status", List.of("pending")
                 ))
                 .groups(List.of("/self-service-customers"))
-                .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless"))
+                .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless", "CONFIGURE_TOTP"))
                 .build();
 
             keycloakClient.createUser(keycloakRequest);
@@ -1203,7 +1209,7 @@ public class RegistrationService {
                         "kyc_status", List.of("pending")
                     ))
                     .groups(List.of("/self-service-customers"))
-                    .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless"))
+                    .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless", "CONFIGURE_TOTP"))
                     .build()
             );
             log.info("Created Keycloak user: {}", data.getEmail());
