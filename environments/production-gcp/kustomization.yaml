@@ -1,0 +1,34 @@
+# ==============================================================================
+# GCP Production Environment Overlay
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-production
+
+# Base resources
+resources:
+  - ../../apps/fineract/base
+  - ../../infrastructure/storage/storageclass-gcp.yaml
+  - namespace.yaml
+
+# GCP-specific patches
+patches:
+  - path: patches/serviceaccount-patch.yaml
+  - path: patches/deployment-env-patch.yaml
+
+# ConfigMap replacements
+configMapGenerator:
+  - name: fineract-gcp-config
+    behavior: create
+    literals:
+      - CLOUD_PROVIDER=gcp
+      - GCP_PROJECT_ID=fineract-prod-project
+      - GCP_REGION=us-central1
+      - STORAGE_CLASS=pd-ssd
+
+# Common labels
+commonLabels:
+  environment: production
+  cloud: gcp
+  managed-by: kustomize

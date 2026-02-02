@@ -1,0 +1,13 @@
+# ==============================================================================
+# GCP Production Namespace
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fineract-production
+  labels:
+    environment: production
+    cloud: gcp
+    cost-center: operations
+    billing-code: PROD-001
+    criticality: high

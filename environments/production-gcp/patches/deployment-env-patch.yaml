@@ -1,0 +1,54 @@
+# ==============================================================================
+# Deployment Environment Patch for GCP (Production)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-read
+spec:
+  replicas: 2
+  template:
+    spec:
+      serviceAccountName: fineract-gcp
+      containers:
+        - name: fineract
+          env:
+            - name: FINERACT_HIKARI_JDBC_URL
+              value: "jdbc:postgresql://localhost:5432/fineract_tenants"
+            - name: FINERACT_CONTENT_FILESYSTEM_ROOTFOLDER
+              value: "/tmp/fineract"
+            - name: CLOUD_PROVIDER
+              value: "gcp"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-write
+spec:
+  replicas: 2
+  template:
+    spec:
+      serviceAccountName: fineract-gcp
+      containers:
+        - name: fineract
+          env:
+            - name: FINERACT_HIKARI_JDBC_URL
+              value: "jdbc:postgresql://localhost:5432/fineract_tenants"
+            - name: FINERACT_CONTENT_FILESYSTEM_ROOTFOLDER
+              value: "/tmp/fineract"
+            - name: CLOUD_PROVIDER
+              value: "gcp"
+          resources:
+            requests:
+              memory: "1.5Gi"
+              cpu: "500m"
+            limits:
+              memory: "3Gi"
+              cpu: "1500m"

@@ -1,0 +1,38 @@
+# ==============================================================================
+# Deployment Environment Patch for GCP (UAT)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-read
+spec:
+  template:
+    spec:
+      serviceAccountName: fineract-gcp
+      containers:
+        - name: fineract
+          env:
+            - name: FINERACT_HIKARI_JDBC_URL
+              value: "jdbc:postgresql://localhost:5432/fineract_tenants"
+            - name: FINERACT_CONTENT_FILESYSTEM_ROOTFOLDER
+              value: "/tmp/fineract"
+            - name: CLOUD_PROVIDER
+              value: "gcp"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-write
+spec:
+  template:
+    spec:
+      serviceAccountName: fineract-gcp
+      containers:
+        - name: fineract
+          env:
+            - name: FINERACT_HIKARI_JDBC_URL
+              value: "jdbc:postgresql://localhost:5432/fineract_tenants"
+            - name: FINERACT_CONTENT_FILESYSTEM_ROOTFOLDER
+              value: "/tmp/fineract"
+            - name: CLOUD_PROVIDER
+              value: "gcp"

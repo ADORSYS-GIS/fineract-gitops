@@ -1,0 +1,12 @@
+# ==============================================================================
+# GCP UAT Namespace
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fineract-uat
+  labels:
+    environment: uat
+    cloud: gcp
+    cost-center: qa-testing
+    billing-code: UAT-001
