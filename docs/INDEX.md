@@ -49,9 +49,12 @@ Step-by-step deployment guides for different scenarios.
 | **[Quick Deploy Guide](guides/QUICK_DEPLOY.md)** | Minimal commands deployment after Terraform | 🚀 Operators |
 | **[AWS Quick Start](guides/QUICKSTART-AWS.md)** | Deploy on AWS EKS with managed services | ☁️ AWS users |
 | **[AWS K3s Quick Start](guides/QUICKSTART-AWS-K3S.md)** | Cost-optimized K3s deployment on AWS | 💰 Cost-conscious |
+| **[On-Premise Hetzner](guides/QUICKSTART-ONPREM-HETZNER.md)** | Deploy on 2 Hetzner servers with K3s | 🏠 On-premise |
 | **[Deployment Order](guides/DEPLOYMENT_ORDER.md)** | Correct order for deploying components | 📋 Operators |
 
-**Quick path:** [AWS K3s Guide](guides/QUICKSTART-AWS-K3S.md) for fastest, cheapest AWS deployment.
+**Quick paths:**
+- [AWS K3s Guide](guides/QUICKSTART-AWS-K3S.md) for fastest, cheapest AWS deployment
+- [On-Premise Hetzner Guide](guides/QUICKSTART-ONPREM-HETZNER.md) for maximum cost savings (~€68-136/month)
 
 ---
 
