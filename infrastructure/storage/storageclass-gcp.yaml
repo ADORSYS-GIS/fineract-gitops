@@ -1,0 +1,69 @@
+# ==============================================================================
+# GCP Storage Classes for GKE
+# ==============================================================================
+---
+# Default storage class: pd-balanced (good balance of performance and cost)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-balanced
+  labels:
+    cloud: gcp
+    environment: all
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced
+  replication-type: none
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+---
+# High-performance storage class: pd-ssd
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-ssd
+  labels:
+    cloud: gcp
+    environment: all
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-ssd
+  replication-type: none
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+---
+# Standard storage class: pd-standard (cheapest option)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-standard
+  labels:
+    cloud: gcp
+    environment: all
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-standard
+  replication-type: none
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+---
+# Regional storage class for HA (production)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pd-balanced-regional
+  labels:
+    cloud: gcp
+    environment: production
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced
+  replication-type: regional-pd
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete

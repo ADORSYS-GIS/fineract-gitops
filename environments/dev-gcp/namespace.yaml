@@ -1,0 +1,12 @@
+# ==============================================================================
+# GCP Development Namespace
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fineract-dev
+  labels:
+    environment: dev
+    cloud: gcp
+    cost-center: development
+    billing-code: DEV-001

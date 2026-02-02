@@ -1,0 +1,24 @@
+# ==============================================================================
+# Ingress Patch for GKE
+# ==============================================================================
+# This patch adds GKE-specific annotations to the Ingress resource.
+# Choose between GKE Ingress (gce) or NGINX Ingress (nginx).
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-ingress
+  annotations:
+    # Option 1: Use NGINX Ingress Controller (recommended for compatibility)
+    kubernetes.io/ingress.class: "nginx"
+
+    # Option 2: Use GKE native Ingress (uncomment below, comment above)
+    # kubernetes.io/ingress.class: "gce"
+    # networking.gke.io/managed-certificates: "fineract-cert"
+    # kubernetes.io/ingress.allow-http: "false"
+
+    # Backend configuration for health checks
+    # cloud.google.com/backend-config: '{"default": "fineract-backend-config"}'
+
+    # Cloud Armor security policy (optional)
+    # networking.gke.io/v1beta1.FrontendConfig: "fineract-frontend-config"

@@ -1,0 +1,35 @@
+# ==============================================================================
+# GCP Provider Patches
+# ==============================================================================
+# Apply these patches when deploying to GCP/GKE
+# Usage: Add this as a component in your environment kustomization
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Patches to apply for GCP deployments
+patches:
+  # Service account patch for Workload Identity
+  - path: serviceaccount-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: fineract-gcp
+
+  # Cloud SQL Proxy sidecar for database connectivity
+  - path: cloud-sql-proxy-patch.yaml
+    target:
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/component in (fineract-read,fineract-write,fineract-batch)"
+
+  # Ingress annotations for GKE
+  - path: ingress-patch.yaml
+    target:
+      kind: Ingress
+      name: fineract-ingress
+
+# ConfigMaps specific to GCP
+configMapGenerator:
+  - name: fineract-gcp-config
+    literals:
+      - CLOUD_PROVIDER=gcp
+      - STORAGE_CLASS=pd-balanced

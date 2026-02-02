@@ -1,0 +1,106 @@
+# ==============================================================================
+# GKE Dev Cluster Scale Down CronJob
+# ==============================================================================
+# Scales down the dev cluster to 1 node at 7 PM UTC on weekdays
+# This saves approximately 50% on compute costs during off-hours
+# ==============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gke-dev-scale-down
+  namespace: kube-system
+  labels:
+    app: scheduled-scaling
+    environment: dev
+    cloud: gcp
+spec:
+  schedule: "0 19 * * 1-5"  # 7 PM UTC, Monday-Friday
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cluster-scaler
+          restartPolicy: OnFailure
+          containers:
+            - name: scale-down
+              image: google/cloud-sdk:slim
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  echo "Scaling down GKE cluster..."
+                  gcloud container clusters resize apache-fineract-dev \
+                    --node-pool=apache-fineract-dev-primary \
+                    --num-nodes=1 \
+                    --zone=us-central1-a \
+                    --quiet
+                  echo "Scale down complete."
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+---
+# ==============================================================================
+# GKE Dev Cluster Scale Up CronJob
+# ==============================================================================
+# Scales up the dev cluster to 2 nodes at 7 AM UTC on weekdays
+# ==============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gke-dev-scale-up
+  namespace: kube-system
+  labels:
+    app: scheduled-scaling
+    environment: dev
+    cloud: gcp
+spec:
+  schedule: "0 7 * * 1-5"  # 7 AM UTC, Monday-Friday
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cluster-scaler
+          restartPolicy: OnFailure
+          containers:
+            - name: scale-up
+              image: google/cloud-sdk:slim
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  echo "Scaling up GKE cluster..."
+                  gcloud container clusters resize apache-fineract-dev \
+                    --node-pool=apache-fineract-dev-primary \
+                    --num-nodes=2 \
+                    --zone=us-central1-a \
+                    --quiet
+                  echo "Scale up complete."
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+---
+# ==============================================================================
+# Service Account for Cluster Scaling
+# ==============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-scaler
+  namespace: kube-system
+  annotations:
+    # Workload Identity - needs container.clusterAdmin role
+    iam.gke.io/gcp-service-account: cluster-autoscaler-dev@fineract-dev-project.iam.gserviceaccount.com

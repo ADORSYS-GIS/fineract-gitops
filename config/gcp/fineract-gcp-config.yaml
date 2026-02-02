@@ -1,0 +1,32 @@
+# ==============================================================================
+# GCP Configuration ConfigMap
+# ==============================================================================
+# This ConfigMap stores GCP-specific configuration that is injected into pods.
+# Values should be updated based on your Terraform outputs.
+# ==============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fineract-gcp-config
+  labels:
+    app.kubernetes.io/name: fineract
+    app.kubernetes.io/component: config
+    cloud: gcp
+data:
+  # Cloud SQL connection details
+  # Format: PROJECT_ID:REGION:INSTANCE_NAME
+  CLOUD_SQL_CONNECTION_NAME: "${PROJECT_ID}:${REGION}:${INSTANCE_NAME}"
+
+  # GCS bucket names
+  DOCUMENTS_BUCKET: "${CLUSTER_NAME}-${ENVIRONMENT}-docs-${PROJECT_ID}"
+  BACKUPS_BUCKET: "${CLUSTER_NAME}-${ENVIRONMENT}-backups-${PROJECT_ID}"
+
+  # GCP region and project
+  GCP_REGION: "us-central1"
+  GCP_PROJECT_ID: "${PROJECT_ID}"
+
+  # Storage class for PVCs
+  STORAGE_CLASS: "pd-balanced"
+
+  # Cloud provider indicator
+  CLOUD_PROVIDER: "gcp"
