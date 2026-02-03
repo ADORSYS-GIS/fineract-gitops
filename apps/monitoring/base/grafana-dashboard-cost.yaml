@@ -1,0 +1,401 @@
+# Cost Optimization Dashboard for Grafana
+# Displays resource utilization vs requests to identify cost optimization opportunities
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cost-optimization
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/part-of: monitoring-stack
+    app.kubernetes.io/component: cost-optimization
+data:
+  cost-optimization-dashboard.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "AWS Cost Optimization - Resource Utilization Analysis",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 30},
+                  {"color": "red", "value": 50}
+                ]
+              },
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "(sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"fineract.*\"}) - sum(rate(container_cpu_usage_seconds_total{namespace=~\"fineract.*\"}[5m]))) / sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"fineract.*\"})",
+              "legendFormat": "CPU Over-provisioning"
+            }
+          ],
+          "title": "CPU Over-provisioning",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 30},
+                  {"color": "red", "value": 50}
+                ]
+              },
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "(sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"fineract.*\"}) - sum(container_memory_working_set_bytes{namespace=~\"fineract.*\"})) / sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"fineract.*\"})",
+              "legendFormat": "Memory Over-provisioning"
+            }
+          ],
+          "title": "Memory Over-provisioning",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 50},
+                  {"color": "red", "value": 70}
+                ]
+              },
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "expr": "avg(1 - (sum by (node) (rate(container_cpu_usage_seconds_total[5m])) / sum by (node) (kube_node_status_allocatable{resource=\"cpu\"})))",
+              "legendFormat": "Avg Node Idle Capacity"
+            }
+          ],
+          "title": "Avg Node Idle Capacity",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {"type": "linear"},
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {"group": "A", "mode": "none"},
+                "thresholdsStyle": {"mode": "off"}
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "id": 4,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"fineract.*\"}) by (pod)",
+              "legendFormat": "{{pod}} - Requested"
+            },
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"fineract.*\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}} - Actual"
+            }
+          ],
+          "title": "CPU: Requested vs Actual by Pod",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {"type": "linear"},
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {"group": "A", "mode": "none"},
+                "thresholdsStyle": {"mode": "off"}
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "id": 5,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"fineract.*\"}) by (pod)",
+              "legendFormat": "{{pod}} - Requested"
+            },
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=~\"fineract.*\"}) by (pod)",
+              "legendFormat": "{{pod}} - Actual"
+            }
+          ],
+          "title": "Memory: Requested vs Actual by Pod",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {"type": "linear"},
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {"group": "A", "mode": "none"},
+                "thresholdsStyle": {"mode": "off"}
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+          "id": 6,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum by (node) (rate(container_cpu_usage_seconds_total[5m])) / sum by (node) (kube_node_status_allocatable{resource=\"cpu\"})",
+              "legendFormat": "{{node}}"
+            }
+          ],
+          "title": "Node CPU Utilization",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "id": 7,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "right", "showLegend": true},
+            "pieType": "pie",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"fineract.*\"}) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "title": "CPU Requests by Namespace",
+          "type": "piechart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "id": 8,
+          "options": {
+            "legend": {"calcs": [], "displayMode": "list", "placement": "right", "showLegend": true},
+            "pieType": "pie",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"fineract.*\"}) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "title": "Memory Requests by Namespace",
+          "type": "piechart"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["cost", "optimization", "resources"],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Cost Optimization",
+      "uid": "cost-optimization",
+      "version": 1,
+      "weekStart": ""
+    }

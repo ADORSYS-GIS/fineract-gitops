@@ -71,6 +71,14 @@ images:
 # Dev-Specific Labels
 commonLabels:
   environment: dev
+  # NEW: Cost tracking labels
+  cost-center: "development"
+  team: "engineering"
+  owner: "platform-team"
+  component: "compute"
+  workload: "development"
+  auto-stop: "true"
+  billing-code: "DEV-001"
 
 # Dev-Specific Annotations
 commonAnnotations:

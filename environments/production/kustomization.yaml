@@ -55,6 +55,14 @@ images:
 commonLabels:
   environment: production
   criticality: high
+  # NEW: Cost tracking labels
+  cost-center: "operations"
+  team: "platform"
+  owner: "platform-team"
+  component: "production"
+  workload: "production"
+  sla: "99.9"
+  billing-code: "PROD-001"
 
 # Production-Specific Annotations
 commonAnnotations:

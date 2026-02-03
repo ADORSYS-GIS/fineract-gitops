@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-ingress-nginx
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # Deploy early - infrastructure component
+    description: "Ingress Nginx Controller for external access to services"
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: feature/aws-cost-optimization
+    path: apps/ingress-nginx/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-nginx
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/failurePolicy
+
+  info:
+    - name: Component
+      value: Ingress Controller
+    - name: Type
+      value: Infrastructure (Cluster-scoped)
+    - name: Purpose
+      value: "HTTP/HTTPS routing and load balancing"
+    - name: LoadBalancer
+      value: "Creates AWS ELB for external access"
+    - name: Auto-Deploy
+      value: "true"

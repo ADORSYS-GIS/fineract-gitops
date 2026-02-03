@@ -1,0 +1,114 @@
+# Cost Optimization Alerts
+# Alerts for resource over-provisioning and underutilization
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cost-optimization-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: monitoring-stack
+    app.kubernetes.io/component: cost-optimization
+spec:
+  groups:
+  - name: cost-optimization
+    interval: 5m
+    rules:
+    # Alert when CPU is over-provisioned by more than 50%
+    - alert: HighCPUOverprovisioning
+      expr: |
+        (
+          sum(kube_pod_container_resource_requests{resource="cpu", namespace=~"fineract.*"})
+          - sum(rate(container_cpu_usage_seconds_total{namespace=~"fineract.*"}[5m]))
+        )
+        / sum(kube_pod_container_resource_requests{resource="cpu", namespace=~"fineract.*"}) > 0.5
+      for: 1h
+      labels:
+        severity: warning
+        category: cost
+        team: platform
+      annotations:
+        summary: "CPU over-provisioned by more than 50%"
+        description: |
+          CPU requests exceed actual usage by more than 50% in Fineract namespaces.
+          Consider reducing CPU requests to optimize costs.
+          Current over-provisioning: {{ $value | humanizePercentage }}
+        runbook_url: "https://github.com/ADORSYS-GIS/fineract-gitops/blob/main/docs/AWS_COST_ANALYSIS.md"
+
+    # Alert when Memory is over-provisioned by more than 50%
+    - alert: HighMemoryOverprovisioning
+      expr: |
+        (
+          sum(kube_pod_container_resource_requests{resource="memory", namespace=~"fineract.*"})
+          - sum(container_memory_working_set_bytes{namespace=~"fineract.*"})
+        )
+        / sum(kube_pod_container_resource_requests{resource="memory", namespace=~"fineract.*"}) > 0.5
+      for: 1h
+      labels:
+        severity: warning
+        category: cost
+        team: platform
+      annotations:
+        summary: "Memory over-provisioned by more than 50%"
+        description: |
+          Memory requests exceed actual usage by more than 50% in Fineract namespaces.
+          Consider reducing memory requests to optimize costs.
+          Current over-provisioning: {{ $value | humanizePercentage }}
+        runbook_url: "https://github.com/ADORSYS-GIS/fineract-gitops/blob/main/docs/AWS_COST_ANALYSIS.md"
+
+    # Alert when a node is underutilized for extended period
+    - alert: UnderutilizedNode
+      expr: |
+        (
+          1 - (
+            sum by (node) (rate(container_cpu_usage_seconds_total[5m]))
+            / sum by (node) (kube_node_status_allocatable{resource="cpu"})
+          )
+        ) > 0.7
+      for: 2h
+      labels:
+        severity: info
+        category: cost
+        team: platform
+      annotations:
+        summary: "Node {{ $labels.node }} is underutilized"
+        description: |
+          Node {{ $labels.node }} has more than 70% unused CPU capacity for 2+ hours.
+          Consider scaling down the cluster or consolidating workloads.
+          Current idle capacity: {{ $value | humanizePercentage }}
+
+    # Alert when HPA is at minimum replicas but under low load
+    - alert: HPAUnderutilized
+      expr: |
+        kube_horizontalpodautoscaler_status_current_replicas{namespace=~"fineract.*"}
+        == kube_horizontalpodautoscaler_spec_min_replicas{namespace=~"fineract.*"}
+        and
+        kube_horizontalpodautoscaler_status_current_replicas{namespace=~"fineract.*"} > 1
+      for: 4h
+      labels:
+        severity: info
+        category: cost
+        team: platform
+      annotations:
+        summary: "HPA {{ $labels.horizontalpodautoscaler }} at minimum with low load"
+        description: |
+          HPA {{ $labels.horizontalpodautoscaler }} in namespace {{ $labels.namespace }}
+          has been at minimum replicas for 4+ hours. Consider reducing minReplicas if load is consistently low.
+
+    # Alert when PVC storage is largely unused
+    - alert: UnderutilizedPVCStorage
+      expr: |
+        (
+          kubelet_volume_stats_available_bytes{namespace=~"fineract.*"}
+          / kubelet_volume_stats_capacity_bytes{namespace=~"fineract.*"}
+        ) > 0.8
+      for: 24h
+      labels:
+        severity: info
+        category: cost
+        team: platform
+      annotations:
+        summary: "PVC {{ $labels.persistentvolumeclaim }} has >80% unused storage"
+        description: |
+          PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }}
+          has more than 80% unused storage. Consider resizing to a smaller volume.
+          Available: {{ $value | humanizePercentage }}

@@ -40,9 +40,12 @@ NC='\033[0m' # No Color
 # Deployment configuration
 ENVIRONMENT="${1:-}"
 DEPLOYMENT_MODE="${2:---gitops}"  # --gitops or --direct
-AWS_REGION="${AWS_REGION:-us-east-2}"
 TERRAFORM_BACKEND_BUCKET="fineract-gitops-terraform-state"
 TERRAFORM_BACKEND_TABLE="fineract-gitops-terraform-lock"
+
+# AWS_REGION will be set from tfvars after environment validation
+# Default to eu-central-1 for dev/uat environments
+AWS_REGION="${AWS_REGION:-}"
 
 # ============================================================================
 # Utility Functions
@@ -106,6 +109,21 @@ validate_environment() {
             exit 1
             ;;
     esac
+
+    # Detect AWS region from tfvars file
+    local tfvars_file="$TERRAFORM_DIR/environments/${ENVIRONMENT}-eks.tfvars"
+    if [ -f "$tfvars_file" ] && [ -z "$AWS_REGION" ]; then
+        local detected_region
+        detected_region=$(grep -E "^aws_region\s*=" "$tfvars_file" 2>/dev/null | sed 's/.*=\s*"\([^"]*\)".*/\1/' | tr -d ' ' || echo "")
+        if [ -n "$detected_region" ]; then
+            AWS_REGION="$detected_region"
+            log_success "Detected AWS region from tfvars: $AWS_REGION"
+        fi
+    fi
+
+    # Default to eu-central-1 if not set
+    AWS_REGION="${AWS_REGION:-eu-central-1}"
+    export AWS_REGION
 }
 
 validate_prerequisites() {
@@ -254,6 +272,35 @@ configure_kubectl() {
     log_success "kubectl configured successfully"
 }
 
+apply_infrastructure_resources() {
+    print_header "Applying Infrastructure Resources"
+
+    # Apply gp3 storage class (required for EBS volumes on EKS)
+    if [ -f "$REPO_ROOT/infrastructure/storage-class-gp3.yaml" ]; then
+        log "Applying gp3 storage class..."
+        kubectl apply -f "$REPO_ROOT/infrastructure/storage-class-gp3.yaml"
+        log_success "gp3 storage class applied"
+    else
+        log_warn "gp3 storage class file not found"
+    fi
+
+    # Apply priority classes
+    if [ -f "$REPO_ROOT/infrastructure/priority-classes.yaml" ]; then
+        log "Applying priority classes..."
+        kubectl apply -f "$REPO_ROOT/infrastructure/priority-classes.yaml"
+        log_success "Priority classes applied"
+    fi
+
+    # Apply selfsigned cluster issuer (for cert-manager)
+    if [ -f "$REPO_ROOT/infrastructure/selfsigned-cluster-issuer.yaml" ]; then
+        log "Applying selfsigned cluster issuer..."
+        kubectl apply -f "$REPO_ROOT/infrastructure/selfsigned-cluster-issuer.yaml" 2>/dev/null || \
+            log_warn "Cluster issuer not applied (cert-manager may not be installed yet)"
+    fi
+
+    log_success "Infrastructure resources applied"
+}
+
 install_argocd() {
     print_header "Installing ArgoCD"
 
@@ -274,6 +321,52 @@ install_argocd() {
         kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 
         log_success "ArgoCD installed successfully"
+    fi
+}
+
+install_nginx_ingress_controller() {
+    print_header "Installing Nginx Ingress Controller"
+
+    if kubectl get deployment ingress-nginx-controller -n ingress-nginx &> /dev/null; then
+        log_success "Nginx Ingress controller already installed"
+    else
+        log "Installing Nginx Ingress controller for AWS..."
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.5/deploy/static/provider/aws/deploy.yaml
+
+        log "Waiting for Nginx Ingress controller to be ready..."
+        kubectl wait --for=condition=available --timeout=300s deployment/ingress-nginx-controller -n ingress-nginx
+
+        # Enable allow-snippet-annotations for advanced ingress configurations
+        log "Enabling snippet annotations in Nginx Ingress config..."
+        kubectl patch configmap ingress-nginx-controller -n ingress-nginx \
+            --type='merge' -p='{"data":{"allow-snippet-annotations":"true"}}'
+
+        # Restart controller to apply config
+        kubectl rollout restart deployment/ingress-nginx-controller -n ingress-nginx
+        kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx --timeout=120s
+
+        log_success "Nginx Ingress controller installed successfully"
+    fi
+
+    # Get LoadBalancer hostname
+    log "Waiting for LoadBalancer hostname..."
+    local lb_hostname=""
+    for i in {1..60}; do
+        lb_hostname=$(kubectl get svc -n ingress-nginx ingress-nginx-controller \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+
+        if [ -n "$lb_hostname" ] && [ "$lb_hostname" != "null" ]; then
+            break
+        fi
+        sleep 5
+    done
+
+    if [ -n "$lb_hostname" ] && [ "$lb_hostname" != "null" ]; then
+        log_success "LoadBalancer hostname: $lb_hostname"
+        # Store for later use
+        export INGRESS_ELB_HOSTNAME="$lb_hostname"
+    else
+        log_warn "LoadBalancer hostname not yet available. Will be assigned later."
     fi
 }
 
@@ -486,13 +579,19 @@ main() {
     # Step 4: Configure kubectl
     configure_kubectl
 
-    # Step 5: Install ArgoCD
+    # Step 5: Apply Infrastructure Resources (storage classes, priority classes)
+    apply_infrastructure_resources
+
+    # Step 6: Install ArgoCD
     install_argocd
 
-    # Step 6: Install Sealed Secrets Controller
+    # Step 7: Install Nginx Ingress Controller (creates AWS ELB)
+    install_nginx_ingress_controller
+
+    # Step 7: Install Sealed Secrets Controller
     install_sealed_secrets_controller
 
-    # Step 7: Create Sealed Secrets
+    # Step 8: Create Sealed Secrets
     create_sealed_secrets
 
     # Step 8: Configure ArgoCD

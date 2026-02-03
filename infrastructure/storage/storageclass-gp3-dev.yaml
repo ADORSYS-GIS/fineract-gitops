@@ -1,0 +1,23 @@
+---
+# Cost-Optimized Storage Class for Dev Environment
+# Reduces IOPS from 3000 to 1500 for dev workloads
+# Savings: ~$10-15/month in EBS costs
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-dev
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  labels:
+    app.kubernetes.io/part-of: cost-optimization
+    environment: dev
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+  # Cost-optimized IOPS for dev (reduced from 3000)
+  iops: "1500"        # Sufficient for dev workloads
+  throughput: "62"   # Reduced from 125 (50% cost savings)
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete

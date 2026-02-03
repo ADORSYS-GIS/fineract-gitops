@@ -40,6 +40,7 @@ spec:
                   app: fineract-write
               topologyKey: kubernetes.io/hostname
       serviceAccountName: fineract-aws
+      priorityClassName: fineract-critical
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -370,11 +371,11 @@ spec:
 
         resources:
           requests:
-            memory: "1536Mi"
+            memory: "1Gi"
             cpu: "400m"
           limits:
-            memory: "3Gi"
-            cpu: "1500m"
+            memory: "2Gi"
+            cpu: "1000m"
 
         startupProbe:
           httpGet:

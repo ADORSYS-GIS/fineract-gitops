@@ -77,7 +77,10 @@ resource "aws_launch_template" "eks_nodes" {
     tags = merge(
       var.tags,
       {
-        Name = "${var.cluster_name}-node"
+        Name         = "${var.cluster_name}-node"
+        Component    = "compute"
+        Subcomponent = "eks-node"
+        NodePool     = "general-purpose"
       }
     )
   }
@@ -88,7 +91,9 @@ resource "aws_launch_template" "eks_nodes" {
     tags = merge(
       var.tags,
       {
-        Name = "${var.cluster_name}-node-volume"
+        Name         = "${var.cluster_name}-node-volume"
+        Component    = "compute"
+        Subcomponent = "ebs-volume"
       }
     )
   }
@@ -124,7 +129,7 @@ resource "aws_eks_node_group" "main" {
 
   instance_types = var.node_instance_types
   capacity_type  = var.node_capacity_type
-  disk_size      = null  # Disk size is managed by launch template
+  disk_size      = null # Disk size is managed by launch template
 
   labels = {
     role        = "general"
@@ -144,9 +149,11 @@ resource "aws_eks_node_group" "main" {
   tags = merge(
     var.tags,
     {
-      Name = "${var.cluster_name}-node-group"
+      Name                                            = "${var.cluster_name}-node-group"
+      Component                                       = "compute"
+      Subcomponent                                    = "eks-node-group"
       "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
-      "k8s.io/cluster-autoscaler/enabled" = "true"
+      "k8s.io/cluster-autoscaler/enabled"             = "true"
     }
   )
 

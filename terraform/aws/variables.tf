@@ -26,11 +26,22 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 }
 
+variable "az_count" {
+  description = "Number of availability zones to use (1-3). Use 1 for dev to reduce costs."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.az_count >= 1 && var.az_count <= 3
+    error_message = "az_count must be between 1 and 3"
+  }
+}
+
 # EKS Configuration
 variable "eks_cluster_version" {
   description = "Kubernetes version for EKS cluster"
   type        = string
-  default     = "1.31"  # EKS API accepts X.Y format (e.g., 1.31)
+  default     = "1.31" # EKS API accepts X.Y format (e.g., 1.31)
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.eks_cluster_version))
@@ -60,6 +71,23 @@ variable "node_max_size" {
   description = "Maximum number of worker nodes for autoscaling"
   type        = number
   default     = 4
+}
+
+variable "node_capacity_type" {
+  description = "Capacity type for EKS managed node group (ON_DEMAND or SPOT). SPOT provides 70% cost savings but instances may be interrupted."
+  type        = string
+  default     = "ON_DEMAND"
+
+  validation {
+    condition     = contains(["ON_DEMAND", "SPOT"], var.node_capacity_type)
+    error_message = "node_capacity_type must be either ON_DEMAND or SPOT"
+  }
+}
+
+variable "enable_vpc_endpoints" {
+  description = "Enable VPC endpoints for AWS services (S3, ECR) to reduce NAT Gateway data transfer costs"
+  type        = bool
+  default     = true
 }
 
 variable "cluster_endpoint_public_access_cidrs" {
@@ -98,7 +126,7 @@ variable "service_account_name" {
 variable "rds_postgres_version" {
   description = "PostgreSQL version"
   type        = string
-  default     = "15.14"  # Current running version (cannot downgrade from 15.14 to 15.4)
+  default     = "15.14" # Current running version (cannot downgrade from 15.14 to 15.4)
 }
 
 variable "rds_instance_class" {

@@ -72,12 +72,26 @@ s3_enable_intelligent_tiering   = true # Automatic cost optimization
 
 # Additional Tags
 tags = {
-  CostCenter = "operations"
-  Team       = "platform"
-  Purpose    = "production"
-  Compliance = "required"
-  Backup     = "daily"
-  Monitoring = "24x7"
+  # Existing tags
+  Project     = "fineract"
+  Environment = "production"
+  ManagedBy   = "terraform"
+  Repository  = "fineract-gitops"
+  Migration   = "k3s-to-eks"
+  CostCenter  = "operations"
+  Team        = "platform"
+  Purpose     = "production"
+  Compliance  = "required"
+  Backup      = "daily"
+  Monitoring  = "24x7"
+
+  # NEW: Additional cost tracking tags
+  Owner       = "platform-team"
+  Component   = "production"
+  Workload    = "production"
+  Criticality = "high"
+  SLA         = "99.9"
+  BillingCode = "PROD-001"
 }
 
 # Estimated Monthly Cost: ~$600-700

@@ -52,6 +52,7 @@ spec:
         fineract.instance.type: batch
     spec:
       serviceAccountName: fineract-aws
+      priorityClassName: fineract-high
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -339,11 +340,11 @@ spec:
 
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "512Mi"
+            cpu: "300m"
           limits:
-            memory: "2Gi"
-            cpu: "2000m"
+            memory: "1536Mi"
+            cpu: "1000m"
 
         livenessProbe:
           httpGet:

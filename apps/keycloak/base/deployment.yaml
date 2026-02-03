@@ -35,6 +35,7 @@ spec:
                 matchLabels:
                   app: keycloak
               topologyKey: kubernetes.io/hostname
+      priorityClassName: fineract-critical
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -157,11 +158,11 @@ spec:
 
         resources:
           requests:
-            memory: "384Mi"
-            cpu: "200m"
+            memory: "256Mi"
+            cpu: "150m"
           limits:
-            memory: "768Mi"
-            cpu: "500m"
+            memory: "512Mi"
+            cpu: "400m"
 
         livenessProbe:
           httpGet:
