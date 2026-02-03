@@ -387,6 +387,7 @@ clients:
     # Bind custom WebAuthn passwordless authentication flow
     authenticationFlowBindingOverrides:
       browser: self-service-browser
+      resetCredentials: self-service-reset-credentials
 
     # Protocol Mappers for self-service specific claims
     protocolMappers:
@@ -658,9 +659,9 @@ authenticationFlows:
         requirement: ALTERNATIVE
         priority: 20
 
-  # Sub-flow for username + 2FA (WebAuthn or OTP)
+  # Sub-flow for username + 2FA (WebAuthn, Email OTP, or TOTP)
   - alias: self-service-passwordless-forms
-    description: Username form followed by 2FA authentication (WebAuthn or OTP)
+    description: Username form followed by 2FA authentication (WebAuthn, Email OTP, or TOTP)
     providerId: basic-flow
     topLevel: false
     builtIn: false
@@ -670,16 +671,16 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: REQUIRED
         priority: 10
-      # 2FA options sub-flow (WebAuthn OR OTP)
+      # 2FA options sub-flow (WebAuthn, Email OTP, or TOTP)
       - flowAlias: self-service-2fa-options
         authenticatorFlow: true
         requirement: REQUIRED
         priority: 20
 
-  # Sub-flow for 2FA options - WebAuthn (primary) or OTP (fallback)
+  # Sub-flow for 2FA options - WebAuthn (primary) or Email OTP (quick recovery)
   # This provides account recovery for customers who lose their WebAuthn device
   - alias: self-service-2fa-options
-    description: WebAuthn or OTP authentication for self-service customers
+    description: WebAuthn or Email OTP authentication for self-service customers
     providerId: basic-flow
     topLevel: false
     builtIn: false
@@ -689,11 +690,54 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: ALTERNATIVE
         priority: 10
-      # OTP fallback (for device recovery)
-      - authenticator: auth-otp-form
+      # Email OTP (quick recovery - sent to email, no pre-setup required)
+      - authenticator: auth-email-otp-form
         authenticatorFlow: false
         requirement: ALTERNATIVE
+        priority: 15
+
+  # Reset Credentials Flow - Email-based credential reset for lost/stolen devices
+  # This flow allows users to reset their authentication via email verification
+  # Users will need to re-register their WebAuthn device after successful reset
+  - alias: self-service-reset-credentials
+    description: Reset credentials for self-service customers via email verification
+    providerId: basic-flow
+    topLevel: true
+    builtIn: false
+    authenticationExecutions:
+      # Check for existing session cookie first
+      - authenticator: auth-cookie
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      # Reset credentials via email sub-flow
+      - flowAlias: self-service-reset-credentials-email
+        authenticatorFlow: true
+        requirement: ALTERNATIVE
         priority: 20
+
+  # Reset Credentials Email Sub-flow
+  - alias: self-service-reset-credentials-email
+    description: Reset credentials using email verification
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      # Username input
+      - authenticator: auth-username-form
+        authenticatorFlow: false
+        requirement: REQUIRED
+        priority: 10
+      # Email verification
+      - authenticator: auth-email-otp-form
+        authenticatorFlow: false
+        requirement: REQUIRED
+        priority: 20
+      # Update password (even though not used, required by Keycloak)
+      - authenticator: update-password
+        authenticatorFlow: false
+        requirement: REQUIRED
+        priority: 30
 
 # Required Actions (Configured for First Login Flow)
 requiredActions:
@@ -726,19 +770,12 @@ requiredActions:
     defaultAction: false  # Set by registration service for new customers
     priority: 35
 
-  - alias: CONFIGURE_TOTP
-    name: Configure OTP
-    providerId: CONFIGURE_TOTP
-    enabled: true
-    defaultAction: false  # Optional fallback
-    priority: 40
-
   - alias: UPDATE_PROFILE
     name: Update Profile
     providerId: UPDATE_PROFILE
     enabled: true
     defaultAction: false
-    priority: 50
+    priority: 40
 
 # SMTP Configuration (Email - Webank Branding)
 smtpServer:
@@ -837,6 +874,10 @@ attributes:
   webAuthnPolicyPasswordlessCreateTimeout: 60
   webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister: false
   webAuthnPolicyPasswordlessAcceptableAaguids: '[]'
+
+  # Email OTP Configuration (Passwordless recovery)
+  # Note: These are security settings for email-based OTP authentication
+  otpPolicyEmailEnabled: "true"
 
 # Service Account Users - Role Assignments
 # These service accounts are automatically created by Keycloak when clients have
