@@ -1,0 +1,59 @@
+# ==============================================================================
+# Base Kustomization for GCP Environments
+# ==============================================================================
+# This base configuration contains common resources for GCP deployments.
+# Environment-specific overlays (dev-gcp/uat-gcp/production-gcp) inherit from this.
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: fineract-base-gcp
+
+# Common Resources
+resources:
+  # Fineract application base
+  - ../../apps/fineract/base
+
+# Common Image Versions for GCP
+images:
+  # Apache Fineract - Core Banking Platform
+  - name: apache/fineract
+    newName: apache/fineract
+    newTag: "1.12.1"
+
+  # Keycloak - Identity and Access Management
+  - name: quay.io/keycloak/keycloak
+    newName: quay.io/keycloak/keycloak
+    newTag: "26.4.0"
+
+  # OAuth2 Proxy - Authentication Gateway
+  - name: quay.io/oauth2-proxy/oauth2-proxy
+    newName: quay.io/oauth2-proxy/oauth2-proxy
+    newTag: "v7.13.0"
+
+  # Redis - Session Storage
+  - name: redis
+    newName: redis
+    newTag: "7.2-alpine"
+
+  # Utility Images
+  - name: postgres
+    newName: postgres
+    newTag: "15-alpine"
+
+  - name: bitnami/kubectl
+    newName: registry.k8s.io/kubectl
+    newTag: "v1.28.15"
+
+# Common Labels for GCP
+commonLabels:
+  provider: gcp-managed
+  infrastructure: gcp
+  managed-by: argocd
+
+# Common Annotations for GCP
+commonAnnotations:
+  provider-type: "gcp-managed"
+  deployment-profile: "gcp-managed-services"
+  terraform-required: "true"

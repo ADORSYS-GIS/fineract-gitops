@@ -4,31 +4,44 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+metadata:
+  name: fineract-dev-gcp
+
 namespace: fineract-dev
 
-# Base resources
+# Inherit common GCP configuration from base
 resources:
-  - ../../apps/fineract/base
-  - ../../infrastructure/storage/storageclass-gcp.yaml
+  - ../base-gcp
   - namespace.yaml
+  - serviceaccount-gcp.yaml
 
-# GCP-specific patches
+# GCP-specific patches for deployments
 patches:
-  - path: patches/serviceaccount-patch.yaml
+  # Update deployments to use GCP service account and Cloud SQL Proxy
   - path: patches/deployment-env-patch.yaml
 
-# ConfigMap replacements
+# Override image for dev (use develop tag for testing)
+images:
+  - name: apache/fineract
+    newName: apache/fineract
+    newTag: "develop"
+
+# ConfigMap with GCP-specific configuration
 configMapGenerator:
   - name: fineract-gcp-config
     behavior: create
     literals:
       - CLOUD_PROVIDER=gcp
-      - GCP_PROJECT_ID=fineract-dev-project
+      - GCP_PROJECT_ID=fineract-486415
       - GCP_REGION=us-central1
       - STORAGE_CLASS=pd-balanced
 
-# Common labels
+# Dev-specific labels
 commonLabels:
   environment: dev
   cloud: gcp
-  managed-by: kustomize
+
+# Dev-specific annotations
+commonAnnotations:
+  environment: development
+  auto-sync: "enabled"
