@@ -6,420 +6,253 @@ metadata:
     app: keycloak
     component: theme
 data:
-  # Theme root configuration
-  theme.properties: |
-    # Webank Theme Configuration
+  theme.properties: '# Webank Theme Configuration
+
     # Professional Banking Theme for Keycloak
 
+
     parent=keycloak
+
     import=common/keycloak
 
+
     # Theme Metadata
+
     name=Webank Banking Theme
+
     version=1.0.0
+
     author=Webank Platform Team
+
     description=Professional banking theme with WebAuthn support
 
+
     # Feature Flags
+
     locales=en,fr
+
     accountResourceProvider=false
 
+
     # Styling
+
     styles=css/webank.css
 
-  # Login template
-  login-template.ftl: |
-    <#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <meta name="robots" content="noindex, nofollow">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    '
+  login-template.ftl: "<#macro registrationLayout bodyClass=\"\" displayInfo=false\
+    \ displayMessage=true displayRequiredFields=false>\n<!DOCTYPE html>\n<html lang=\"\
+    en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"Content-Type\"\
+    \ content=\"text/html; charset=UTF-8\" />\n    <meta name=\"robots\" content=\"\
+    noindex, nofollow\">\n    <meta name=\"viewport\" content=\"width=device-width,\
+    \ initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n\n    <#if properties.meta?has_content>\n\
+    \        <#list properties.meta?split(' ') as meta>\n            <meta name=\"\
+    ${meta?split('==')[0]}\" content=\"${meta?split('==')[1]}\"/>\n        </#list>\n\
+    \    </#if>\n\n    <title>${msg(\"loginTitle\",(realm.displayName!''))}</title>\n\
+    \n    <link rel=\"icon\" type=\"image/x-icon\" href=\"${url.resourcesPath}/img/favicon.ico\"\
+    >\n\n    <#if properties.stylesCommon?has_content>\n        <#list properties.stylesCommon?split('\
+    \ ') as style>\n            <link href=\"${url.resourcesCommonPath}/${style}\"\
+    \ rel=\"stylesheet\" />\n        </#list>\n    </#if>\n    <#if properties.styles?has_content>\n\
+    \        <#list properties.styles?split(' ') as style>\n            <link href=\"\
+    ${url.resourcesPath}/${style}\" rel=\"stylesheet\" />\n        </#list>\n    </#if>\n\
+    \    <#if properties.scripts?has_content>\n        <#list properties.scripts?split('\
+    \ ') as script>\n            <script src=\"${url.resourcesPath}/${script}\" type=\"\
+    text/javascript\"></script>\n        </#list>\n    </#if>\n    <#if scripts??>\n\
+    \        <#list scripts as script>\n            <script src=\"${script}\" type=\"\
+    text/javascript\"></script>\n        </#list>\n    </#if>\n\n    <style>\n   \
+    \     /* Additional inline styles for immediate rendering */\n        body {\n\
+    \            margin: 0;\n            padding: 0;\n        }\n    </style>\n</head>\n\
+    \n<body class=\"${properties.kcBodyClass!}\">\n<div id=\"kc-container\" class=\"\
+    ${properties.kcContainerClass!}\">\n    <div id=\"kc-container-wrapper\" class=\"\
+    ${properties.kcContainerWrapperClass!}\">\n\n        <#-- Header / Logo Section\
+    \ -->\n        <div id=\"kc-header\" class=\"${properties.kcHeaderClass!}\">\n\
+    \            <div id=\"kc-header-wrapper\"\n                 class=\"${properties.kcHeaderWrapperClass!}\"\
+    >\n                <div class=\"kc-logo-text\">\n                    WEBANK\n\
+    \                </div>\n                <div style=\"font-size: 14px; color:\
+    \ #6c757d; margin-top: 8px;\">\n                    Secure Banking Platform\n\
+    \                </div>\n            </div>\n        </div>\n\n        <#-- Main\
+    \ Content -->\n        <div id=\"kc-content\">\n            <div id=\"kc-content-wrapper\"\
+    >\n\n                <#-- Display Messages (Errors, Warnings, Info) -->\n    \
+    \            <#if displayMessage && message?has_content && (message.type != 'warning'\
+    \ || !isAppInitiatedAction??)>\n                    <div class=\"alert alert-${message.type}\"\
+    >\n                        <#if message.type = 'success'><span class=\"kc-feedback-text\"\
+    >${kcSanitize(message.summary)?no_esc}</span></#if>\n                        <#if\
+    \ message.type = 'warning'><span class=\"kc-feedback-text\">${kcSanitize(message.summary)?no_esc}</span></#if>\n\
+    \                        <#if message.type = 'error'><span class=\"kc-feedback-text\"\
+    >${kcSanitize(message.summary)?no_esc}</span></#if>\n                        <#if\
+    \ message.type = 'info'><span class=\"kc-feedback-text\">${kcSanitize(message.summary)?no_esc}</span></#if>\n\
+    \                    </div>\n                </#if>\n\n                <#-- Page\
+    \ Header (from child templates) -->\n                <#nested \"header\">\n\n\
+    \                <#-- Main Form Content (from child templates) -->\n         \
+    \       <#nested \"form\">\n\n                <#-- Social Providers (from child\
+    \ templates) -->\n                <#nested \"socialProviders\">\n\n          \
+    \      <#-- Info Section (from child templates) -->\n                <#if displayInfo>\n\
+    \                    <#nested \"info\">\n                </#if>\n\n          \
+    \  </div>\n        </div>\n\n        <#-- Footer / Security Badge -->\n      \
+    \  <div id=\"kc-info\" class=\"${properties.kcSignUpClass!}\">\n            <div\
+    \ id=\"kc-info-wrapper\" class=\"${properties.kcInfoAreaWrapperClass!}\">\n  \
+    \              <div class=\"security-badge\">\n                    Protected by\
+    \ bank-level security\n                </div>\n                <div style=\"margin-top:\
+    \ 16px; font-size: 12px;\">\n                    \xA9 ${.now?string('yyyy')} Webank.\
+    \ All rights reserved.\n                </div>\n            </div>\n        </div>\n\
+    \n    </div>\n</div>\n</body>\n</html>\n</#macro>\n"
+  login-login.ftl: "<#import \"template.ftl\" as layout>\n<@layout.registrationLayout\
+    \ displayMessage=!messagesPerField.existsError('username','password') displayInfo=realm.password\
+    \ && realm.registrationAllowed && !registrationDisabled??; section>\n    <#if\
+    \ section = \"header\">\n        ${msg(\"loginAccountTitle\")}\n    <#elseif section\
+    \ = \"form\">\n    <div id=\"kc-form\">\n      <div id=\"kc-form-wrapper\">\n\
+    \        <#if realm.password>\n            <form id=\"kc-form-login\" onsubmit=\"\
+    login.disabled = true; return true;\" action=\"${url.loginAction}\" method=\"\
+    post\">\n                <#if !usernameHidden??>\n                    <div class=\"\
+    form-group\">\n                        <label for=\"username\" class=\"${properties.kcLabelClass!}\"\
+    >\n                            <#if !realm.loginWithEmailAllowed>${msg(\"username\"\
+    )}<#elseif !realm.registrationEmailAsUsername>${msg(\"usernameOrEmail\")}<#else>${msg(\"\
+    email\")}</#if>\n                        </label>\n\n                        <input\
+    \ tabindex=\"1\" id=\"username\" class=\"${properties.kcInputClass!}\" name=\"\
+    username\" value=\"${(login.username!'')}\"  type=\"text\" autofocus autocomplete=\"\
+    username\"\n                               aria-invalid=\"<#if messagesPerField.existsError('username','password')>true</#if>\"\
+    \n                        />\n\n                        <#if messagesPerField.existsError('username','password')>\n\
+    \                            <span id=\"input-error\" class=\"${properties.kcInputErrorMessageClass!}\"\
+    \ aria-live=\"polite\">\n                                    ${kcSanitize(messagesPerField.getFirstError('username','password'))?no_esc}\n\
+    \                            </span>\n                        </#if>\n\n     \
+    \               </div>\n                </#if>\n\n                <div class=\"\
+    form-group\">\n                    <label for=\"password\" class=\"${properties.kcLabelClass!}\"\
+    >${msg(\"password\")}</label>\n                    <input tabindex=\"2\" id=\"\
+    password\" class=\"${properties.kcInputClass!}\" name=\"password\" type=\"password\"\
+    \ autocomplete=\"current-password\"\n                           aria-invalid=\"\
+    <#if messagesPerField.existsError('username','password')>true</#if>\"\n      \
+    \              />\n\n                    <#if usernameHidden?? && messagesPerField.existsError('username','password')>\n\
+    \                        <span id=\"input-error\" class=\"${properties.kcInputErrorMessageClass!}\"\
+    \ aria-live=\"polite\">\n                                ${kcSanitize(messagesPerField.getFirstError('username','password'))?no_esc}\n\
+    \                        </span>\n                    </#if>\n\n             \
+    \   </div>\n\n                <div class=\"${properties.kcFormGroupClass!} ${properties.kcFormSettingsClass!}\"\
+    >\n                    <div id=\"kc-form-options\">\n                        <#if\
+    \ realm.rememberMe && !usernameHidden??>\n                            <div class=\"\
+    checkbox\">\n                                <label>\n                       \
+    \             <#if login.rememberMe??>\n                                     \
+    \   <input tabindex=\"3\" id=\"rememberMe\" name=\"rememberMe\" type=\"checkbox\"\
+    \ checked> ${msg(\"rememberMe\")}\n                                    <#else>\n\
+    \                                        <input tabindex=\"3\" id=\"rememberMe\"\
+    \ name=\"rememberMe\" type=\"checkbox\"> ${msg(\"rememberMe\")}\n            \
+    \                        </#if>\n                                </label>\n  \
+    \                          </div>\n                        </#if>\n          \
+    \              </div>\n                        <div class=\"${properties.kcFormOptionsWrapperClass!}\"\
+    >\n                            <#if realm.resetPasswordAllowed>\n            \
+    \                    <span><a tabindex=\"5\" href=\"${url.loginResetCredentialsUrl}\"\
+    >${msg(\"doForgotPassword\")}</a></span>\n                            </#if>\n\
+    \                        </div>\n\n                  </div>\n\n              \
+    \    <div id=\"kc-form-buttons\" class=\"${properties.kcFormGroupClass!}\">\n\
+    \                      <input type=\"hidden\" id=\"id-hidden-input\" name=\"credentialId\"\
+    \ <#if auth.selectedCredential?has_content>value=\"${auth.selectedCredential}\"\
+    </#if>/>\n                      <input tabindex=\"4\" class=\"${properties.kcButtonClass!}\
+    \ ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}\"\
+    \ name=\"login\" id=\"kc-login\" type=\"submit\" value=\"${msg(\"doLogIn\")}\"\
+    />\n                  </div>\n            </form>\n        </#if>\n        </div>\n\
+    \n      </div>\n    <#elseif section = \"info\" >\n        <#if realm.password\
+    \ && realm.registrationAllowed && !registrationDisabled??>\n            <div id=\"\
+    kc-registration-container\">\n                <div id=\"kc-registration\">\n \
+    \                   <span>${msg(\"noAccount\")} <a tabindex=\"6\"\n          \
+    \                                       href=\"${url.registrationUrl}\">${msg(\"\
+    doRegister\")}</a></span>\n                </div>\n            </div>\n      \
+    \  </#if>\n    <#elseif section = \"socialProviders\" >\n        <#if realm.password\
+    \ && social.providers??>\n            <div id=\"kc-social-providers\" class=\"\
+    ${properties.kcFormSocialAccountSectionClass!}\">\n                <hr/>\n   \
+    \             <h4>${msg(\"identity-provider-login-label\")}</h4>\n\n         \
+    \       <ul class=\"${properties.kcFormSocialAccountListClass!} <#if social.providers?size\
+    \ gt 3>${properties.kcFormSocialAccountListGridClass!}</#if>\">\n            \
+    \        <#list social.providers as p>\n                        <a id=\"social-${p.alias}\"\
+    \ class=\"${properties.kcFormSocialAccountListButtonClass!} <#if social.providers?size\
+    \ gt 3>${properties.kcFormSocialAccountGridItem!}</#if>\"\n                  \
+    \              type=\"button\" href=\"${p.loginUrl}\">\n                     \
+    \       <#if p.iconClasses?has_content>\n                                <i class=\"\
+    ${properties.kcCommonLogoIdP!} ${p.iconClasses!}\" aria-hidden=\"true\"></i>\n\
+    \                                <span class=\"${properties.kcFormSocialAccountNameClass!}\
+    \ kc-social-icon-text\">${p.displayName!}</span>\n                           \
+    \ <#else>\n                                <span class=\"${properties.kcFormSocialAccountNameClass!}\"\
+    >${p.displayName!}</span>\n                            </#if>\n              \
+    \          </a>\n                    </#list>\n                </ul>\n       \
+    \     </div>\n        </#if>\n    </#if>\n\n</@layout.registrationLayout>\n"
+  messages_en.properties: '# Webank Theme - English Messages
 
-        <#if properties.meta?has_content>
-            <#list properties.meta?split(' ') as meta>
-                <meta name="${meta?split('==')[0]}" content="${meta?split('==')[1]}"/>
-            </#list>
-        </#if>
-
-        <title>${msg("loginTitle",(realm.displayName!''))}</title>
-
-        <link rel="icon" type="image/x-icon" href="${url.resourcesPath}/img/favicon.ico">
-
-        <#if properties.stylesCommon?has_content>
-            <#list properties.stylesCommon?split(' ') as style>
-                <link href="${url.resourcesCommonPath}/${style}" rel="stylesheet" />
-            </#list>
-        </#if>
-        <#if properties.styles?has_content>
-            <#list properties.styles?split(' ') as style>
-                <link href="${url.resourcesPath}/${style}" rel="stylesheet" />
-            </#list>
-        </#if>
-        <#if properties.scripts?has_content>
-            <#list properties.scripts?split(' ') as script>
-                <script src="${url.resourcesPath}/${script}" type="text/javascript"></script>
-            </#list>
-        </#if>
-        <#if scripts??>
-            <#list scripts as script>
-                <script src="${script}" type="text/javascript"></script>
-            </#list>
-        </#if>
-
-        <style>
-            /* Additional inline styles for immediate rendering */
-            body {
-                margin: 0;
-                padding: 0;
-            }
-        </style>
-    </head>
-
-    <body class="${properties.kcBodyClass!}">
-    <div id="kc-container" class="${properties.kcContainerClass!}">
-        <div id="kc-container-wrapper" class="${properties.kcContainerWrapperClass!}">
-
-            <#-- Header / Logo Section -->
-            <div id="kc-header" class="${properties.kcHeaderClass!}">
-                <div id="kc-header-wrapper"
-                     class="${properties.kcHeaderWrapperClass!}">
-                    <div class="kc-logo-text">
-                        WEBANK
-                    </div>
-                    <div style="font-size: 14px; color: #6c757d; margin-top: 8px;">
-                        Secure Banking Platform
-                    </div>
-                </div>
-            </div>
-
-            <#-- Main Content -->
-            <div id="kc-content">
-                <div id="kc-content-wrapper">
-
-                    <#-- Display Messages (Errors, Warnings, Info) -->
-                    <#if displayMessage && message?has_content && (message.type != 'warning' || !isAppInitiatedAction??)>
-                        <div class="alert alert-${message.type}">
-                            <#if message.type = 'success'><span class="kc-feedback-text">${kcSanitize(message.summary)?no_esc}</span></#if>
-                            <#if message.type = 'warning'><span class="kc-feedback-text">${kcSanitize(message.summary)?no_esc}</span></#if>
-                            <#if message.type = 'error'><span class="kc-feedback-text">${kcSanitize(message.summary)?no_esc}</span></#if>
-                            <#if message.type = 'info'><span class="kc-feedback-text">${kcSanitize(message.summary)?no_esc}</span></#if>
-                        </div>
-                    </#if>
-
-                    <#-- Page Header (from child templates) -->
-                    <#nested "header">
-
-                    <#-- Main Form Content (from child templates) -->
-                    <#nested "form">
-
-                    <#-- Social Providers (from child templates) -->
-                    <#nested "socialProviders">
-
-                    <#-- Info Section (from child templates) -->
-                    <#if displayInfo>
-                        <#nested "info">
-                    </#if>
-
-                </div>
-            </div>
-
-            <#-- Footer / Security Badge -->
-            <div id="kc-info" class="${properties.kcSignUpClass!}">
-                <div id="kc-info-wrapper" class="${properties.kcInfoAreaWrapperClass!}">
-                    <div class="security-badge">
-                        Protected by bank-level security
-                    </div>
-                    <div style="margin-top: 16px; font-size: 12px;">
-                        © ${.now?string('yyyy')} Webank. All rights reserved.
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-    </body>
-    </html>
-    </#macro>
-
-  # Login page
-  login-login.ftl: |
-    <#import "template.ftl" as layout>
-    <@layout.registrationLayout displayMessage=!messagesPerField.existsError('username','password') displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??; section>
-        <#if section = "header">
-            ${msg("loginAccountTitle")}
-        <#elseif section = "form">
-        <div id="kc-form">
-          <div id="kc-form-wrapper">
-            <#if realm.password>
-                <form id="kc-form-login" onsubmit="login.disabled = true; return true;" action="${url.loginAction}" method="post">
-                    <#if !usernameHidden??>
-                        <div class="form-group">
-                            <label for="username" class="${properties.kcLabelClass!}">
-                                <#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if>
-                            </label>
-
-                            <input tabindex="1" id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}"  type="text" autofocus autocomplete="username"
-                                   aria-invalid="<#if messagesPerField.existsError('username','password')>true</#if>"
-                            />
-
-                            <#if messagesPerField.existsError('username','password')>
-                                <span id="input-error" class="${properties.kcInputErrorMessageClass!}" aria-live="polite">
-                                        ${kcSanitize(messagesPerField.getFirstError('username','password'))?no_esc}
-                                </span>
-                            </#if>
-
-                        </div>
-                    </#if>
-
-                    <div class="form-group">
-                        <label for="password" class="${properties.kcLabelClass!}">${msg("password")}</label>
-                        <input tabindex="2" id="password" class="${properties.kcInputClass!}" name="password" type="password" autocomplete="current-password"
-                               aria-invalid="<#if messagesPerField.existsError('username','password')>true</#if>"
-                        />
-
-                        <#if usernameHidden?? && messagesPerField.existsError('username','password')>
-                            <span id="input-error" class="${properties.kcInputErrorMessageClass!}" aria-live="polite">
-                                    ${kcSanitize(messagesPerField.getFirstError('username','password'))?no_esc}
-                            </span>
-                        </#if>
-
-                    </div>
-
-                    <div class="${properties.kcFormGroupClass!} ${properties.kcFormSettingsClass!}">
-                        <div id="kc-form-options">
-                            <#if realm.rememberMe && !usernameHidden??>
-                                <div class="checkbox">
-                                    <label>
-                                        <#if login.rememberMe??>
-                                            <input tabindex="3" id="rememberMe" name="rememberMe" type="checkbox" checked> ${msg("rememberMe")}
-                                        <#else>
-                                            <input tabindex="3" id="rememberMe" name="rememberMe" type="checkbox"> ${msg("rememberMe")}
-                                        </#if>
-                                    </label>
-                                </div>
-                            </#if>
-                            </div>
-                            <div class="${properties.kcFormOptionsWrapperClass!}">
-                                <#if realm.resetPasswordAllowed>
-                                    <span><a tabindex="5" href="${url.loginResetCredentialsUrl}">${msg("doForgotPassword")}</a></span>
-                                </#if>
-                            </div>
-
-                      </div>
-
-                      <div id="kc-form-buttons" class="${properties.kcFormGroupClass!}">
-                          <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
-                          <input tabindex="4" class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}" name="login" id="kc-login" type="submit" value="${msg("doLogIn")}"/>
-                      </div>
-                </form>
-            </#if>
-            </div>
-
-          </div>
-        <#elseif section = "info" >
-            <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
-                <div id="kc-registration-container">
-                    <div id="kc-registration">
-                        <span>${msg("noAccount")} <a tabindex="6"
-                                                     href="${url.registrationUrl}">${msg("doRegister")}</a></span>
-                    </div>
-                </div>
-            </#if>
-        <#elseif section = "socialProviders" >
-            <#if realm.password && social.providers??>
-                <div id="kc-social-providers" class="${properties.kcFormSocialAccountSectionClass!}">
-                    <hr/>
-                    <h4>${msg("identity-provider-login-label")}</h4>
-
-                    <ul class="${properties.kcFormSocialAccountListClass!} <#if social.providers?size gt 3>${properties.kcFormSocialAccountListGridClass!}</#if>">
-                        <#list social.providers as p>
-                            <a id="social-${p.alias}" class="${properties.kcFormSocialAccountListButtonClass!} <#if social.providers?size gt 3>${properties.kcFormSocialAccountGridItem!}</#if>"
-                                    type="button" href="${p.loginUrl}">
-                                <#if p.iconClasses?has_content>
-                                    <i class="${properties.kcCommonLogoIdP!} ${p.iconClasses!}" aria-hidden="true"></i>
-                                    <span class="${properties.kcFormSocialAccountNameClass!} kc-social-icon-text">${p.displayName!}</span>
-                                <#else>
-                                    <span class="${properties.kcFormSocialAccountNameClass!}">${p.displayName!}</span>
-                                </#if>
-                            </a>
-                        </#list>
-                    </ul>
-                </div>
-            </#if>
-        </#if>
-
-    </@layout.registrationLayout>
-
-  # WebAuthn Authentication page
-  login-webauthn-authenticate.ftl: |
-    <#import "template.ftl" as layout>
-    <@layout.registrationLayout displayInfo=false; section>
-        <#if section = "header">
-            ${msg("webauthn-login-title")}
-        <#elseif section = "form">
-            <div class="webauthn-container">
-                <div class="webauthn-header">
-                    <h2 style="color: var(--webank-primary); margin-bottom: 8px;">
-                        Sign in with your device
-                    </h2>
-                    <p style="color: var(--webank-gray-600); margin-bottom: 24px;">
-                        Use your registered device for secure, passwordless authentication.
-                    </p>
-                </div>
-
-                <div id="kc-form-webauthn" class="${properties.kcFormClass!}">
-                    <form id="webauth" action="${url.loginAction}" method="post">
-                        <input type="hidden" id="clientDataJSON" name="clientDataJSON"/>
-                        <input type="hidden" id="authenticatorData" name="authenticatorData"/>
-                        <input type="hidden" id="signature" name="signature"/>
-                        <input type="hidden" id="credentialId" name="credentialId"/>
-                        <input type="hidden" id="userHandle" name="userHandle"/>
-                        <input type="hidden" id="error" name="error"/>
-                    </form>
-
-                    <div class="${properties.kcFormGroupClass!} no-bottom-margin">
-                        <#if authenticators??>
-                            <form id="authn_select" class="${properties.kcFormClass!}">
-                                <#list authenticators.authenticators as authenticator>
-                                    <input type="hidden" name="authn_use_chk" value="${authenticator.credentialId}"/>
-                                </#list>
-                            </form>
-
-                            <#if shouldDisplayAuthenticators?? && shouldDisplayAuthenticators>
-                                <#if authenticators.authenticators?size gt 1>
-                                    <p class="${properties.kcSelectAuthListItemTitle!}" style="color: var(--webank-gray-700); font-weight: 600; margin-bottom: 16px;">
-                                        ${msg("webauthn-available-authenticators")}
-                                    </p>
-                                </#if>
-
-                                <div class="webauthn-authenticators-list">
-                                    <#list authenticators.authenticators as authenticator>
-                                        <div id="kc-webauthn-authenticator-item-${authenticator?index}" class="webauthn-authenticator-item">
-                                            <div class="webauthn-authenticator-icon">
-                                                <i class="${(properties['${authenticator.transports.iconClass}'])!'fa fa-shield-halved'} ${properties.kcSelectAuthListItemIconPropertyClass!}"></i>
-                                            </div>
-                                            <div class="webauthn-authenticator-details">
-                                                <div id="kc-webauthn-authenticator-label-${authenticator?index}"
-                                                     class="webauthn-authenticator-label">
-                                                    ${authenticator.label}
-                                                </div>
-
-                                                <#if authenticator.transports?? && authenticator.transports.displayNameProperties?has_content>
-                                                    <div id="kc-webauthn-authenticator-transport-${authenticator?index}"
-                                                         class="webauthn-authenticator-transport">
-                                                        <#list authenticator.transports.displayNameProperties as nameProperty>
-                                                            <span>${msg(nameProperty)}</span>
-                                                            <#if nameProperty?has_next>
-                                                                <span>, </span>
-                                                            </#if>
-                                                        </#list>
-                                                    </div>
-                                                </#if>
-
-                                                <div class="webauthn-authenticator-created">
-                                                    <span id="kc-webauthn-authenticator-createdlabel-${authenticator?index}">
-                                                        ${msg('webauthn-createdAt-label')}
-                                                    </span>
-                                                    <span id="kc-webauthn-authenticator-created-${authenticator?index}">
-                                                        ${authenticator.createdAt}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="webauthn-authenticator-fill"></div>
-                                        </div>
-                                    </#list>
-                                </div>
-                            </#if>
-                        </#if>
-
-                        <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}" style="margin-top: 24px;">
-                            <input id="authenticateWebAuthnButton" type="button" autofocus="autofocus"
-                                   value="${msg("webauthn-doAuthenticate")}"
-                                   class="btn btn-primary btn-block btn-large"/>
-                        </div>
-                    </div>
-
-                    <#if isSetRetry?has_content>
-                        <div class="alert alert-error" style="margin-top: 24px;">
-                            ${kcSanitize(msg("webauthnLoginError"))?no_esc}
-                        </div>
-                    </#if>
-
-                    <div class="lost-device-link" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--webank-gray-200); text-align: center;">
-                        <a tabindex="6" href="${url.loginResetCredentialsUrl}" style="color: var(--webank-primary); text-decoration: none; font-size: 14px;">
-                            ${msg("doLostDevice")}
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <script type="module">
-                <#outputformat "JavaScript">
-                import { authenticateByWebAuthn } from "${url.resourcesPath}/js/webauthnAuthenticate.js";
-                const authButton = document.getElementById('authenticateWebAuthnButton');
-                authButton.addEventListener("click", function() {
-                    const input = {
-                            isUserIdentified : ${isUserIdentified},
-                            challenge : ${challenge?c},
-                            userVerification : ${userVerification?c},
-                            rpId : ${rpId?c},
-                            createTimeout : ${createTimeout?c},
-                            errmsg : ${msg("webauthn-unsupported-browser-text")?c}
-                        };
-                    authenticateByWebAuthn(input);
-                }, { once: true });
-                </#outputformat>
-            </script>
-        </#if>
-    </@layout.registrationLayout>
-
-  # Messages
-  messages_en.properties: |
-    # Webank Theme - English Messages
 
     # Login Page
+
     loginAccountTitle=Sign in to Webank
+
     usernameOrEmail=Username or Email
+
     doLogIn=Sign In
+
     doForgotPassword=Forgot Password?
-    noAccount=Don't have an account?
+
+    noAccount=Don''t have an account?
+
     doRegister=Contact your administrator
 
+
     # Password Update
+
     updatePasswordTitle=Update Your Password
+
     passwordNew=New Password
+
     passwordConfirm=Confirm New Password
+
     doSubmit=Continue
+
     logoutOtherSessions=Sign out from all other devices
 
+
     # WebAuthn
+
     webauthnRegisterTitle=Register Your Device
+
     webauthnRegister=Register Device
+
     webauthnRegisterError=Failed to register device. Please try again.
 
+
     # WebAuthn Authentication
+
     webauthn-login-title=Sign in with your device
+
     webauthn-doAuthenticate=Authenticate with Device
+
     webauthn-available-authenticators=Available authenticators
+
     webauthn-createdAt-label=Registered on
-    webauthn-unsupported-browser-text=Your browser doesn't support WebAuthn
+
+    webauthn-unsupported-browser-text=Your browser doesn''t support WebAuthn
+
     webauthnLoginError=Authentication failed. Please try again.
+
     doLostDevice=Lost device? Reset credentials
 
+
     # Errors
+
     invalidUserMessage=Invalid username or password
+
     accountDisabledMessage=Your account has been disabled. Please contact support.
-    accountTemporarilyDisabledMessage=Your account has been temporarily locked due to too many failed login attempts. Please try again later.
+
+    accountTemporarilyDisabledMessage=Your account has been temporarily locked due
+    to too many failed login attempts. Please try again later.
+
     expiredCodeMessage=Your login session has expired. Please try again.
+
     missingUsernameMessage=Please enter your username or email.
+
     missingPasswordMessage=Please enter your password.
 
+
     # Success Messages
+
     accountUpdatedMessage=Your account has been updated successfully.
+
     passwordUpdatedMessage=Your password has been updated successfully.
 
+
     # Security
+
     rememberMe=Keep me signed in
+
+    '

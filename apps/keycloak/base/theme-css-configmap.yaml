@@ -6,534 +6,113 @@ metadata:
     app: keycloak
     component: theme
 data:
-  webank.css: |
-    /**
-     * Webank Banking Theme
-     * Professional, secure, trustworthy design for banking applications
-     */
-
-    :root {
-      /* Webank Brand Colors - Professional Banking Palette */
-      --webank-primary: #003366;      /* Deep blue - trust, stability */
-      --webank-primary-dark: #002244;
-      --webank-primary-light: #0055aa;
-      --webank-accent: #0066cc;        /* Bright blue - action */
-      --webank-accent-hover: #0055aa;
-
-      /* Neutrals */
-      --webank-white: #ffffff;
-      --webank-gray-50: #f8f9fa;
-      --webank-gray-100: #e9ecef;
-      --webank-gray-200: #dee2e6;
-      --webank-gray-300: #ced4da;
-      --webank-gray-600: #6c757d;
-      --webank-gray-800: #343a40;
-      --webank-gray-900: #212529;
-
-      /* Semantic Colors */
-      --webank-success: #28a745;
-      --webank-danger: #dc3545;
-      --webank-warning: #ffc107;
-      --webank-info: #17a2b8;
-
-      /* Typography */
-      --webank-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --webank-font-size-base: 16px;
-      --webank-font-size-sm: 14px;
-      --webank-font-size-lg: 18px;
-      --webank-font-size-xl: 24px;
-
-      /* Spacing */
-      --webank-spacing-xs: 0.5rem;
-      --webank-spacing-sm: 1rem;
-      --webank-spacing-md: 1.5rem;
-      --webank-spacing-lg: 2rem;
-      --webank-spacing-xl: 3rem;
-
-      /* Border Radius */
-      --webank-radius-sm: 4px;
-      --webank-radius-md: 8px;
-      --webank-radius-lg: 12px;
-
-      /* Shadows */
-      --webank-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-      --webank-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
-      --webank-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
-    }
-
-    /* Global Resets */
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: var(--webank-font-family);
-      font-size: var(--webank-font-size-base);
-      line-height: 1.6;
-      color: var(--webank-gray-900);
-      background: linear-gradient(135deg, var(--webank-gray-50) 0%, var(--webank-gray-100) 100%);
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-
-    /* Login Container */
-    #kc-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: var(--webank-spacing-md);
-    }
-
-    #kc-container-wrapper {
-      width: 100%;
-      max-width: 480px;
-    }
-
-    /* Card Styling */
-    #kc-content,
-    #kc-form {
-      background: var(--webank-white);
-      border-radius: var(--webank-radius-lg);
-      box-shadow: var(--webank-shadow-lg);
-      padding: var(--webank-spacing-xl);
-    }
-
-    /* Header */
-    #kc-header {
-      text-align: center;
-      margin-bottom: var(--webank-spacing-lg);
-    }
-
-    #kc-header-wrapper {
-      font-size: var(--webank-font-size-xl);
-      font-weight: 600;
-      color: var(--webank-primary);
-      margin-bottom: var(--webank-spacing-sm);
-    }
-
-    /* Logo */
-    .kc-logo-text {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--webank-primary);
-      letter-spacing: -0.5px;
-    }
-
-    /* Form Groups */
-    .form-group {
-      margin-bottom: var(--webank-spacing-md);
-    }
-
-    label {
-      display: block;
-      font-weight: 500;
-      color: var(--webank-gray-800);
-      margin-bottom: var(--webank-spacing-xs);
-      font-size: var(--webank-font-size-sm);
-    }
-
-    /* Input Fields */
-    input[type="text"],
-    input[type="password"],
-    input[type="email"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid var(--webank-gray-300);
-      border-radius: var(--webank-radius-md);
-      font-size: var(--webank-font-size-base);
-      transition: all 0.2s ease;
-      background: var(--webank-white);
-      color: var(--webank-gray-900);
-    }
-
-    input[type="text"]:focus,
-    input[type="password"]:focus,
-    input[type="email"]:focus,
-    select:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--webank-accent);
-      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
-    }
-
-    input[type="text"]:disabled,
-    input[type="password"]:disabled,
-    input[type="email"]:disabled {
-      background: var(--webank-gray-100);
-      cursor: not-allowed;
-    }
-
-    /* Buttons */
-    button,
-    .btn,
-    input[type="submit"] {
-      padding: 12px 24px;
-      border: none;
-      border-radius: var(--webank-radius-md);
-      font-size: var(--webank-font-size-base);
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-    }
-
-    /* Primary Button */
-    #kc-form-buttons .btn-primary,
-    button.btn-primary,
-    input[type="submit"] {
-      background: var(--webank-accent);
-      color: var(--webank-white);
-      width: 100%;
-      padding: 14px 24px;
-      font-weight: 600;
-    }
-
-    #kc-form-buttons .btn-primary:hover,
-    button.btn-primary:hover,
-    input[type="submit"]:hover {
-      background: var(--webank-accent-hover);
-      box-shadow: var(--webank-shadow-md);
-      transform: translateY(-1px);
-    }
-
-    #kc-form-buttons .btn-primary:active {
-      transform: translateY(0);
-      box-shadow: var(--webank-shadow-sm);
-    }
-
-    /* Secondary Button */
-    .btn-secondary {
-      background: var(--webank-white);
-      color: var(--webank-accent);
-      border: 2px solid var(--webank-accent);
-    }
-
-    .btn-secondary:hover {
-      background: var(--webank-gray-50);
-    }
-
-    /* Links */
-    a {
-      color: var(--webank-accent);
-      text-decoration: none;
-      transition: color 0.2s ease;
-    }
-
-    a:hover {
-      color: var(--webank-accent-hover);
-      text-decoration: underline;
-    }
-
-    /* Alerts */
-    .alert {
-      padding: var(--webank-spacing-md);
-      border-radius: var(--webank-radius-md);
-      margin-bottom: var(--webank-spacing-md);
-      border-left: 4px solid;
-    }
-
-    .alert-success {
-      background: #d4edda;
-      border-color: var(--webank-success);
-      color: #155724;
-    }
-
-    .alert-error,
-    .alert-danger {
-      background: #f8d7da;
-      border-color: var(--webank-danger);
-      color: #721c24;
-    }
-
-    .alert-warning {
-      background: #fff3cd;
-      border-color: var(--webank-warning);
-      color: #856404;
-    }
-
-    .alert-info {
-      background: #d1ecf1;
-      border-color: var(--webank-info);
-      color: #0c5460;
-    }
-
-    /* Checkbox & Radio */
-    input[type="checkbox"],
-    input[type="radio"] {
-      margin-right: var(--webank-spacing-xs);
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-
-    /* Remember Me, Password Reset Links */
-    #kc-form-options {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--webank-spacing-md);
-      font-size: var(--webank-font-size-sm);
-    }
-
-    /* Info Section */
-    #kc-info {
-      margin-top: var(--webank-spacing-lg);
-      padding-top: var(--webank-spacing-md);
-      border-top: 1px solid var(--webank-gray-200);
-      text-align: center;
-      font-size: var(--webank-font-size-sm);
-      color: var(--webank-gray-600);
-    }
-
-    /* WebAuthn Device Registration */
-    .webauthn-container {
-      text-align: center;
-      padding: var(--webank-spacing-lg);
-    }
-
-    .webauthn-options {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--webank-spacing-md);
-      margin: var(--webank-spacing-lg) 0;
-    }
-
-    .webauthn-option {
-      padding: var(--webank-spacing-lg);
-      border: 2px solid var(--webank-gray-300);
-      border-radius: var(--webank-radius-lg);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: var(--webank-white);
-    }
-
-    .webauthn-option:hover {
-      border-color: var(--webank-accent);
-      box-shadow: var(--webank-shadow-md);
-      transform: translateY(-2px);
-    }
-
-    .webauthn-option img {
-      width: 64px;
-      height: 64px;
-      margin-bottom: var(--webank-spacing-sm);
-    }
-
-    .webauthn-option h3 {
-      margin: var(--webank-spacing-sm) 0;
-      color: var(--webank-primary);
-    }
-
-    .webauthn-option p {
-      color: var(--webank-gray-600);
-      font-size: var(--webank-font-size-sm);
-      margin: 0;
-    }
-
-    .webauthn-header {
-      text-align: center;
-      margin-bottom: var(--webank-spacing-lg);
-    }
-
-    .webauthn-header h2 {
-      font-size: 24px;
-      font-weight: 700;
-    }
-
-    .webauthn-header p {
-      font-size: var(--webank-font-size-base);
-      margin: 0;
-    }
-
-    /* Security Badge */
-    .security-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 6px 12px;
-      background: var(--webank-gray-50);
-      border: 1px solid var(--webank-gray-300);
-      border-radius: var(--webank-radius-sm);
-      font-size: var(--webank-font-size-sm);
-      color: var(--webank-gray-700);
-      margin-top: var(--webank-spacing-md);
-    }
-
-    .security-badge::before {
-      content: "🔒";
-      margin-right: 6px;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      #kc-container {
-        padding: var(--webank-spacing-sm);
-      }
-
-      #kc-content,
-      #kc-form {
-        padding: var(--webank-spacing-lg);
-      }
-
-      .kc-logo-text {
-        font-size: 28px;
-      }
-    }
-
-    /* WebAuthn Authentication List */
-    .webauthn-authenticators-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--webank-spacing-md);
-      margin-bottom: var(--webank-spacing-lg);
-    }
-
-    .webauthn-authenticator-item {
-      display: flex;
-      align-items: flex-start;
-      padding: var(--webank-spacing-md);
-      border: 2px solid var(--webank-gray-300);
-      border-radius: var(--webank-radius-lg);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: var(--webank-white);
-    }
-
-    .webauthn-authenticator-item:hover {
-      border-color: var(--webank-accent);
-      box-shadow: var(--webank-shadow-md);
-      transform: translateX(4px);
-    }
-
-    .webauthn-authenticator-item:has(.webauthn-authenticator-fill.active) {
-      border-color: var(--webank-accent);
-      background: var(--webank-primary-5);
-    }
-
-    .webauthn-authenticator-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--webank-gray-100);
-      border-radius: var(--webank-radius-md);
-      margin-right: var(--webank-spacing-md);
-      flex-shrink: 0;
-    }
-
-    .webauthn-authenticator-icon i {
-      font-size: 20px;
-      color: var(--webank-accent);
-    }
-
-    .webauthn-authenticator-details {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .webauthn-authenticator-label {
-      font-weight: 600;
-      color: var(--webank-gray-900);
-      margin-bottom: 4px;
-    }
-
-    .webauthn-authenticator-transport {
-      color: var(--webank-gray-600);
-      font-size: var(--webank-font-size-sm);
-      margin-bottom: 4px;
-    }
-
-    .webauthn-authenticator-transport span {
-      display: inline;
-    }
-
-    .webauthn-authenticator-created {
-      color: var(--webank-gray-500);
-      font-size: var(--webank-font-size-sm);
-    }
-
-    .webauthn-authenticator-created-label::after {
-      content: " ";
-    }
-
-    .webauthn-authenticator-fill {
-      width: 4px;
-      height: 100%;
-      background: var(--webank-accent);
-      border-radius: var(--webank-radius-sm);
-      margin-left: var(--webank-spacing-md);
-      flex-shrink: 0;
-    }
-
-    .webauthn-authenticator-fill:not(.active) {
-      background: transparent;
-    }
-
-    .lost-device-link {
-      font-size: var(--webank-font-size-sm);
-    }
-
-    .lost-device-link a {
-      font-weight: 500;
-      transition: opacity 0.2s ease;
-    }
-
-    .lost-device-link a:hover {
-      text-decoration: underline;
-      opacity: 0.8;
-    }
-
-    /* Loading Spinner */
-    .spinner {
-      border: 3px solid var(--webank-gray-200);
-      border-top: 3px solid var(--webank-accent);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Accessibility */
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border-width: 0;
-    }
-
-    /* Focus Visible (for keyboard navigation) */
-    button:focus-visible,
-    input:focus-visible,
-    a:focus-visible {
-      outline: 2px solid var(--webank-accent);
-      outline-offset: 2px;
-    }
-
-    /* Print Styles */
-    @media print {
-      body {
-        background: white;
-      }
-
-      #kc-content,
-      #kc-form {
-        box-shadow: none;
-      }
-    }
+  webank.css: "/**\n * Webank Banking Theme\n * Professional, secure, trustworthy\
+    \ design for banking applications\n */\n\n:root {\n  /* Webank Brand Colors -\
+    \ Professional Banking Palette */\n  --webank-primary: #003366;      /* Deep blue\
+    \ - trust, stability */\n  --webank-primary-dark: #002244;\n  --webank-primary-light:\
+    \ #0055aa;\n  --webank-accent: #0066cc;        /* Bright blue - action */\n  --webank-accent-hover:\
+    \ #0055aa;\n\n  /* Neutrals */\n  --webank-white: #ffffff;\n  --webank-gray-50:\
+    \ #f8f9fa;\n  --webank-gray-100: #e9ecef;\n  --webank-gray-200: #dee2e6;\n  --webank-gray-300:\
+    \ #ced4da;\n  --webank-gray-600: #6c757d;\n  --webank-gray-800: #343a40;\n  --webank-gray-900:\
+    \ #212529;\n\n  /* Semantic Colors */\n  --webank-success: #28a745;\n  --webank-danger:\
+    \ #dc3545;\n  --webank-warning: #ffc107;\n  --webank-info: #17a2b8;\n\n  /* Typography\
+    \ */\n  --webank-font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\"\
+    , Roboto, \"Helvetica Neue\", Arial, sans-serif;\n  --webank-font-size-base: 16px;\n\
+    \  --webank-font-size-sm: 14px;\n  --webank-font-size-lg: 18px;\n  --webank-font-size-xl:\
+    \ 24px;\n\n  /* Spacing */\n  --webank-spacing-xs: 0.5rem;\n  --webank-spacing-sm:\
+    \ 1rem;\n  --webank-spacing-md: 1.5rem;\n  --webank-spacing-lg: 2rem;\n  --webank-spacing-xl:\
+    \ 3rem;\n\n  /* Border Radius */\n  --webank-radius-sm: 4px;\n  --webank-radius-md:\
+    \ 8px;\n  --webank-radius-lg: 12px;\n\n  /* Shadows */\n  --webank-shadow-sm:\
+    \ 0 2px 4px rgba(0, 0, 0, 0.1);\n  --webank-shadow-md: 0 4px 8px rgba(0, 0, 0,\
+    \ 0.12);\n  --webank-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);\n}\n\n/* Global\
+    \ Resets */\n* {\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: var(--webank-font-family);\n\
+    \  font-size: var(--webank-font-size-base);\n  line-height: 1.6;\n  color: var(--webank-gray-900);\n\
+    \  background: linear-gradient(135deg, var(--webank-gray-50) 0%, var(--webank-gray-100)\
+    \ 100%);\n  margin: 0;\n  padding: 0;\n  min-height: 100vh;\n}\n\n/* Login Container\
+    \ */\n#kc-container {\n  display: flex;\n  justify-content: center;\n  align-items:\
+    \ center;\n  min-height: 100vh;\n  padding: var(--webank-spacing-md);\n}\n\n#kc-container-wrapper\
+    \ {\n  width: 100%;\n  max-width: 480px;\n}\n\n/* Card Styling */\n#kc-content,\n\
+    #kc-form {\n  background: var(--webank-white);\n  border-radius: var(--webank-radius-lg);\n\
+    \  box-shadow: var(--webank-shadow-lg);\n  padding: var(--webank-spacing-xl);\n\
+    }\n\n/* Header */\n#kc-header {\n  text-align: center;\n  margin-bottom: var(--webank-spacing-lg);\n\
+    }\n\n#kc-header-wrapper {\n  font-size: var(--webank-font-size-xl);\n  font-weight:\
+    \ 600;\n  color: var(--webank-primary);\n  margin-bottom: var(--webank-spacing-sm);\n\
+    }\n\n/* Logo */\n.kc-logo-text {\n  font-size: 32px;\n  font-weight: 700;\n  color:\
+    \ var(--webank-primary);\n  letter-spacing: -0.5px;\n}\n\n/* Form Groups */\n\
+    .form-group {\n  margin-bottom: var(--webank-spacing-md);\n}\n\nlabel {\n  display:\
+    \ block;\n  font-weight: 500;\n  color: var(--webank-gray-800);\n  margin-bottom:\
+    \ var(--webank-spacing-xs);\n  font-size: var(--webank-font-size-sm);\n}\n\n/*\
+    \ Input Fields */\ninput[type=\"text\"],\ninput[type=\"password\"],\ninput[type=\"\
+    email\"],\nselect,\ntextarea {\n  width: 100%;\n  padding: 12px 16px;\n  border:\
+    \ 1px solid var(--webank-gray-300);\n  border-radius: var(--webank-radius-md);\n\
+    \  font-size: var(--webank-font-size-base);\n  transition: all 0.2s ease;\n  background:\
+    \ var(--webank-white);\n  color: var(--webank-gray-900);\n}\n\ninput[type=\"text\"\
+    ]:focus,\ninput[type=\"password\"]:focus,\ninput[type=\"email\"]:focus,\nselect:focus,\n\
+    textarea:focus {\n  outline: none;\n  border-color: var(--webank-accent);\n  box-shadow:\
+    \ 0 0 0 3px rgba(0, 102, 204, 0.1);\n}\n\ninput[type=\"text\"]:disabled,\ninput[type=\"\
+    password\"]:disabled,\ninput[type=\"email\"]:disabled {\n  background: var(--webank-gray-100);\n\
+    \  cursor: not-allowed;\n}\n\n/* Buttons */\nbutton,\n.btn,\ninput[type=\"submit\"\
+    ] {\n  padding: 12px 24px;\n  border: none;\n  border-radius: var(--webank-radius-md);\n\
+    \  font-size: var(--webank-font-size-base);\n  font-weight: 500;\n  cursor: pointer;\n\
+    \  transition: all 0.2s ease;\n  text-align: center;\n  text-decoration: none;\n\
+    \  display: inline-block;\n}\n\n/* Primary Button */\n#kc-form-buttons .btn-primary,\n\
+    button.btn-primary,\ninput[type=\"submit\"] {\n  background: var(--webank-accent);\n\
+    \  color: var(--webank-white);\n  width: 100%;\n  padding: 14px 24px;\n  font-weight:\
+    \ 600;\n}\n\n#kc-form-buttons .btn-primary:hover,\nbutton.btn-primary:hover,\n\
+    input[type=\"submit\"]:hover {\n  background: var(--webank-accent-hover);\n  box-shadow:\
+    \ var(--webank-shadow-md);\n  transform: translateY(-1px);\n}\n\n#kc-form-buttons\
+    \ .btn-primary:active {\n  transform: translateY(0);\n  box-shadow: var(--webank-shadow-sm);\n\
+    }\n\n/* Secondary Button */\n.btn-secondary {\n  background: var(--webank-white);\n\
+    \  color: var(--webank-accent);\n  border: 2px solid var(--webank-accent);\n}\n\
+    \n.btn-secondary:hover {\n  background: var(--webank-gray-50);\n}\n\n/* Links\
+    \ */\na {\n  color: var(--webank-accent);\n  text-decoration: none;\n  transition:\
+    \ color 0.2s ease;\n}\n\na:hover {\n  color: var(--webank-accent-hover);\n  text-decoration:\
+    \ underline;\n}\n\n/* Alerts */\n.alert {\n  padding: var(--webank-spacing-md);\n\
+    \  border-radius: var(--webank-radius-md);\n  margin-bottom: var(--webank-spacing-md);\n\
+    \  border-left: 4px solid;\n}\n\n.alert-success {\n  background: #d4edda;\n  border-color:\
+    \ var(--webank-success);\n  color: #155724;\n}\n\n.alert-error,\n.alert-danger\
+    \ {\n  background: #f8d7da;\n  border-color: var(--webank-danger);\n  color: #721c24;\n\
+    }\n\n.alert-warning {\n  background: #fff3cd;\n  border-color: var(--webank-warning);\n\
+    \  color: #856404;\n}\n\n.alert-info {\n  background: #d1ecf1;\n  border-color:\
+    \ var(--webank-info);\n  color: #0c5460;\n}\n\n/* Checkbox & Radio */\ninput[type=\"\
+    checkbox\"],\ninput[type=\"radio\"] {\n  margin-right: var(--webank-spacing-xs);\n\
+    \  width: 18px;\n  height: 18px;\n  cursor: pointer;\n}\n\n/* Remember Me, Password\
+    \ Reset Links */\n#kc-form-options {\n  display: flex;\n  justify-content: space-between;\n\
+    \  align-items: center;\n  margin-bottom: var(--webank-spacing-md);\n  font-size:\
+    \ var(--webank-font-size-sm);\n}\n\n/* Info Section */\n#kc-info {\n  margin-top:\
+    \ var(--webank-spacing-lg);\n  padding-top: var(--webank-spacing-md);\n  border-top:\
+    \ 1px solid var(--webank-gray-200);\n  text-align: center;\n  font-size: var(--webank-font-size-sm);\n\
+    \  color: var(--webank-gray-600);\n}\n\n/* WebAuthn Device Registration */\n.webauthn-container\
+    \ {\n  text-align: center;\n  padding: var(--webank-spacing-lg);\n}\n\n.webauthn-options\
+    \ {\n  display: grid;\n  grid-template-columns: 1fr;\n  gap: var(--webank-spacing-md);\n\
+    \  margin: var(--webank-spacing-lg) 0;\n}\n\n.webauthn-option {\n  padding: var(--webank-spacing-lg);\n\
+    \  border: 2px solid var(--webank-gray-300);\n  border-radius: var(--webank-radius-lg);\n\
+    \  cursor: pointer;\n  transition: all 0.2s ease;\n  background: var(--webank-white);\n\
+    }\n\n.webauthn-option:hover {\n  border-color: var(--webank-accent);\n  box-shadow:\
+    \ var(--webank-shadow-md);\n  transform: translateY(-2px);\n}\n\n.webauthn-option\
+    \ img {\n  width: 64px;\n  height: 64px;\n  margin-bottom: var(--webank-spacing-sm);\n\
+    }\n\n.webauthn-option h3 {\n  margin: var(--webank-spacing-sm) 0;\n  color: var(--webank-primary);\n\
+    }\n\n.webauthn-option p {\n  color: var(--webank-gray-600);\n  font-size: var(--webank-font-size-sm);\n\
+    \  margin: 0;\n}\n\n.webauthn-header {\n  text-align: center;\n  margin-bottom:\
+    \ var(--webank-spacing-lg);\n}\n\n.webauthn-header h2 {\n  font-size: 24px;\n\
+    \  font-weight: 700;\n}\n\n.webauthn-header p {\n  font-size: var(--webank-font-size-base);\n\
+    \  margin: 0;\n}\n\n/* Security Badge */\n.security-badge {\n  display: inline-flex;\n\
+    \  align-items: center;\n  padding: 6px 12px;\n  background: var(--webank-gray-50);\n\
+    \  border: 1px solid var(--webank-gray-300);\n  border-radius: var(--webank-radius-sm);\n\
+    \  font-size: var(--webank-font-size-sm);\n  color: var(--webank-gray-700);\n\
+    \  margin-top: var(--webank-spacing-md);\n}\n\n.security-badge::before {\n  content:\
+    \ \"\U0001F512\";\n  margin-right: 6px;\n}\n\n/* Responsive Design */\n@media\
+    \ (max-width: 768px) {\n  #kc-container {\n    padding: var(--webank-spacing-sm);\n\
+    \  }\n\n  #kc-content,\n  #kc-form {\n    padding: var(--webank-spacing-lg);\n\
+    \  }\n\n  .kc-logo-text {\n    font-size: 28px;\n  }\n}\n\n\n\n/* Loading Spinner\
+    \ */\n.spinner {\n  border: 3px solid var(--webank-gray-200);\n  border-top: 3px\
+    \ solid var(--webank-accent);\n  border-radius: 50%;\n  width: 40px;\n  height:\
+    \ 40px;\n  animation: spin 1s linear infinite;\n  margin: 20px auto;\n}\n\n@keyframes\
+    \ spin {\n  0% { transform: rotate(0deg); }\n  100% { transform: rotate(360deg);\
+    \ }\n}\n\n/* Accessibility */\n.sr-only {\n  position: absolute;\n  width: 1px;\n\
+    \  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip:\
+    \ rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border-width: 0;\n}\n\n/* Focus\
+    \ Visible (for keyboard navigation) */\nbutton:focus-visible,\ninput:focus-visible,\n\
+    a:focus-visible {\n  outline: 2px solid var(--webank-accent);\n  outline-offset:\
+    \ 2px;\n}\n\n/* Print Styles */\n@media print {\n  body {\n    background: white;\n\
+    \  }\n\n  #kc-content,\n  #kc-form {\n    box-shadow: none;\n  }\n}\n"

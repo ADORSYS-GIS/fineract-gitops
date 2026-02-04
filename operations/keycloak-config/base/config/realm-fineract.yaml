@@ -690,11 +690,6 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: ALTERNATIVE
         priority: 10
-      # Email OTP (quick recovery - sent to email, no pre-setup required)
-      - authenticator: auth-email-otp-form
-        authenticatorFlow: false
-        requirement: ALTERNATIVE
-        priority: 15
 
   # Reset Credentials Flow - Email-based credential reset for lost/stolen devices
   # This flow allows users to reset their authentication via email verification
@@ -728,16 +723,11 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: REQUIRED
         priority: 10
-      # Email verification
-      - authenticator: auth-email-otp-form
-        authenticatorFlow: false
-        requirement: REQUIRED
-        priority: 20
       # Update password (even though not used, required by Keycloak)
       - authenticator: update-password
         authenticatorFlow: false
         requirement: REQUIRED
-        priority: 30
+        priority: 20
 
 # Required Actions (Configured for First Login Flow)
 requiredActions:
@@ -872,14 +862,10 @@ attributes:
   webAuthnPolicyPasswordlessRequireResidentKey: "No"
   webAuthnPolicyPasswordlessUserVerificationRequirement: "required"
   webAuthnPolicyPasswordlessCreateTimeout: 60
-  webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister: false
-  webAuthnPolicyPasswordlessAcceptableAaguids: '[]'
+   webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister: false
+   webAuthnPolicyPasswordlessAcceptableAaguids: '[]'
 
-  # Email OTP Configuration (Passwordless recovery)
-  # Note: These are security settings for email-based OTP authentication
-  otpPolicyEmailEnabled: "true"
-
-# Service Account Users - Role Assignments
+   # Service Account Users - Role Assignments
 # These service accounts are automatically created by Keycloak when clients have
 # serviceAccountsEnabled: true. We define them here to assign realm-management roles.
 users:
