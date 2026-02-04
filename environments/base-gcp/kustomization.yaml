@@ -12,8 +12,36 @@ metadata:
 
 # Common Resources
 resources:
+  # Database initialization (ArgoCD PreSync hook)
+  - ../../operations/fineract-database-init/base
   # Fineract application base
   - ../../apps/fineract/base
+
+# Patches to use GCP service account instead of AWS
+patches:
+  # Patch all deployments to use fineract-gcp service account
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: fineract-gcp
+  # Patch schema migration job to use fineract-gcp service account
+  - target:
+      kind: Job
+      name: fineract-schema-migration
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: fineract-gcp
+  # Patch create databases job to use fineract-gcp service account
+  - target:
+      kind: Job
+      name: create-databases
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: fineract-gcp
 
 # Common Image Versions for GCP
 images:

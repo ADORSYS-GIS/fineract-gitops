@@ -15,10 +15,7 @@ resources:
   - namespace.yaml
   - serviceaccount-gcp.yaml
 
-# GCP-specific patches for deployments
-patches:
-  # Update deployments to use GCP service account and Cloud SQL Proxy
-  - path: patches/deployment-env-patch.yaml
+# Note: Service account patches are applied in base-gcp
 
 # Override image for dev (use develop tag for testing)
 images:
