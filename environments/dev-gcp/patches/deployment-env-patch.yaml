@@ -1,7 +1,8 @@
 # ==============================================================================
-# Deployment Environment Patch for GCP
+# Deployment Patches for GCP
 # ==============================================================================
-# This patch updates environment variables for GCP-specific configuration
+# These patches update deployments to use the GCP service account
+# Database connections are configured via secrets (same pattern as AWS)
 # ==============================================================================
 apiVersion: apps/v1
 kind: Deployment
@@ -11,18 +12,6 @@ spec:
   template:
     spec:
       serviceAccountName: fineract-gcp
-      containers:
-        - name: fineract
-          env:
-            # Database connection via Cloud SQL Proxy (localhost)
-            - name: FINERACT_HIKARI_JDBC_URL
-              value: "jdbc:postgresql://localhost:5432/fineract_tenants"
-            # GCS storage configuration
-            - name: FINERACT_CONTENT_FILESYSTEM_ROOTFOLDER
-              value: "/tmp/fineract"
-            # Cloud provider indicator
-            - name: CLOUD_PROVIDER
-              value: "gcp"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,12 +21,12 @@ spec:
   template:
     spec:
       serviceAccountName: fineract-gcp
-      containers:
-        - name: fineract
-          env:
-            - name: FINERACT_HIKARI_JDBC_URL
-              value: "jdbc:postgresql://localhost:5432/fineract_tenants"
-            - name: FINERACT_CONTENT_FILESYSTEM_ROOTFOLDER
-              value: "/tmp/fineract"
-            - name: CLOUD_PROVIDER
-              value: "gcp"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-batch
+spec:
+  template:
+    spec:
+      serviceAccountName: fineract-gcp
