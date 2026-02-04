@@ -50,7 +50,7 @@ service_account_name = "fineract-gcp"
 
 # Cost Tracking Labels
 cost_center  = "development"
-billing_code = "DEV-001"
+billing_code = "dev-001"
 labels = {
   team        = "engineering"
   auto-stop   = "true"

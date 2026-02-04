@@ -39,3 +39,15 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "gke_cluster_id" {
+  description = "GKE cluster ID - used to ensure Workload Identity bindings are created after the cluster"
+  type        = string
+  default     = ""
+}
+
+variable "enable_workload_identity" {
+  description = "Whether to create Workload Identity bindings (requires GKE cluster to exist)"
+  type        = bool
+  default     = true
+}

@@ -50,7 +50,7 @@ service_account_name = "fineract-gcp"
 
 # Cost Tracking Labels
 cost_center  = "qa-testing"
-billing_code = "UAT-001"
+billing_code = "uat-001"
 labels = {
   team        = "qa"
   auto-stop   = "true"

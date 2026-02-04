@@ -51,7 +51,7 @@ service_account_name = "fineract-gcp"
 
 # Cost Tracking Labels
 cost_center  = "operations"
-billing_code = "PROD-001"
+billing_code = "prod-001"
 labels = {
   team        = "platform"
   auto-stop   = "false"

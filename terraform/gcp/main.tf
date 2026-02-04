@@ -49,6 +49,8 @@ module "vpc" {
 # ==============================================================================
 # IAM Module (Service Accounts)
 # ==============================================================================
+# Note: Workload Identity bindings are created separately below
+# to ensure they run after the GKE cluster is created
 module "iam" {
   source = "./modules/iam"
 
@@ -62,6 +64,10 @@ module "iam" {
   # Bucket names for IAM bindings (created after GCS module)
   documents_bucket_name = module.gcs.documents_bucket_name
   backups_bucket_name   = module.gcs.backups_bucket_name
+
+  # Disable Workload Identity in module - will be created separately after GKE
+  enable_workload_identity = false
+  gke_cluster_id           = ""
 
   labels = local.common_labels
 }
@@ -103,6 +109,26 @@ module "gke" {
   labels       = local.common_labels
 
   depends_on = [module.vpc, module.iam]
+}
+
+# ==============================================================================
+# Workload Identity Bindings
+# Created AFTER GKE cluster to ensure identity pool exists
+# ==============================================================================
+resource "google_service_account_iam_member" "fineract_workload_identity" {
+  service_account_id = module.iam.fineract_service_account_name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.kubernetes_namespace}/${var.service_account_name}]"
+
+  depends_on = [module.gke]
+}
+
+resource "google_service_account_iam_member" "cluster_autoscaler_workload_identity" {
+  service_account_id = module.iam.cluster_autoscaler_service_account_name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[kube-system/cluster-autoscaler]"
+
+  depends_on = [module.gke]
 }
 
 # ==============================================================================

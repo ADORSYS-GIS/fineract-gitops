@@ -69,12 +69,12 @@ resource "google_container_cluster" "primary" {
     channel = var.environment == "production" ? "STABLE" : "REGULAR"
   }
 
-  # Maintenance window (Sunday 3 AM UTC)
+  # Maintenance window (daily 3-7 AM UTC for dev/uat, Sunday only for production)
   maintenance_policy {
     recurring_window {
       start_time = "2024-01-01T03:00:00Z"
       end_time   = "2024-01-01T07:00:00Z"
-      recurrence = "FREQ=WEEKLY;BYDAY=SU"
+      recurrence = var.environment == "production" ? "FREQ=WEEKLY;BYDAY=SA,SU" : "FREQ=DAILY"
     }
   }
 

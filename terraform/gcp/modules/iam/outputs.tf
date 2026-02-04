@@ -23,6 +23,11 @@ output "cluster_autoscaler_service_account_email" {
   value       = google_service_account.cluster_autoscaler.email
 }
 
+output "cluster_autoscaler_service_account_name" {
+  description = "Cluster autoscaler service account name"
+  value       = google_service_account.cluster_autoscaler.name
+}
+
 # Annotation for Kubernetes ServiceAccount
 output "workload_identity_annotation" {
   description = "Annotation to add to Kubernetes ServiceAccount for Workload Identity"

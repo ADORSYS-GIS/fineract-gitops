@@ -77,8 +77,10 @@ resource "google_project_iam_member" "fineract_secret_accessor" {
 # ==============================================================================
 # Workload Identity Binding
 # Allows Kubernetes ServiceAccount to impersonate GCP Service Account
+# NOTE: Only created when GKE cluster exists (identity pool is created with cluster)
 # ==============================================================================
 resource "google_service_account_iam_member" "fineract_workload_identity" {
+  count              = var.enable_workload_identity && var.gke_cluster_id != "" ? 1 : 0
   service_account_id = google_service_account.fineract.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/${var.service_account_name}]"
@@ -100,6 +102,7 @@ resource "google_project_iam_member" "cluster_autoscaler" {
 }
 
 resource "google_service_account_iam_member" "cluster_autoscaler_workload_identity" {
+  count              = var.enable_workload_identity && var.gke_cluster_id != "" ? 1 : 0
   service_account_id = google_service_account.cluster_autoscaler.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[kube-system/cluster-autoscaler]"

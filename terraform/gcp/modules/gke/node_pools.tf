@@ -30,9 +30,9 @@ resource "google_container_node_pool" "primary" {
     # n2d-standard-4: 4 vCPU, 16 GB (AMD, production)
     machine_type = var.machine_type
 
-    # Preemptible/Spot VMs for dev/uat (60-80% savings)
-    preemptible = var.use_preemptible
-    spot        = var.use_preemptible
+    # Spot VMs for dev/uat (60-80% savings)
+    # Note: spot replaces the older preemptible option
+    spot = var.use_preemptible
 
     # Disk configuration
     disk_size_gb = var.disk_size_gb
@@ -121,8 +121,7 @@ resource "google_container_node_pool" "batch" {
 
   node_config {
     machine_type = "e2-standard-4"
-    preemptible  = true
-    spot         = true
+    spot         = true  # Spot VMs for batch workloads
 
     disk_size_gb = 50
     disk_type    = "pd-balanced"
