@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # Project Configuration
-project_id  = "fineract-dev-project"  # Replace with your GCP project ID
+project_id  = "fineract-486415"
 environment = "dev"
 region      = "us-central1"
 zone        = "us-central1-a"

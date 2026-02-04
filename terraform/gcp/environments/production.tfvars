@@ -7,7 +7,7 @@
 # ==============================================================================
 
 # Project Configuration
-project_id  = "fineract-prod-project"  # Replace with your GCP project ID
+project_id  = "fineract-486415"
 environment = "production"
 region      = "us-central1"
 zone        = "us-central1-a"  # Not used for regional cluster

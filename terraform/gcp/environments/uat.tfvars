@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # Project Configuration
-project_id  = "fineract-uat-project"  # Replace with your GCP project ID
+project_id  = "fineract-486415"
 environment = "uat"
 region      = "us-central1"
 zone        = "us-central1-a"
