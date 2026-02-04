@@ -336,6 +336,21 @@ data:
       margin: 0;
     }
 
+    .webauthn-header {
+      text-align: center;
+      margin-bottom: var(--webank-spacing-lg);
+    }
+
+    .webauthn-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .webauthn-header p {
+      font-size: var(--webank-font-size-base);
+      margin: 0;
+    }
+
     /* Security Badge */
     .security-badge {
       display: inline-flex;
@@ -368,6 +383,110 @@ data:
       .kc-logo-text {
         font-size: 28px;
       }
+    }
+
+    /* WebAuthn Authentication List */
+    .webauthn-authenticators-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--webank-spacing-md);
+      margin-bottom: var(--webank-spacing-lg);
+    }
+
+    .webauthn-authenticator-item {
+      display: flex;
+      align-items: flex-start;
+      padding: var(--webank-spacing-md);
+      border: 2px solid var(--webank-gray-300);
+      border-radius: var(--webank-radius-lg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--webank-white);
+    }
+
+    .webauthn-authenticator-item:hover {
+      border-color: var(--webank-accent);
+      box-shadow: var(--webank-shadow-md);
+      transform: translateX(4px);
+    }
+
+    .webauthn-authenticator-item:has(.webauthn-authenticator-fill.active) {
+      border-color: var(--webank-accent);
+      background: var(--webank-primary-5);
+    }
+
+    .webauthn-authenticator-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--webank-gray-100);
+      border-radius: var(--webank-radius-md);
+      margin-right: var(--webank-spacing-md);
+      flex-shrink: 0;
+    }
+
+    .webauthn-authenticator-icon i {
+      font-size: 20px;
+      color: var(--webank-accent);
+    }
+
+    .webauthn-authenticator-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .webauthn-authenticator-label {
+      font-weight: 600;
+      color: var(--webank-gray-900);
+      margin-bottom: 4px;
+    }
+
+    .webauthn-authenticator-transport {
+      color: var(--webank-gray-600);
+      font-size: var(--webank-font-size-sm);
+      margin-bottom: 4px;
+    }
+
+    .webauthn-authenticator-transport span {
+      display: inline;
+    }
+
+    .webauthn-authenticator-created {
+      color: var(--webank-gray-500);
+      font-size: var(--webank-font-size-sm);
+    }
+
+    .webauthn-authenticator-created-label::after {
+      content: " ";
+    }
+
+    .webauthn-authenticator-fill {
+      width: 4px;
+      height: 100%;
+      background: var(--webank-accent);
+      border-radius: var(--webank-radius-sm);
+      margin-left: var(--webank-spacing-md);
+      flex-shrink: 0;
+    }
+
+    .webauthn-authenticator-fill:not(.active) {
+      background: transparent;
+    }
+
+    .lost-device-link {
+      font-size: var(--webank-font-size-sm);
+    }
+
+    .lost-device-link a {
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+    }
+
+    .lost-device-link a:hover {
+      text-decoration: underline;
+      opacity: 0.8;
     }
 
     /* Loading Spinner */
