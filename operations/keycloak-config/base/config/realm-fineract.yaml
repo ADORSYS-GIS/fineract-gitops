@@ -36,10 +36,10 @@ accessCodeLifespanUserAction: 300
 accessCodeLifespanLogin: 1800
 
 # Themes - Using custom Webank theme for professional banking UI
-# loginTheme: webank
+loginTheme: webank
 # accountTheme: webank
 adminTheme: keycloak
-# emailTheme: webank
+emailTheme: webank
 
 # Security Defenses (Enhanced for Production)
 bruteForceProtected: true
@@ -659,9 +659,9 @@ authenticationFlows:
         requirement: ALTERNATIVE
         priority: 20
 
-  # Sub-flow for username + 2FA (WebAuthn, Email OTP, or TOTP)
+  # Sub-flow for username + 2FA (WebAuthn or Recovery Codes)
   - alias: self-service-passwordless-forms
-    description: Username form followed by 2FA authentication (WebAuthn, Email OTP, or TOTP)
+    description: Username form followed by 2FA authentication (WebAuthn or Recovery Codes)
     providerId: basic-flow
     topLevel: false
     builtIn: false
@@ -671,16 +671,16 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: REQUIRED
         priority: 10
-      # 2FA options sub-flow (WebAuthn, Email OTP, or TOTP)
+      # 2FA options sub-flow (WebAuthn or Recovery Codes)
       - flowAlias: self-service-2fa-options
         authenticatorFlow: true
         requirement: REQUIRED
         priority: 20
 
-  # Sub-flow for 2FA options - WebAuthn (primary) or Email OTP (quick recovery)
-  # This provides account recovery for customers who lose their WebAuthn device
+  # Sub-flow for 2FA options - WebAuthn (primary) or Recovery Codes (backup)
+  # Recovery codes provide account access when WebAuthn device is unavailable
   - alias: self-service-2fa-options
-    description: WebAuthn or Email OTP authentication for self-service customers
+    description: WebAuthn or Recovery Codes authentication for self-service customers
     providerId: basic-flow
     topLevel: false
     builtIn: false
@@ -690,6 +690,11 @@ authenticationFlows:
         authenticatorFlow: false
         requirement: ALTERNATIVE
         priority: 10
+      # Recovery codes (backup authentication method for lost devices)
+      - authenticator: auth-recovery-authn-code-form
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 20
 
   # Reset Credentials Flow - Email-based credential reset for lost/stolen devices
   # This flow allows users to reset their authentication via email verification
@@ -759,6 +764,14 @@ requiredActions:
     enabled: true
     defaultAction: false  # Set by registration service for new customers
     priority: 35
+
+  # Recovery Codes - Backup authentication for lost devices
+  - alias: recovery-authn-codes-config
+    name: Recovery Authentication Codes
+    providerId: recovery-authn-codes-config
+    enabled: true
+    defaultAction: false  # Prompted after WebAuthn registration
+    priority: 36
 
   - alias: UPDATE_PROFILE
     name: Update Profile

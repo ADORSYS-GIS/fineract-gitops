@@ -263,6 +263,8 @@ spec:
           # Copy login templates
           cp /theme-files/login-template.ftl /themes/webank/login/template.ftl
           cp /theme-files/login-login.ftl /themes/webank/login/login.ftl
+          cp /theme-files/login-webauthn-register.ftl /themes/webank/login/webauthn-register.ftl
+          cp /theme-files/login-webauthn-authenticate.ftl /themes/webank/login/webauthn-authenticate.ftl
 
           # Copy CSS
           cp /theme-css/webank.css /themes/webank/login/resources/css/

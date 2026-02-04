@@ -96,7 +96,7 @@ data:
     \  margin: 0;\n}\n\n.webauthn-header {\n  text-align: center;\n  margin-bottom:\
     \ var(--webank-spacing-lg);\n}\n\n.webauthn-header h2 {\n  font-size: 24px;\n\
     \  font-weight: 700;\n}\n\n.webauthn-header p {\n  font-size: var(--webank-font-size-base);\n\
-    \  margin: 0;\n}\n\n/* Security Badge */\n.security-badge {\n  display: inline-flex;\n\
+    \  margin: 0;\n}\n\n/* WebAuthn Authenticators List */\n.webauthn-authenticators-list {\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n}\n\n.webauthn-authenticator-item {\n  display: flex;\n  align-items: center;\n  padding: 1rem;\n  border: 2px solid #dee2e6;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: all 0.2s ease;\n}\n\n.webauthn-authenticator-item:hover {\n  border-color: #0066cc;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n}\n\n.webauthn-authenticator-icon {\n  font-size: 24px;\n  margin-right: 1rem;\n  color: #0066cc;\n}\n\n.webauthn-authenticator-details {\n  flex: 1;\n}\n\n.webauthn-authenticator-label {\n  font-weight: 600;\n  color: #343a40;\n  margin-bottom: 4px;\n}\n\n.webauthn-authenticator-transport,\n.webauthn-authenticator-created {\n  font-size: 14px;\n  color: #6c757d;\n}\n\n.lost-device-link a {\n  color: #003366;\n  text-decoration: none;\n  font-size: 14px;\n}\n\n.lost-device-link a:hover {\n  text-decoration: underline;\n}\n\n/* Security Badge */\n.security-badge {\n  display: inline-flex;\n\
     \  align-items: center;\n  padding: 6px 12px;\n  background: var(--webank-gray-50);\n\
     \  border: 1px solid var(--webank-gray-300);\n  border-radius: var(--webank-radius-sm);\n\
     \  font-size: var(--webank-font-size-sm);\n  color: var(--webank-gray-700);\n\

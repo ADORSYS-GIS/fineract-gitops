@@ -171,6 +171,272 @@ data:
     >${p.displayName!}</span>\n                            </#if>\n              \
     \          </a>\n                    </#list>\n                </ul>\n       \
     \     </div>\n        </#if>\n    </#if>\n\n</@layout.registrationLayout>\n"
+  login-webauthn-register.ftl: |
+    <#import "template.ftl" as layout>
+    <@layout.registrationLayout; section>
+        <#if section = "header">
+            ${msg("webauthnRegisterTitle")}
+        <#elseif section = "form">
+
+        <div class="webauthn-container">
+            <h2 style="color: var(--webank-primary); margin-bottom: 16px;">
+                Secure Your Account
+            </h2>
+            <p style="color: var(--webank-gray-600); margin-bottom: 32px;">
+                Register your device for secure, passwordless authentication. Choose one of the options below:
+            </p>
+
+            <form id="register" class="${properties.kcFormClass!}" action="${url.loginAction}" method="post">
+                <input type="hidden" id="clientDataJSON" name="clientDataJSON"/>
+                <input type="hidden" id="attestationObject" name="attestationObject"/>
+                <input type="hidden" id="publicKeyCredentialId" name="publicKeyCredentialId"/>
+                <input type="hidden" id="authenticatorLabel" name="authenticatorLabel"/>
+                <input type="hidden" id="transports" name="transports"/>
+                <input type="hidden" id="error" name="error"/>
+
+                <div class="webauthn-options">
+                    <div class="webauthn-option" onclick="registerWebAuthn('platform')">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="var(--webank-accent)"/>
+                        </svg>
+                        <h3>Face ID / Touch ID</h3>
+                        <p>Use your device's built-in biometric authentication for quick and secure login</p>
+                    </div>
+
+                    <div class="webauthn-option" onclick="registerWebAuthn('cross-platform')">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="4" y="8" width="16" height="10" rx="2" stroke="var(--webank-accent)" stroke-width="2"/>
+                            <circle cx="12" cy="13" r="2" fill="var(--webank-accent)"/>
+                        </svg>
+                        <h3>Security Key</h3>
+                        <p>Use a physical security key (like YubiKey) for maximum security</p>
+                    </div>
+                </div>
+
+                <#if isSetRetry?has_content>
+                    <div class="alert alert-error" style="margin-top: 24px;">
+                        ${kcSanitize(msg("webauthnRegisterError"))?no_esc}
+                    </div>
+                </#if>
+
+                <div style="margin-top: 32px;">
+                    <button type="button" id="registerWebAuthnButton" class="btn btn-primary" onclick="registerWebAuthn('both')" style="margin-bottom: 12px;">
+                        ${msg("webauthnRegister")}
+                    </button>
+                </div>
+            </form>
+
+            <div id="kc-info" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--webank-gray-200); text-align: center; font-size: 14px; color: var(--webank-gray-600);">
+                <p>
+                    <strong>Why register a device?</strong><br/>
+                    Device registration adds an extra layer of security to your account. After registration, you'll be able to login quickly using biometric authentication or a security key.
+                </p>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            function registerWebAuthn(authenticatorAttachment) {
+                const challengeData = '${challenge}';
+                const userId = '${userid}';
+                const username = '${username}';
+                const signatureAlgorithms = JSON.parse('${signatureAlgorithms}');
+                const rpEntityName = '${rpEntityName}';
+                const rpId = '${rpId}';
+                const attestationConveyancePreference = '${attestationConveyancePreference}';
+                const requireResidentKey = '${requireResidentKey}' === 'Yes';
+                const userVerificationRequirement = '${userVerificationRequirement}';
+                const createTimeout = parseInt('${createTimeout}');
+                const excludeCredentialIds = JSON.parse('${excludeCredentialIds}');
+
+                const publicKey = {
+                    challenge: base64urlToUint8array(challengeData),
+                    rp: {
+                        name: rpEntityName,
+                        id: rpId
+                    },
+                    user: {
+                        id: base64urlToUint8array(userId),
+                        name: username,
+                        displayName: username
+                    },
+                    pubKeyCredParams: signatureAlgorithms.map(alg => ({ type: "public-key", alg: alg })),
+                    timeout: createTimeout * 1000,
+                    excludeCredentials: excludeCredentialIds.map(id => ({
+                        type: "public-key",
+                        id: base64urlToUint8array(id)
+                    })),
+                    authenticatorSelection: {
+                        requireResidentKey: requireResidentKey,
+                        userVerification: userVerificationRequirement
+                    },
+                    attestation: attestationConveyancePreference
+                };
+
+                if (authenticatorAttachment !== 'both') {
+                    publicKey.authenticatorSelection.authenticatorAttachment = authenticatorAttachment;
+                }
+
+                navigator.credentials.create({ publicKey: publicKey })
+                    .then(credential => {
+                        const clientDataJSON = arrayToBase64String(credential.response.clientDataJSON);
+                        const attestationObject = arrayToBase64String(credential.response.attestationObject);
+                        const publicKeyCredentialId = arrayToBase64String(credential.rawId);
+
+                        document.getElementById('clientDataJSON').value = clientDataJSON;
+                        document.getElementById('attestationObject').value = attestationObject;
+                        document.getElementById('publicKeyCredentialId').value = publicKeyCredentialId;
+                        document.getElementById('authenticatorLabel').value = username + "'s " + (authenticatorAttachment === 'platform' ? 'Device' : 'Security Key');
+
+                        if (credential.response.getTransports) {
+                            const transports = credential.response.getTransports();
+                            document.getElementById('transports').value = transports.join(',');
+                        }
+
+                        document.getElementById('register').submit();
+                    })
+                    .catch(error => {
+                        document.getElementById('error').value = error;
+                        document.getElementById('register').submit();
+                    });
+            }
+
+            function base64urlToUint8array(base64Bytes) {
+                const padding = '===='.substring(0, (4 - (base64Bytes.length % 4)) % 4);
+                const base64 = (base64Bytes + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                const rawData = atob(base64);
+                const buffer = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    buffer[i] = rawData.charCodeAt(i);
+                }
+                return buffer;
+            }
+
+            function arrayToBase64String(array) {
+                return btoa(String.fromCharCode.apply(null, new Uint8Array(array)));
+            }
+        </script>
+
+        </#if>
+    </@layout.registrationLayout>
+  login-webauthn-authenticate.ftl: |
+    <#import "template.ftl" as layout>
+    <@layout.registrationLayout displayInfo=false; section>
+        <#if section = "header">
+            ${msg("webauthn-login-title")}
+        <#elseif section = "form">
+            <div class="webauthn-container">
+                <div class="webauthn-header">
+                    <h2 style="color: var(--webank-primary); margin-bottom: 8px;">
+                        Sign in with your device
+                    </h2>
+                    <p style="color: var(--webank-gray-600); margin-bottom: 24px;">
+                        Use your registered device for secure, passwordless authentication.
+                    </p>
+                </div>
+
+                <div id="kc-form-webauthn" class="${properties.kcFormClass!}">
+                    <form id="webauth" action="${url.loginAction}" method="post">
+                        <input type="hidden" id="clientDataJSON" name="clientDataJSON"/>
+                        <input type="hidden" id="authenticatorData" name="authenticatorData"/>
+                        <input type="hidden" id="signature" name="signature"/>
+                        <input type="hidden" id="credentialId" name="credentialId"/>
+                        <input type="hidden" id="userHandle" name="userHandle"/>
+                        <input type="hidden" id="error" name="error"/>
+                    </form>
+
+                    <div class="${properties.kcFormGroupClass!} no-bottom-margin">
+                        <#if authenticators??>
+                            <form id="authn_select" class="${properties.kcFormClass!}">
+                                <#list authenticators.authenticators as authenticator>
+                                    <input type="hidden" name="authn_use_chk" value="${authenticator.credentialId}"/>
+                                </#list>
+                            </form>
+
+                            <#if shouldDisplayAuthenticators?? && shouldDisplayAuthenticators>
+                                <#if authenticators.authenticators?size gt 1>
+                                    <p class="${properties.kcSelectAuthListItemTitle!}" style="color: var(--webank-gray-700); font-weight: 600; margin-bottom: 16px;">
+                                        ${msg("webauthn-available-authenticators")}
+                                    </p>
+                                </#if>
+
+                                <div class="webauthn-authenticators-list">
+                                    <#list authenticators.authenticators as authenticator>
+                                        <div id="kc-webauthn-authenticator-item-${authenticator?index}" class="webauthn-authenticator-item">
+                                            <div class="webauthn-authenticator-icon">
+                                                <i class="${(properties['${authenticator.transports.iconClass}'])!'fa fa-shield-halved'} ${properties.kcSelectAuthListItemIconPropertyClass!}"></i>
+                                            </div>
+                                            <div class="webauthn-authenticator-details">
+                                                <div id="kc-webauthn-authenticator-label-${authenticator?index}"
+                                                     class="webauthn-authenticator-label">
+                                                    ${authenticator.label}
+                                                </div>
+
+                                                <#if authenticator.transports?? && authenticator.transports.displayNameProperties?has_content>
+                                                    <div id="kc-webauthn-authenticator-transport-${authenticator?index}"
+                                                         class="webauthn-authenticator-transport">
+                                                        <#list authenticators.authenticators[authenticator?index].transports.displayNameProperties as nameProperty>
+                                                            <span>${msg(nameProperty)}</span>
+                                                            <#if nameProperty?has_next>
+                                                                <span>, </span>
+                                                            </#if>
+                                                        </#list>
+                                                    </div>
+                                                </#if>
+
+                                                <div class="webauthn-authenticator-created">
+                                                    <span id="kc-webauthn-authenticator-createdlabel-${authenticator?index}">
+                                                        ${msg('webauthn-createdAt-label')}
+                                                    </span>
+                                                    <span id="kc-webauthn-authenticator-created-${authenticator?index}">
+                                                        ${authenticator.createdAt}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="webauthn-authenticator-fill"></div>
+                                        </div>
+                                    </#list>
+                                </div>
+                            </#if>
+                        </#if>
+
+                        <div id="kc-form-buttons" class="${properties.kcFormButtonsClass!}" style="margin-top: 24px;">
+                            <input id="authenticateWebAuthnButton" type="button" autofocus="autofocus"
+                                   value="${msg("webauthn-doAuthenticate")}"
+                                   class="btn btn-primary btn-block btn-large"/>
+                        </div>
+                    </div>
+
+                    <#if isSetRetry?has_content>
+                        <div class="alert alert-error" style="margin-top: 24px;">
+                            ${kcSanitize(msg("webauthnLoginError"))?no_esc}
+                        </div>
+                    </#if>
+
+                    <div class="lost-device-link" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--webank-gray-200); text-align: center;">
+                        <a tabindex="6" href="${url.loginResetCredentialsUrl}" style="color: var(--webank-primary); text-decoration: none; font-size: 14px;">
+                            ${msg("doLostDevice")}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <script type="module">
+                import { authenticateByWebAuthn } from "${url.resourcesPath}/js/webauthnAuthenticate.js";
+                const authButton = document.getElementById('authenticateWebAuthnButton');
+                authButton.addEventListener("click", function() {
+                    const input = {
+                            isUserIdentified : ${isUserIdentified},
+                            challenge : '${challenge}',
+                            userVerification : '${userVerification}',
+                            rpId : '${rpId}',
+                            createTimeout : ${createTimeout},
+                            errmsg : "${msg("webauthn-unsupported-browser-text")}"
+                        };
+                    authenticateByWebAuthn(input);
+                }, { once: true });
+            </script>
+        </#if>
+    </@layout.registrationLayout>
   messages_en.properties: '# Webank Theme - English Messages
 
 
