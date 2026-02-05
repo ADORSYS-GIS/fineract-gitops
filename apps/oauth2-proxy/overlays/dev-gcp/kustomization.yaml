@@ -1,0 +1,221 @@
+# ==============================================================================
+# GCP OAuth2 Proxy Overlay for Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: dev
+  infrastructure: gcp
+  provider: gcp-managed
+
+# Generate ingress-config ConfigMap for oauth2-proxy
+# Contains domain configuration used by init container to build URLs
+configMapGenerator:
+  - name: ingress-config
+    behavior: create
+    literals:
+      # Placeholder - will be updated with actual GCP LB IP
+      - apps-hostname=PENDING_GCP_LB_IP
+      - auth-hostname=PENDING_GCP_LB_IP
+
+  # Static configuration (realm name)
+  - name: oauth2-proxy-config-static
+    behavior: replace
+    literals:
+      - REALM_NAME=fineract
+
+# Patch deployment to build URLs dynamically from ingress-config domains
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: oauth2-proxy
+      spec:
+        template:
+          spec:
+            # Use GCP service account
+            serviceAccountName: fineract-gcp
+            # Init container to build URLs from domain configuration
+            initContainers:
+            - name: envsubst-config
+              image: alpine:3.18
+              securityContext:
+                runAsUser: 0
+                runAsNonRoot: false
+              command:
+                - sh
+                - -c
+                - |
+                  # Install gettext for envsubst command
+                  apk add --no-cache gettext
+
+                  echo "===================================="
+                  echo "Building OAuth2 Proxy URLs (GCP)"
+                  echo "===================================="
+
+                  # Read domain values from ingress-config
+                  APPS_DOMAIN=$(cat /ingress-config/apps-hostname)
+                  AUTH_DOMAIN=$(cat /ingress-config/auth-hostname)
+                  REALM_NAME=$(cat /static-config/REALM_NAME)
+
+                  # Build full URLs - use internal Keycloak service
+                  export OIDC_ISSUER_URL="http://keycloak-service:8080/auth/realms/${REALM_NAME}"
+                  export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
+                  export WHITELIST_DOMAINS="${APPS_DOMAIN}"
+                  export COOKIE_DOMAINS="${APPS_DOMAIN}"
+
+                  echo "Domain configuration:"
+                  echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
+                  echo "  AUTH_DOMAIN: ${AUTH_DOMAIN}"
+                  echo "  REALM_NAME: ${REALM_NAME}"
+                  echo ""
+                  echo "Generated URLs:"
+                  echo "  OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+                  echo "  REDIRECT_URL: ${REDIRECT_URL}"
+                  echo ""
+
+                  # Substitute environment variables in config file
+                  envsubst < /config-template/oauth2_proxy.cfg > /config-processed/oauth2_proxy.cfg
+                  echo "Configuration file generated successfully."
+                  echo "===================================="
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "200m"
+              volumeMounts:
+              - name: config
+                mountPath: /config-template
+                readOnly: true
+              - name: config-processed
+                mountPath: /config-processed
+              - name: ingress-config
+                mountPath: /ingress-config
+                readOnly: true
+              - name: static-config
+                mountPath: /static-config
+                readOnly: true
+
+            # Update main container to use processed config
+            containers:
+            - name: oauth2-proxy
+              volumeMounts:
+              - name: config-processed
+                mountPath: /etc/oauth2-proxy
+                readOnly: true
+
+            # Add volumes for configuration
+            volumes:
+            - name: config-processed
+              emptyDir: {}
+            - name: ingress-config
+              configMap:
+                name: ingress-config
+            - name: static-config
+              configMap:
+                name: oauth2-proxy-config-static
+    target:
+      kind: Deployment
+      name: oauth2-proxy
+
+  # ConfigMap with SSL skip for dev self-signed certs
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: oauth2-proxy-config
+      data:
+        oauth2_proxy.cfg: |
+          # ============================================================================
+          # HTTP Server Configuration
+          # ============================================================================
+          http_address = "0.0.0.0:4180"
+          https_address = ""
+          reverse_proxy = true
+
+          # ============================================================================
+          # OIDC Provider Configuration (Keycloak)
+          # ============================================================================
+          provider = "oidc"
+          provider_display_name = "Fineract Keycloak"
+          oidc_issuer_url = "${OIDC_ISSUER_URL}"
+          skip_oidc_discovery = false
+          insecure_oidc_skip_issuer_verification = true
+          oidc_email_claim = "email"
+          oidc_groups_claim = "roles"
+
+          # ============================================================================
+          # Redirect and Callback Configuration
+          # ============================================================================
+          redirect_url = "${REDIRECT_URL}"
+          whitelist_domains = "${WHITELIST_DOMAINS}"
+
+          # ============================================================================
+          # Cookie Configuration
+          # ============================================================================
+          cookie_name = "_oauth2_proxy"
+          cookie_secure = true
+          cookie_httponly = true
+          cookie_samesite = "lax"
+          cookie_domains = "${COOKIE_DOMAINS}"
+          cookie_expire = "4h"
+          cookie_refresh = "20m"
+
+          # ============================================================================
+          # Session Configuration
+          # ============================================================================
+          session_store_type = "redis"
+
+          # ============================================================================
+          # Email and Authorization
+          # ============================================================================
+          email_domains = "*"
+          skip_auth_routes = [
+            "^/ping$",
+            "^/ready$",
+            "^/.*\\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$",
+          ]
+
+          # ============================================================================
+          # Headers and Request Flow
+          # ============================================================================
+          set_xauthrequest = true
+          set_authorization_header = true
+          pass_authorization_header = true
+          pass_access_token = true
+          pass_user_headers = true
+
+          # ============================================================================
+          # Security Configuration - DEV OVERRIDE
+          # ============================================================================
+          ssl_insecure_skip_verify = true
+          force_https = false
+
+          # ============================================================================
+          # Scope Configuration
+          # ============================================================================
+          scope = "openid profile email roles offline_access"
+
+          # ============================================================================
+          # Metrics and Health
+          # ============================================================================
+          metrics_address = "0.0.0.0:9090"
+          ping_path = "/ping"
+          ready_path = "/ready"
+
+          # ============================================================================
+          # Banner
+          # ============================================================================
+          footer = "Fineract Platform (GCP) - Secured by OAuth2 Proxy"
+    target:
+      kind: ConfigMap
+      name: oauth2-proxy-config

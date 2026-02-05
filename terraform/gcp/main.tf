@@ -246,3 +246,33 @@ resource "random_password" "oauth2_cookie_secret" {
     ignore_changes = [length, special, upper, lower, numeric]
   }
 }
+
+# ==============================================================================
+# Redis Password (for in-cluster Redis session store)
+# ==============================================================================
+resource "random_password" "redis_password" {
+  length  = 32
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
+
+  lifecycle {
+    ignore_changes = [length, special, upper, lower, numeric]
+  }
+}
+
+# ==============================================================================
+# Keycloak Admin Password
+# ==============================================================================
+resource "random_password" "keycloak_admin_password" {
+  length  = 24
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
+
+  lifecycle {
+    ignore_changes = [length, special, upper, lower, numeric]
+  }
+}

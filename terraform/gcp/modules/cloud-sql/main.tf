@@ -135,7 +135,13 @@ resource "google_sql_user" "keycloak" {
   project  = var.project_id
 }
 
-# Note: Databases are created by application migrations (Fineract, Keycloak)
+# Keycloak database - created by Terraform for full automation
+resource "google_sql_database" "keycloak" {
+  name     = "keycloak"
+  instance = google_sql_database_instance.fineract.name
+  project  = var.project_id
+}
+
+# Note: Fineract databases are created by application migrations
 # - fineract_tenants (created by Fineract schema migration)
 # - fineract_default (created by Fineract schema migration)
-# - keycloak (created by Keycloak database setup)

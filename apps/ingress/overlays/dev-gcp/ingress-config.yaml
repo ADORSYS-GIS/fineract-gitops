@@ -1,0 +1,17 @@
+# ==============================================================================
+# GCP Ingress Configuration for Dev Environment
+# ==============================================================================
+# This ConfigMap will be updated with the actual GCP Load Balancer IP
+# after the ingress controller is deployed.
+# ==============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-config
+  namespace: fineract-dev
+data:
+  # Placeholder - will be updated with actual GCP LB IP after deployment
+  # Use: kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+  apps-hostname: "PENDING_GCP_LB_IP"
+  auth-hostname: "PENDING_GCP_LB_IP"
+  cluster-issuer: selfsigned-issuer

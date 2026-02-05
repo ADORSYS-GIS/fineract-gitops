@@ -116,50 +116,81 @@ main() {
     local docs_bucket=$(get_terraform_output "documents_bucket_name")
     local backups_bucket=$(get_terraform_output "backups_bucket_name")
     local gcp_sa_email=$(get_terraform_output "fineract_service_account_email")
+    local region=$(get_terraform_output "gke_cluster_location" | cut -d'-' -f1-2)  # Extract region from zone
 
     # Get sensitive outputs from terraform show
     log_info "Extracting sensitive values..."
     local db_password=$(terraform show -json | jq -r '.values.root_module.child_modules[].resources[]? | select(.address == "module.cloud_sql.random_password.master_password") | .values.result' 2>/dev/null | head -1)
-    local keycloak_password=$(terraform show -json | jq -r '.values.root_module.child_modules[].resources[]? | select(.address == "module.cloud_sql.random_password.keycloak_password") | .values.result' 2>/dev/null | head -1)
+    local keycloak_db_password=$(terraform show -json | jq -r '.values.root_module.child_modules[].resources[]? | select(.address == "module.cloud_sql.random_password.keycloak_password") | .values.result' 2>/dev/null | head -1)
+    local keycloak_admin_password=$(terraform show -json | jq -r '.values.root_module.resources[]? | select(.address == "random_password.keycloak_admin_password") | .values.result' 2>/dev/null | head -1)
+    local redis_password=$(terraform show -json | jq -r '.values.root_module.resources[]? | select(.address == "random_password.redis_password") | .values.result' 2>/dev/null | head -1)
     local oauth2_client_secret=$(terraform show -json | jq -r '.values.root_module.resources[]? | select(.address == "random_password.oauth2_client_secret") | .values.result' 2>/dev/null | head -1)
     local oauth2_cookie_secret=$(terraform show -json | jq -r '.values.root_module.resources[]? | select(.address == "random_password.oauth2_cookie_secret") | .values.result' 2>/dev/null | head -1)
 
     # Create sealed secrets
     log_info "Creating sealed secrets..."
 
-    # Database credentials
+    # Database credentials (Fineract)
     if [[ -n "${db_password}" ]]; then
+        # Build JDBC URL
+        local jdbc_url="jdbc:postgresql://${db_host}:5432/fineract_tenants"
+
         create_sealed_secret "fineract-db-credentials" "${namespace}" \
             "${env_secrets_dir}/fineract-db-credentials.yaml" \
-            "FINERACT_HIKARI_USERNAME=${db_username}" \
-            "FINERACT_HIKARI_PASSWORD=${db_password}" \
-            "DB_HOST=${db_host}" \
-            "DB_PORT=5432" \
-            "CLOUD_SQL_CONNECTION=${db_connection}"
+            "host=${db_host}" \
+            "port=5432" \
+            "username=${db_username}" \
+            "password=${db_password}" \
+            "jdbc-url=${jdbc_url}" \
+            "connection-name=${db_connection}"
     fi
 
-    # Keycloak credentials
-    if [[ -n "${keycloak_password}" ]]; then
+    # Keycloak database credentials
+    if [[ -n "${keycloak_db_password}" ]]; then
         create_sealed_secret "keycloak-db-credentials" "${namespace}" \
             "${env_secrets_dir}/keycloak-db-credentials.yaml" \
-            "KC_DB_USERNAME=keycloak" \
-            "KC_DB_PASSWORD=${keycloak_password}" \
-            "KC_DB_URL_HOST=${db_host}"
+            "host=${db_host}" \
+            "port=5432" \
+            "database=keycloak" \
+            "username=keycloak" \
+            "password=${keycloak_db_password}"
     fi
 
-    # GCS connection
-    create_sealed_secret "gcs-connection" "${namespace}" \
-        "${env_secrets_dir}/gcs-connection.yaml" \
-        "DOCUMENTS_BUCKET=${docs_bucket}" \
-        "BACKUPS_BUCKET=${backups_bucket}" \
-        "GCP_SERVICE_ACCOUNT=${gcp_sa_email}"
+    # Keycloak admin credentials
+    if [[ -n "${keycloak_admin_password}" ]]; then
+        create_sealed_secret "keycloak-admin-credentials" "${namespace}" \
+            "${env_secrets_dir}/keycloak-admin-credentials.yaml" \
+            "username=admin" \
+            "password=${keycloak_admin_password}"
+    fi
 
-    # OAuth2 secrets
-    if [[ -n "${oauth2_client_secret}" ]]; then
+    # Redis secret
+    if [[ -n "${redis_password}" ]]; then
+        create_sealed_secret "fineract-redis-secret" "${namespace}" \
+            "${env_secrets_dir}/fineract-redis-secret.yaml" \
+            "redis-password=${redis_password}"
+    fi
+
+    # GCS/S3 connection
+    create_sealed_secret "s3-connection" "${namespace}" \
+        "${env_secrets_dir}/s3-connection.yaml" \
+        "documents-bucket=${docs_bucket}" \
+        "backups-bucket=${backups_bucket}" \
+        "region=${region:-us-central1}"
+
+    # OAuth2 proxy secrets
+    if [[ -n "${oauth2_cookie_secret}" ]]; then
         create_sealed_secret "oauth2-proxy-secrets" "${namespace}" \
             "${env_secrets_dir}/oauth2-proxy-secrets.yaml" \
-            "OAUTH2_PROXY_CLIENT_SECRET=${oauth2_client_secret}" \
-            "OAUTH2_PROXY_COOKIE_SECRET=${oauth2_cookie_secret}"
+            "cookie-secret=${oauth2_cookie_secret}"
+    fi
+
+    # Keycloak client secrets (for OAuth2 Proxy)
+    if [[ -n "${oauth2_client_secret}" ]]; then
+        create_sealed_secret "keycloak-client-secrets" "${namespace}" \
+            "${env_secrets_dir}/keycloak-client-secrets.yaml" \
+            "oauth2-proxy-client-id=fineract-oauth2-proxy" \
+            "oauth2-proxy-client-secret=${oauth2_client_secret}"
     fi
 
     log_info "=== Sealed secrets created successfully ==="

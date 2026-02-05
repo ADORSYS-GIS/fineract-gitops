@@ -1,0 +1,44 @@
+# ==============================================================================
+# ArgoCD Application: Redis for GCP Dev Environment
+# ==============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-gcp-redis
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+
+  source:
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: feature/gcp-implementation
+    path: apps/fineract-redis/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Redis Session Store
+    - name: Environment
+      value: GCP Development
+    - name: Purpose
+      value: "OAuth2 Proxy sessions + Fineract caching"

@@ -150,6 +150,29 @@ output "oauth2_cookie_secret" {
   sensitive   = true
 }
 
+output "redis_password" {
+  description = "Redis password for in-cluster Redis session store"
+  value       = random_password.redis_password.result
+  sensitive   = true
+}
+
+output "keycloak_admin_password" {
+  description = "Keycloak admin password"
+  value       = random_password.keycloak_admin_password.result
+  sensitive   = true
+}
+
+output "keycloak_db_username" {
+  description = "Keycloak database username"
+  value       = module.cloud_sql.keycloak_username
+}
+
+output "keycloak_db_password" {
+  description = "Keycloak database password"
+  value       = module.cloud_sql.keycloak_password
+  sensitive   = true
+}
+
 # ==============================================================================
 # Connection Details Summary
 # ==============================================================================

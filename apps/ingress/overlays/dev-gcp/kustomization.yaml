@@ -1,0 +1,16 @@
+# ==============================================================================
+# GCP Ingress Overlay for Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+  - ingress-config.yaml
+
+commonLabels:
+  environment: dev
+  deployment-type: gcp
+  managed-by: argocd

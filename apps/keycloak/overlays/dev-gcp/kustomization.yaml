@@ -1,0 +1,65 @@
+# ==============================================================================
+# GCP Keycloak Overlay for Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+# Use labels instead of commonLabels to avoid affecting Service selectors
+labels:
+  - pairs:
+      environment: dev
+      deployment-type: gcp
+      managed-by: argocd
+    includeSelectors: false
+
+# Override hostname configuration for GCP dev environment
+configMapGenerator:
+  - name: ingress-config
+    behavior: merge
+    literals:
+      # Placeholder - will be updated with actual GCP LB IP
+      - auth-hostname=PENDING_GCP_LB_IP
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: keycloak
+      spec:
+        template:
+          spec:
+            # Use GCP service account
+            serviceAccountName: fineract-gcp
+            containers:
+            - name: keycloak
+              env:
+              # Placeholder - will be updated with actual GCP LB IP
+              - name: KC_HOSTNAME
+                value: PENDING_GCP_LB_IP
+              - name: KC_HOSTNAME_STRICT
+                value: "false"
+              - name: KC_HTTP_ENABLED
+                value: "true"
+              - name: KC_PROXY
+                value: "edge"
+    target:
+      kind: Deployment
+      name: keycloak
+  # Fix service selector to match pod labels
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: keycloak-service
+      spec:
+        selector:
+          app: keycloak
+    target:
+      kind: Service
+      name: keycloak-service
