@@ -12,8 +12,8 @@ spec:
   project: default
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
-    targetRevision: main
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: feature/gcp-implementation
     path: apps/ingress-nginx/base
 
   destination:

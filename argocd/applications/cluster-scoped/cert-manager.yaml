@@ -12,8 +12,8 @@ spec:
   project: default
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
-    targetRevision: develop
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: feature/gcp-implementation
     # Use dev overlay for environment-specific contact emails
     # For UAT/Production clusters, change to overlays/uat or overlays/production
     path: apps/cert-manager/overlays/dev
