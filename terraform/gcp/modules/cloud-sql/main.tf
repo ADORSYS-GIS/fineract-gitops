@@ -62,7 +62,7 @@ resource "google_sql_database_instance" "fineract" {
     ip_configuration {
       ipv4_enabled    = false
       private_network = var.network_self_link
-      require_ssl     = true
+      require_ssl     = var.require_ssl
     }
 
     # Backup configuration

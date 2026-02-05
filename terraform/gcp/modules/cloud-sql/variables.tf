@@ -94,3 +94,9 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "require_ssl" {
+  description = "Require SSL connections (disable for dev/testing)"
+  type        = bool
+  default     = false
+}
