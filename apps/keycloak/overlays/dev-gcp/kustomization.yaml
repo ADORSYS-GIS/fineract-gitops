@@ -26,6 +26,7 @@ configMapGenerator:
       - auth-hostname=PENDING_GCP_LB_IP
 
 patches:
+  # Patch Deployment for GCP
   - patch: |-
       apiVersion: apps/v1
       kind: Deployment
@@ -63,3 +64,25 @@ patches:
     target:
       kind: Service
       name: keycloak-service
+  # Patch PVC keycloak-data for GCP storage class
+  - patch: |-
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: keycloak-data
+      spec:
+        storageClassName: standard-rwo
+    target:
+      kind: PersistentVolumeClaim
+      name: keycloak-data
+  # Patch PVC keycloak-themes for GCP storage class
+  - patch: |-
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: keycloak-themes
+      spec:
+        storageClassName: standard-rwo
+    target:
+      kind: PersistentVolumeClaim
+      name: keycloak-themes

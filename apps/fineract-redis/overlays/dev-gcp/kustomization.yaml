@@ -1,0 +1,38 @@
+# ==============================================================================
+# GCP Redis Overlay for Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      environment: dev
+      deployment-type: gcp
+      managed-by: argocd
+    includeSelectors: false
+
+patches:
+  # Patch StatefulSet to use GCP storage class
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: fineract-redis
+      spec:
+        volumeClaimTemplates:
+          - metadata:
+              name: redis-data
+            spec:
+              accessModes: [ "ReadWriteOnce" ]
+              storageClassName: standard-rwo  # GCP storage class
+              resources:
+                requests:
+                  storage: 1Gi
+    target:
+      kind: StatefulSet
+      name: fineract-redis

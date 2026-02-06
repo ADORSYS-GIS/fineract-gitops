@@ -14,7 +14,7 @@ spec:
   project: default
 
   source:
-    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
     targetRevision: feature/gcp-implementation
     path: apps/keycloak/overlays/dev-gcp
 

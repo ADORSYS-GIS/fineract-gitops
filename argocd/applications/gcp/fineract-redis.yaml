@@ -14,9 +14,9 @@ spec:
   project: default
 
   source:
-    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
     targetRevision: feature/gcp-implementation
-    path: apps/fineract-redis/base
+    path: apps/fineract-redis/overlays/dev-gcp
 
   destination:
     server: https://kubernetes.default.svc

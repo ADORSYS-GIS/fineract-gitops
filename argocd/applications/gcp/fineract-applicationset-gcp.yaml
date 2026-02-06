@@ -16,19 +16,19 @@ spec:
             namespace: fineract-dev
             targetRevision: feature/gcp-implementation
             project: fineract-dev
-            repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
+            repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
             cloudProvider: gcp
           - environment: uat-gcp
             namespace: fineract-uat
             targetRevision: main
             project: fineract-uat
-            repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
+            repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
             cloudProvider: gcp
           - environment: production-gcp
             namespace: fineract-production
             targetRevision: main
             project: fineract-production
-            repoURL: git@github.com:ADORSYS-GIS/fineract-gitops.git
+            repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
             cloudProvider: gcp
   template:
     metadata:
