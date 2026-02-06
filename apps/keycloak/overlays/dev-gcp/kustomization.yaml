@@ -25,13 +25,16 @@ configMapGenerator:
       - auth-hostname=fineract.34.61.82.131.nip.io
 
 patches:
-  # Patch Deployment for GCP
+  # Patch Deployment for GCP - reduced resources for dev environment
   - patch: |-
       apiVersion: apps/v1
       kind: Deployment
       metadata:
         name: keycloak
       spec:
+        # Use Recreate strategy to avoid rolling update deadlock on resource-constrained cluster
+        strategy:
+          type: Recreate
         template:
           spec:
             # Use GCP service account
@@ -48,6 +51,14 @@ patches:
                 value: "true"
               - name: KC_PROXY
                 value: "edge"
+              # Reduced resources for dev environment (2-node cluster with limited CPU)
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "384Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "768Mi"
     target:
       kind: Deployment
       name: keycloak

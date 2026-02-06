@@ -36,3 +36,33 @@ patches:
     target:
       kind: StatefulSet
       name: fineract-redis
+
+  # Reduce CPU requests for dev environment (2-node cluster with limited CPU)
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: fineract-redis
+      spec:
+        template:
+          spec:
+            containers:
+            - name: redis
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "256Mi"
+            - name: redis-exporter
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "32Mi"
+                limits:
+                  cpu: "50m"
+                  memory: "64Mi"
+    target:
+      kind: StatefulSet
+      name: fineract-redis
