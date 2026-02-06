@@ -23,8 +23,8 @@ configMapGenerator:
     behavior: create
     literals:
       # GCP Load Balancer IP
-      - apps-hostname=34.61.82.131
-      - auth-hostname=34.61.82.131
+      - apps-hostname=fineract.34.61.82.131.nip.io
+      - auth-hostname=fineract.34.61.82.131.nip.io
 
   # Static configuration (realm name)
   - name: oauth2-proxy-config-static

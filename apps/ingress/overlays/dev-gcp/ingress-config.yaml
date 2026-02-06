@@ -8,6 +8,6 @@ metadata:
   namespace: fineract-dev
 data:
   # GCP Load Balancer IP for dev environment
-  apps-hostname: "34.61.82.131"
-  auth-hostname: "34.61.82.131"
+  apps-hostname: "fineract.34.61.82.131.nip.io"
+  auth-hostname: "fineract.34.61.82.131.nip.io"
   cluster-issuer: selfsigned-issuer

@@ -22,7 +22,7 @@ configMapGenerator:
   - name: ingress-config
     behavior: merge
     literals:
-      - auth-hostname=34.61.82.131
+      - auth-hostname=fineract.34.61.82.131.nip.io
 
 patches:
   # Patch Deployment for GCP
@@ -41,7 +41,7 @@ patches:
               env:
               # GCP Load Balancer IP
               - name: KC_HOSTNAME
-                value: "34.61.82.131"
+                value: "fineract.34.61.82.131.nip.io"
               - name: KC_HOSTNAME_STRICT
                 value: "false"
               - name: KC_HTTP_ENABLED
