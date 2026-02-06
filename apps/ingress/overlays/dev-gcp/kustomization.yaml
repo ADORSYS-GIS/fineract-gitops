@@ -1,14 +1,19 @@
 # ==============================================================================
 # GCP Ingress Overlay for Dev Environment
 # ==============================================================================
+# Uses environment-specific ingress files instead of base to avoid
+# kustomize vars/replacements complexity
+# ==============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: fineract-dev
 
+# Local ingress files with hardcoded hostname for GCP dev
 resources:
-  - ../../base
   - ingress-config.yaml
+  - fineract-ingress.yaml
+  - keycloak-ingress.yaml
 
 labels:
   - pairs:

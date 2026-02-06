@@ -1,0 +1,48 @@
+# ==============================================================================
+# Fineract API Ingress for GCP Dev Environment
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-api-ingress
+  namespace: fineract-dev
+  labels:
+    app: fineract
+    component: ingress
+    environment: dev
+    deployment-type: gcp
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    cert-manager.io/cluster-issuer: "selfsigned-issuer"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - fineract.34.61.82.131.nip.io
+    secretName: fineract-tls
+  rules:
+  - host: fineract.34.61.82.131.nip.io
+    http:
+      paths:
+      # Health check endpoint (public)
+      - path: /fineract-provider/actuator/health
+        pathType: Exact
+        backend:
+          service:
+            name: fineract-read-service
+            port:
+              number: 8443
+      # Main API endpoint
+      - path: /fineract-provider
+        pathType: Prefix
+        backend:
+          service:
+            name: fineract-read-service
+            port:
+              number: 8443
