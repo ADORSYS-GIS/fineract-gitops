@@ -17,25 +17,8 @@ labels:
     includeSelectors: false
 
 patches:
-  # Patch StatefulSet to use GCP storage class
-  - patch: |-
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: fineract-redis
-      spec:
-        volumeClaimTemplates:
-          - metadata:
-              name: redis-data
-            spec:
-              accessModes: [ "ReadWriteOnce" ]
-              storageClassName: standard-rwo  # GCP storage class
-              resources:
-                requests:
-                  storage: 1Gi
-    target:
-      kind: StatefulSet
-      name: fineract-redis
+  # NOTE: volumeClaimTemplates patch removed because StatefulSet PVC specs are
+  # immutable after creation. The PVC was created with standard-rwo storage class.
 
   # Reduce CPU requests for dev environment (2-node cluster with limited CPU)
   - patch: |-
