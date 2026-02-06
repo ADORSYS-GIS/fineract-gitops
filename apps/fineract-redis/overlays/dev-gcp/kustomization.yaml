@@ -17,8 +17,27 @@ labels:
     includeSelectors: false
 
 patches:
-  # NOTE: volumeClaimTemplates patch removed because StatefulSet PVC specs are
-  # immutable after creation. The PVC was created with standard-rwo storage class.
+  # Override base storage class (gp3 is AWS, standard-rwo is GCP)
+  # NOTE: If StatefulSet already exists with different storage class,
+  # delete it and let ArgoCD recreate (PVC is retained)
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: fineract-redis
+      spec:
+        volumeClaimTemplates:
+          - metadata:
+              name: redis-data
+            spec:
+              accessModes: [ "ReadWriteOnce" ]
+              storageClassName: standard-rwo
+              resources:
+                requests:
+                  storage: 1Gi
+    target:
+      kind: StatefulSet
+      name: fineract-redis
 
   # Reduce CPU requests for dev environment (2-node cluster with limited CPU)
   - patch: |-
