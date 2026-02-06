@@ -4,15 +4,17 @@ metadata:
   name: create-keycloak-db
   annotations:
     description: "Creates Keycloak database and user in RDS PostgreSQL (idempotent)"
-    argocd.argoproj.io/hook: PreSync
+    # Changed from PreSync to Sync - PreSync hooks don't run reliably on initial
+    # ArgoCD Application creation with automated sync. Sync hooks always execute.
+    argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-wave: "-10"
   labels:
     app.kubernetes.io/name: database-setup
     app.kubernetes.io/part-of: fineract-platform
     app.kubernetes.io/component: database
 spec:
-  ttlSecondsAfterFinished: 300  # Auto-delete after 5 minutes
+  ttlSecondsAfterFinished: 3600  # Auto-delete after 1 hour (matches fineract db job)
   template:
     metadata:
       name: keycloak-db-setup
@@ -63,7 +65,9 @@ spec:
           # Check if keycloak user exists
           echo "Checking if 'keycloak' user exists..."
           if psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='keycloak'" | grep -q 1; then
-            echo "✓ User 'keycloak' already exists, skipping creation"
+            echo "✓ User 'keycloak' already exists, updating password..."
+            # psql -c "ALTER USER keycloak WITH PASSWORD '${KEYCLOAK_PASSWORD}';"
+            # echo "✓ User 'keycloak' password updated successfully"
           else
             echo "Creating keycloak user..."
             psql -c "CREATE USER keycloak WITH PASSWORD '${KEYCLOAK_PASSWORD}';"

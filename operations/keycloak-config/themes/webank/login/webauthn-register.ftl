@@ -49,12 +49,6 @@
                 <button type="button" id="registerWebAuthnButton" class="btn btn-primary" onclick="registerWebAuthn('both')" style="margin-bottom: 12px;">
                     ${msg("webauthnRegister")}
                 </button>
-
-                <#if !isSetRetry?has_content>
-                    <div style="text-align: center; margin-top: 16px; font-size: 14px; color: var(--webank-gray-600);">
-                        You can also <a href="${url.loginRestartFlowUrl}">set this up later</a> in your account settings
-                    </div>
-                </#if>
             </div>
         </form>
 

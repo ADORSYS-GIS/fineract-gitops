@@ -72,31 +72,31 @@ resource "aws_internet_gateway" "main" {
   )
 }
 
-# Elastic IPs for NAT Gateways
+# Elastic IP for NAT Gateway (Single NAT Gateway for cost optimization)
 resource "aws_eip" "nat" {
-  count  = var.az_count
+  count  = 1
   domain = "vpc"
 
   tags = merge(
     var.tags,
     {
-      Name = "${var.cluster_name}-nat-eip-${count.index + 1}"
+      Name = "${var.cluster_name}-nat-eip"
     }
   )
 
   depends_on = [aws_internet_gateway.main]
 }
 
-# NAT Gateways for private subnet internet access
+# NAT Gateway (Single for cost optimization)
 resource "aws_nat_gateway" "main" {
-  count         = var.az_count
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  count         = 1
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public[0].id
 
   tags = merge(
     var.tags,
     {
-      Name = "${var.cluster_name}-nat-${count.index + 1}"
+      Name = "${var.cluster_name}-nat"
     }
   )
 
@@ -134,7 +134,7 @@ resource "aws_route_table" "private" {
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
+    nat_gateway_id = aws_nat_gateway.main[0].id
   }
 
   tags = merge(

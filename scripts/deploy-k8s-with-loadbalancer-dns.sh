@@ -108,7 +108,7 @@ preflight_check() {
     if [ -z "$KUBECONFIG" ]; then
         log_error "KUBECONFIG environment variable not set"
         echo "  Fix: export KUBECONFIG=~/.kube/config-fineract-$ENV"
-        ((errors++))
+        ((++errors))
     else
         log "✓ KUBECONFIG is set: $KUBECONFIG"
     fi
@@ -118,7 +118,7 @@ preflight_check() {
         log_error "Cannot connect to Kubernetes cluster"
         echo "  Fix: Ensure infrastructure is deployed and kubeconfig is configured"
         echo "       Run: ./scripts/setup-eks-kubeconfig.sh $ENV"
-        ((errors++))
+        ((++errors))
     else
         CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo "unknown")
         log "✓ Connected to cluster: $CLUSTER_NAME"
@@ -132,14 +132,14 @@ preflight_check() {
         echo "  This is needed for ArgoCD to access the Git repository"
         echo "  Generate with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f ~/.ssh/argocd-deploy-key -N \"\""
         echo "  Then add public key to GitHub repository deploy keys"
-        ((errors++))
+        ((++errors))
     fi
 
     # Check 4: Terraform outputs (needed for sealed secrets)
     if [ ! -d "terraform/aws" ]; then
         log_warn "Terraform directory not found"
         echo "  This may cause sealed secrets generation to fail"
-        ((errors++))
+        ((++errors))
     else
         # Check if terraform state exists
         if [ -f "terraform/aws/terraform.tfstate" ] || [ -d "terraform/aws/.terraform" ]; then
@@ -163,7 +163,7 @@ preflight_check() {
         else
             log_error "Terraform not initialized or no state file"
             echo "  Fix: cd terraform/aws && terraform init && terraform apply"
-            ((errors++))
+            ((++errors))
         fi
     fi
 
@@ -541,37 +541,48 @@ echo
 log_info "Updating configuration files with LoadBalancer DNS: $LB_DNS"
 echo
 
-# Files to update (ingress-config ConfigMaps in Kustomize overlays)
-declare -a CONFIG_FILES=(
-    "apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml"
-    "apps/keycloak/overlays/${ENV}/kustomization.yaml"
-    "apps/fineract/overlays/${ENV}/kustomization.yaml"
-    "operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
-)
+# Use the centralized auto-update-lb-dns.sh script (single source of truth)
+# --skip-wait: We already have the LB_DNS from earlier in this script
+# --commit --push: Automatically commit and push changes so ArgoCD can sync
+log_info "Using centralized auto-update-lb-dns.sh script..."
+if "${SCRIPT_DIR}/auto-update-lb-dns.sh" "${ENV}" --skip-wait --commit --push; then
+    log "✓ All configuration files updated and pushed via auto-update-lb-dns.sh"
+else
+    log_error "Failed to update configuration files"
+    exit 1
+fi
+echo
 
-for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
-    if [ ! -f "$CONFIG_FILE" ]; then
-        log_warn "Config file not found: $CONFIG_FILE (skipping)"
-        continue
+# Validate Ingress updates
+validate_ingress_updates() {
+    log_info "Validating Ingress DNS configuration..."
+    local actual_lb_dns=$LB_DNS
+    local ingress_host=$(kubectl get ingress -n "${NAMESPACE}" -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || echo "")
+
+    if [ -z "$ingress_host" ]; then
+        log_warn "Could not retrieve Ingress hostname (may not exist yet)"
+        log_info "This is normal on first deployment"
+        return 0
     fi
 
-    log_info "Updating: $CONFIG_FILE"
+    if [ "$ingress_host" != "$actual_lb_dns" ]; then
+        log_error "Ingress hostname mismatch detected!"
+        log_error "  Expected: $actual_lb_dns"
+        log_error "  Actual:   $ingress_host"
+        echo ""
+        log_warn "Reapplying ingress configurations to fix..."
+        if kubectl apply -k "apps/ingress/overlays/${ENV}" --dry-run=client -o yaml | kubectl apply -f -; then
+            log "✓ Ingress configuration reapplied successfully"
+        else
+            log_warn "Failed to reapply ingress (may need manual intervention)"
+        fi
+    else
+        log "✓ Ingress DNS configuration is correct"
+    fi
+}
 
-    # Update apps-hostname and auth-hostname with LoadBalancer DNS
-    # Use sed to replace the values in the configMapGenerator literals
-    sed -i.bak -E \
-        -e "s|apps-hostname=.*|apps-hostname=${LB_DNS}|g" \
-        -e "s|auth-hostname=.*|auth-hostname=${LB_DNS}|g" \
-        "$CONFIG_FILE"
-
-    # Remove backup file
-    rm -f "${CONFIG_FILE}.bak"
-
-    log "  ✓ Updated: $CONFIG_FILE"
-done
-
-echo
-log "✓ All configuration files updated"
+# Run validation
+validate_ingress_updates
 echo
 
 # Verify changes
@@ -591,6 +602,19 @@ echo -e "${BLUE}PHASE 4: Commit Configuration Changes to Git${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo
 
+# Define config files that auto-update-lb-dns.sh modifies
+declare -a CONFIG_FILES=(
+    "config/loadbalancer-dns-configmap.yaml"
+    "environments/${ENV}/loadbalancer-config.yaml"
+    "environments/${ENV}/fineract-oauth2-config-patch.yaml"
+    "apps/ingress/overlays/${ENV}/ingress-config.yaml"
+    "apps/ingress/overlays/${ENV}/kustomization.yaml"
+    "apps/oauth2-proxy/overlays/${ENV}/kustomization.yaml"
+    "apps/keycloak/overlays/${ENV}/kustomization.yaml"
+    "operations/keycloak-config/overlays/${ENV}/kustomization.yaml"
+    "operations/fineract-config/overlays/${ENV}/kustomization.yaml"
+)
+
 # Check if there are changes to commit
 if git diff --quiet; then
     log_warn "No configuration changes detected (configs may already be correct)"
@@ -600,12 +624,15 @@ else
     # Add modified config files
     for CONFIG_FILE in "${CONFIG_FILES[@]}"; do
         if [ -f "$CONFIG_FILE" ]; then
-            git add "$CONFIG_FILE"
+            git add "$CONFIG_FILE" 2>/dev/null || true
         fi
     done
 
-    # Commit changes
-    git commit -m "$(cat <<EOF
+    # Commit changes (use --allow-empty to handle case where all files are already tracked)
+    if git diff --cached --quiet; then
+        log_warn "No new changes to commit (files may already be up-to-date)"
+    else
+        git commit -m "$(cat <<EOF
 chore: update configs with LoadBalancer DNS for ${ENV}
 
 Automated update using LoadBalancer DNS: ${LB_DNS}
@@ -618,8 +645,8 @@ This commit was generated automatically by:
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
-
-    log "✓ Configuration changes committed to Git"
+        log "✓ Configuration changes committed to Git"
+    fi
 fi
 
 echo
@@ -631,6 +658,31 @@ echo
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}PHASE 5: Deploy Secrets (Sealed Secrets from Terraform)${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+# Always regenerate sealed secrets from Terraform outputs before applying
+# This ensures secrets have the latest values (e.g., database=fineract_tenants)
+log_info "Regenerating sealed secrets from Terraform outputs..."
+if "$REPO_ROOT/scripts/seal-terraform-secrets.sh" "$ENV"; then
+    log "✓ Sealed secrets regenerated with latest Terraform values"
+
+    # Commit regenerated sealed secrets to git for GitOps consistency
+    log_info "Committing regenerated sealed secrets to git..."
+    cd "$REPO_ROOT"
+    if git diff --quiet "secrets/${ENV}/" 2>/dev/null; then
+        log "No changes to sealed secrets (already up to date)"
+    else
+        git add "secrets/${ENV}/"
+        git commit -m "chore: regenerate sealed secrets for ${ENV} environment" || true
+        if git push origin HEAD 2>/dev/null; then
+            log "✓ Sealed secrets committed and pushed to git"
+        else
+            log_warn "Could not push to git (may need manual push later)"
+        fi
+    fi
+else
+    log_warn "Failed to regenerate sealed secrets (will use existing files)"
+fi
 echo
 
 log_info "Running: make deploy-step-3"
@@ -657,7 +709,6 @@ fi
 
 log "✓ Applications deployed successfully"
 echo
-
 # ============================================================================
 # PHASE 6.5: Verify Keycloak Configuration
 # ============================================================================
@@ -710,10 +761,10 @@ fi
 echo
 log_info "Verifying Fineract realm is accessible..."
 
-# Test realm OIDC discovery endpoint
-if curl -k -s -f "https://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
+# Test realm OIDC discovery endpoint (Keycloak 17+ serves from root path - no /auth prefix)
+if curl -k -s -f "https://${LB_DNS}/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
     log "✓ Fineract realm OIDC discovery endpoint is accessible"
-elif curl -k -s -f "http://${LB_DNS}/auth/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
+elif curl -k -s -f "http://${LB_DNS}/realms/fineract/.well-known/openid-configuration" > /dev/null 2>&1; then
     log "✓ Fineract realm OIDC discovery endpoint is accessible (HTTP)"
 else
     log_warn "Fineract realm OIDC endpoint not accessible yet (may need more time)"
@@ -778,6 +829,101 @@ else
     log "✓ All applications are ready"
     echo
 fi
+
+# ============================================================================
+# PHASE 7.4: Validate Sealed Secrets Decryption
+# ============================================================================
+
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}PHASE 7.4: Validate Sealed Secrets Decryption${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Validating that sealed secrets can be decrypted..."
+
+# Test decryption by checking if a critical secret exists and has data
+# This catches the case where sealed secrets controller keys don't match
+SECRETS_VALID=true
+SECRETS_CHECKED=0
+
+# Check keycloak-admin-credentials
+if kubectl get secret keycloak-admin-credentials -n fineract-${ENV} -o jsonpath='{.data.username}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
+    log "✓ keycloak-admin-credentials: decrypted successfully"
+    SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+else
+    log_error "✗ keycloak-admin-credentials: failed to decrypt"
+    SECRETS_VALID=false
+fi
+
+# Check fineract-db-credentials (verify both host and database are set)
+DB_HOST=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.host}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.database}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ]; then
+    log "✓ fineract-db-credentials: decrypted successfully (database: $DB_NAME)"
+    SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+elif [ -n "$DB_HOST" ] && [ -z "$DB_NAME" ]; then
+    # Database field is empty - auto-fix by regenerating sealed secret
+    log_warn "✗ fineract-db-credentials: database field is empty (auto-fixing...)"
+    log_info "Regenerating fineract-db-credentials sealed secret..."
+
+    # Regenerate the sealed secret from Terraform outputs
+    if "$REPO_ROOT/scripts/seal-terraform-secrets.sh" "$ENV" > /dev/null 2>&1; then
+        # Delete and reapply the sealed secret
+        kubectl delete secret fineract-db-credentials -n fineract-${ENV} 2>/dev/null || true
+        kubectl delete sealedsecret fineract-db-credentials -n fineract-${ENV} 2>/dev/null || true
+        kubectl apply -f "$REPO_ROOT/secrets/${ENV}/fineract-db-credentials-sealed.yaml"
+
+        # Wait for secret to be created by sealed-secrets controller
+        sleep 5
+
+        # Re-check the database field
+        DB_NAME=$(kubectl get secret fineract-db-credentials -n fineract-${ENV} -o jsonpath='{.data.database}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        if [ -n "$DB_NAME" ]; then
+            log "✓ fineract-db-credentials: auto-fixed successfully (database: $DB_NAME)"
+            SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+        else
+            log_error "✗ fineract-db-credentials: auto-fix failed - database still empty"
+            SECRETS_VALID=false
+        fi
+    else
+        log_error "✗ fineract-db-credentials: failed to regenerate sealed secret"
+        SECRETS_VALID=false
+    fi
+else
+    log_error "✗ fineract-db-credentials: failed to decrypt or missing required fields"
+    [ -z "$DB_HOST" ] && log_error "  - host is empty"
+    [ -z "$DB_NAME" ] && log_error "  - database is empty (should be 'fineract_tenants')"
+    SECRETS_VALID=false
+fi
+
+# Check keycloak-client-secrets
+if kubectl get secret keycloak-client-secrets -n fineract-${ENV} -o jsonpath='{.data.oauth2-proxy-client-id}' 2>/dev/null | base64 -d > /dev/null 2>&1; then
+    log "✓ keycloak-client-secrets: decrypted successfully"
+    SECRETS_CHECKED=$((SECRETS_CHECKED + 1))
+else
+    log_error "✗ keycloak-client-secrets: failed to decrypt"
+    SECRETS_VALID=false
+fi
+
+echo
+
+if [ "$SECRETS_VALID" = "true" ]; then
+    log "✓ All sealed secrets validated successfully ($SECRETS_CHECKED secrets checked)"
+else
+    log_error "Sealed secrets validation FAILED!"
+    log_error "This indicates the sealed secrets controller keys don't match the encrypted secrets."
+    log_error ""
+    log_error "To fix this, re-run the deployment with Option 2 (Regenerate sealed secrets)"
+    log_error "or restore the correct controller keys from backup."
+    echo
+    log_info "Debug commands:"
+    echo "  kubectl get sealedsecrets -n fineract-${ENV}"
+    echo "  kubectl logs -n kube-system -l name=sealed-secrets-controller"
+    echo
+    exit 1
+fi
+
+echo
 
 # ============================================================================
 # PHASE 7.5: Verify OAuth2-Proxy Service
@@ -855,11 +1001,11 @@ else
     done
 fi
 
-# Test Keycloak realm endpoint
+# Test Keycloak realm endpoint (Keycloak 17+ serves from root path - no /auth prefix)
 log_info "Testing Keycloak realm endpoint..."
-if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/auth/realms/fineract" | grep -q "200\|302"; then
+if curl -k -s -o /dev/null -w "%{http_code}" "https://${LB_DNS}/realms/fineract" | grep -q "200\|302"; then
     log "✓ Keycloak realm endpoint is responding"
-elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/auth/realms/fineract" | grep -q "200\|302"; then
+elif curl -k -s -o /dev/null -w "%{http_code}" "http://${LB_DNS}/realms/fineract" | grep -q "200\|302"; then
     log "✓ Keycloak realm endpoint is responding (HTTP)"
 else
     log_warn "Keycloak realm endpoint not responding as expected"
@@ -891,6 +1037,29 @@ log_info "Final ArgoCD application status:"
 kubectl get applications -n argocd -o custom-columns="NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status" 2>/dev/null | grep "fineract-${ENV}" || true
 
 log "✓ Final health check complete"
+echo
+
+# ============================================================================
+# Final Ingress DNS Validation
+# ============================================================================
+
+echo -e "${BLUE}═════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}Final Ingress DNS Validation${NC}"
+echo -e "${BLUE}═════════════════════════════════════════════════════════════${NC}"
+echo
+
+log_info "Running final validation of Ingress DNS configuration..."
+echo
+
+if ! ./scripts/validate-ingress-dns.sh "$ENV"; then
+    log_warn "DNS validation failed"
+    log_warn "Applications may not be accessible"
+    log_info "Review the validation output above for remediation steps"
+    EXIT_CODE=1
+else
+    log "✓ Final Ingress DNS validation passed"
+fi
+
 echo
 
 # ============================================================================

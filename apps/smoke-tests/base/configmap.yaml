@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smoke-test-scripts
+  namespace: fineract
+data:
+  smoke-test.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "=== Fineract Smoke Tests ==="
+    echo "Environment: ${ENVIRONMENT:-dev}"
+    echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+    echo ""
+
+    FAILED=0
+    TESTS_RUN=0
+    TESTS_PASSED=0
+
+    run_test() {
+      local name="$1"
+      local url="$2"
+      local expected_codes="${3:-200}"
+
+      TESTS_RUN=$((TESTS_RUN + 1))
+      echo -n "Testing $name... "
+
+      response=$(curl -s -o /dev/null -w "%{http_code}" \
+        --max-time 30 \
+        --retry 3 \
+        --retry-delay 5 \
+        "$url" 2>/dev/null || echo "000")
+
+      if echo "$expected_codes" | grep -q "$response"; then
+        echo "PASS (HTTP $response)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        return 0
+      else
+        echo "FAIL (HTTP $response, expected $expected_codes)"
+        FAILED=1
+        return 1
+      fi
+    }
+
+    echo "--- Core Services ---"
+
+    # Fineract Backend
+    run_test "Fineract Write Health" \
+      "http://fineract-write.fineract.svc.cluster.local:8443/fineract-provider/actuator/health" \
+      "200" || true
+
+    run_test "Fineract Read Health" \
+      "http://fineract-read.fineract.svc.cluster.local:8443/fineract-provider/actuator/health" \
+      "200" || true
+
+    # Keycloak (Keycloak 17+ serves from root path - no /auth prefix)
+    run_test "Keycloak Health" \
+      "http://keycloak.fineract.svc.cluster.local:8080/health" \
+      "200" || true
+
+    run_test "Keycloak Realm" \
+      "http://keycloak.fineract.svc.cluster.local:8080/realms/fineract" \
+      "200" || true
+
+    # Redis
+    echo -n "Testing Redis connectivity... "
+    if nc -z -w5 fineract-redis.fineract.svc.cluster.local 6379 2>/dev/null; then
+      echo "PASS"
+      TESTS_RUN=$((TESTS_RUN + 1))
+      TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+      echo "FAIL"
+      TESTS_RUN=$((TESTS_RUN + 1))
+    fi
+
+    echo ""
+    echo "--- Frontend Apps ---"
+
+    # Frontend services (internal cluster URLs)
+    run_test "Admin App" \
+      "http://admin-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    run_test "Account Manager App" \
+      "http://account-manager-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    run_test "Branch Manager App" \
+      "http://branch-manager-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    run_test "Cashier App" \
+      "http://cashier-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    run_test "Reporting App" \
+      "http://reporting-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    run_test "Accounting App" \
+      "http://accounting-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    run_test "Web App" \
+      "http://web-app.fineract.svc.cluster.local:80/" \
+      "200 301 302" || true
+
+    echo ""
+    echo "--- Supporting Services ---"
+
+    # OAuth2 Proxy
+    run_test "OAuth2 Proxy" \
+      "http://oauth2-proxy.fineract.svc.cluster.local:4180/ping" \
+      "200" || true
+
+    # User Sync Service
+    run_test "User Sync Service" \
+      "http://user-sync-service.fineract.svc.cluster.local:5000/health" \
+      "200" || true
+
+    echo ""
+    echo "=== Test Summary ==="
+    echo "Tests run: $TESTS_RUN"
+    echo "Tests passed: $TESTS_PASSED"
+    echo "Tests failed: $((TESTS_RUN - TESTS_PASSED))"
+    echo ""
+
+    if [ $FAILED -eq 0 ]; then
+      echo "ALL SMOKE TESTS PASSED"
+      exit 0
+    else
+      echo "SOME SMOKE TESTS FAILED"
+      exit 1
+    fi

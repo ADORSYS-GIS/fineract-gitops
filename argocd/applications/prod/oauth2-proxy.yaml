@@ -11,7 +11,7 @@ spec:
   project: fineract-production
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
     targetRevision: main  # Production syncs from main branch (tagged releases preferred)
     path: apps/oauth2-proxy/overlays/production
 

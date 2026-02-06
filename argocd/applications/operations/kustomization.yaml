@@ -15,9 +15,10 @@ kind: Kustomization
 
 resources:
   - argocd-config.yaml
-  - keycloak-config.yaml
-  - database-init.yaml
-  - database-setup.yaml
+  # Removed duplicates that are managed by environment-specific app-of-apps:
+  # - keycloak-config.yaml (managed by argocd/applications/dev/keycloak-config.yaml)
+  # - database-init.yaml (managed by argocd/applications/dev/database-fineract-init.yaml)
+  # - database-setup.yaml (managed by argocd/applications/dev/database-keycloak-setup.yaml)
 
 # Replacements to inject repository URL into all Application manifests
 replacements:

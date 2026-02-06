@@ -6,6 +6,7 @@ data:
   # Development environment OAuth2/OIDC configuration
   # Uses current LoadBalancer DNS - automatically updated by post-terraform-setup.sh
   # IMPORTANT: This must match the frontendUrl in Keycloak realm configuration
-  oidc-issuer-url: "https://a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com/auth/realms/fineract"
+  # Keycloak 17+ serves from root path (no /auth prefix)
+  oidc-issuer-url: "https://aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com/realms/fineract"
   # JWK endpoint uses internal service for faster validation
-  jwk-set-uri-internal: "http://keycloak-service:8080/auth/realms/fineract/protocol/openid-connect/certs"
+  jwk-set-uri-internal: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/certs"

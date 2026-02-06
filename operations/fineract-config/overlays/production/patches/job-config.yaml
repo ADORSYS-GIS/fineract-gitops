@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-fineract-config
+  annotations:
+    # Production: Require manual approval in ArgoCD
+    argocd.argoproj.io/sync-options: Manual=true
+spec:
+  template:
+    spec:
+      containers:
+        - name: fineract-config-cli
+          # Production: Use specific version tag, not latest
+          image: ghcr.io/adorsys-gis/fineract-config-cli:1.0.0
+          imagePullPolicy: IfNotPresent
+
+          env:
+            # Production environment: strict settings
+            - name: IMPORT_FORCE
+              value: "false"
+            - name: IMPORT_DRY_RUN
+              value: "false"
+            - name: IMPORT_VALIDATE
+              value: "true"
+            - name: LOGGING_LEVEL_ORG_APACHE_FINERACT_CONFIG
+              value: "INFO"
+
+            # Managed modes: full for all configuration entities
+            - name: IMPORT_MANAGED_OFFICE
+              value: "full"
+            - name: IMPORT_MANAGED_ROLE
+              value: "full"
+            - name: IMPORT_MANAGED_STAFF
+              value: "no-delete"  # Still preserve staff in production
+            - name: IMPORT_MANAGED_CLIENT
+              value: "no-delete"  # Never delete clients in production
+            - name: IMPORT_MANAGED_LOANPRODUCT
+              value: "full"
+            - name: IMPORT_MANAGED_SAVINGSPRODUCT
+              value: "full"
+            - name: IMPORT_MANAGED_CHARGE
+              value: "full"
+            - name: IMPORT_MANAGED_GLACCOUNT
+              value: "full"
+
+            # SSL verification enabled in production
+            - name: FINERACT_SSL_VERIFY
+              value: "true"

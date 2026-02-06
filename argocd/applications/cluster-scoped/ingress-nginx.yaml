@@ -13,7 +13,7 @@ spec:
 
   source:
     repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: feature/gcp-implementation
+    targetRevision: main
     path: apps/ingress-nginx/base
 
   destination:

@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: tracing-stack
+
+namespace: tracing
+
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # Jaeger All-in-One
+  - jaeger-deployment.yaml
+  - jaeger-service.yaml
+  - jaeger-rbac.yaml
+
+  # OpenTelemetry Collector
+  - otel-collector-deployment.yaml
+  - otel-collector-configmap.yaml
+  - otel-collector-service.yaml
+  - otel-collector-rbac.yaml
+
+  # Service Monitors for Prometheus integration
+  - servicemonitor-tracing.yaml
+
+  # Pod Disruption Budgets
+  - pdb.yaml
+
+# Use labels transformer to avoid adding labels to service selectors
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: tracing-stack
+      managed-by: argocd
+    includeSelectors: false
+
+commonAnnotations:
+  component: "tracing"
+  purpose: "Distributed tracing for Fineract platform"

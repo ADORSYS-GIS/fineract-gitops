@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: self-service-app-config
+  labels:
+    app: self-service-app
+    component: frontend
+data:
+  # =============================================================================
+  # OIDC Configuration (Direct authentication with Keycloak)
+  # The React app uses oidc-client-ts or react-oidc-context for PKCE flow
+  # =============================================================================
+
+  # Keycloak realm URL (without protocol/openid-connect suffix)
+  # The OIDC library appends /.well-known/openid-configuration automatically
+  oidcAuthority: "https://AUTH_HOSTNAME/realms/fineract"
+
+  # Self-service client (public client with PKCE)
+  oidcClientId: "self-service-app"
+
+  # OAuth2 redirect URIs
+  oidcRedirectUri: "https://APPS_HOSTNAME/self-service/callback"
+  oidcPostLogoutUri: "https://APPS_HOSTNAME/self-service"
+
+  # OAuth2 scopes
+  oidcScopes: "openid profile email offline_access"
+
+  # =============================================================================
+  # API Configuration
+  # =============================================================================
+
+  # Customer Registration Service (for new customer signup)
+  registrationApiUrl: "/api/registration"
+
+  # Fineract API (proxied through nginx to avoid CORS)
+  fineractApiUrl: "/fineract-provider/api/v1"
+
+  # Fineract tenant
+  fineractTenantId: "default"
+
+  # =============================================================================
+  # Application Settings
+  # =============================================================================
+
+  # Default language
+  defaultLanguage: "en"
+
+  # Supported languages
+  supportedLanguages: "en,fr"
+
+  # Currency settings
+  currencyCode: "XAF"
+  currencySymbol: "FCFA"
+
+  # Session idle timeout (milliseconds) - 0 means no auto-logout
+  sessionIdleTimeout: "1800000"

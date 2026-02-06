@@ -647,6 +647,88 @@ kubectl get svc -n ingress-nginx ingress-nginx-controller
 # Update DNS A record to point to LoadBalancer endpoint
 ```
 
+**3. LoadBalancer DNS hostname mismatch:**
+
+**Symptoms:**
+- All applications return 404 Not Found
+- Ingress resources have outdated hostname
+- LoadBalancer DNS has changed but configs not updated
+
+**Diagnosis:**
+```bash
+# Run automated validation script
+./scripts/validate-ingress-dns.sh dev
+
+# This will check if ingress hostnames match current LoadBalancer DNS
+```
+
+**Solutions:**
+
+**Quick Fix (Automated):**
+```bash
+# Validate and auto-update all configurations
+./scripts/validate-ingress-dns.sh dev
+
+# If mismatched, run:
+./scripts/auto-update-lb-dns.sh dev --commit --push
+
+# Wait for ArgoCD to sync changes
+kubectl get applications -n argocd -w
+```
+
+**Full Deployment:**
+```bash
+# Use two-phase deployment workflow
+make deploy-k8s-with-loadbalancer-dns-dev
+
+# This will:
+# 1. Wait for LoadBalancer DNS
+# 2. Update all 8 config files (not just 7!)
+# 3. Commit changes to Git
+# 4. Trigger ArgoCD sync
+# 5. Validate DNS configuration
+```
+
+**Manual Validation:**
+```bash
+# Check LoadBalancer DNS
+kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+
+# Check Ingress hostnames
+kubectl get ingress -n fineract-dev -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.spec.rules[0].host}{"\n"}{end}'
+
+# Compare output - if they don't match, you need to update configs
+```
+
+**Prevention:**
+
+Always run validation after deployment:
+```bash
+make validate-ingress-dns ENV=dev
+```
+
+The validation script is automatically run by:
+- `make deploy-k8s-with-loadbalancer-dns-dev` (after deployment)
+- `./scripts/wait-for-lb-and-sync.sh` (after health checks)
+- GitHub Actions workflow (before committing DNS changes)
+
+**Root Cause:**
+This happens when:
+1. LoadBalancer is destroyed and recreated with new DNS
+2. Configuration files were not updated with new DNS
+3. Old DNS references remain in Ingress resources
+
+**Files Affected:**
+When LoadBalancer DNS changes, these 8 files need updating:
+- `config/loadbalancer-dns-configmap.yaml` (was missing - caused this issue!)
+- `environments/dev/loadbalancer-config.yaml`
+- `environments/dev/fineract-oauth2-config-patch.yaml`
+- `apps/ingress/overlays/dev/ingress-config.yaml`
+- `apps/keycloak/overlays/dev/kustomization.yaml`
+- `apps/oauth2-proxy/overlays/dev/kustomization.yaml`
+- `apps/fineract/overlays/dev/kustomization.yaml`
+- `operations/keycloak-config/overlays/dev/kustomization.yaml`
+
 **3. TLS certificate issues:**
 ```bash
 # Check certificate status

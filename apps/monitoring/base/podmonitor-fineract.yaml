@@ -1,0 +1,130 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fineract-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: fineract
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: fineract
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: http
+    path: /fineract-provider/actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+    relabelings:
+    # Add pod name label
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    # Add namespace label
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    # Add node label
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    # Add instance type (read/write/batch) from pod label
+    - sourceLabels: [__meta_kubernetes_pod_label_fineract_instance_type]
+      targetLabel: instance_type
+    # Add container name
+    - sourceLabels: [__meta_kubernetes_pod_container_name]
+      targetLabel: container
+    metricRelabelings:
+    # Drop high-cardinality metrics if needed
+    - sourceLabels: [__name__]
+      regex: 'jvm_gc_.*|jvm_memory_pool_.*'
+      action: drop
+---
+# PodMonitor for Fineract read instances specifically
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fineract-read-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: fineract-read
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: fineract
+      fineract.instance.type: read
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: http
+    path: /fineract-provider/actuator/prometheus
+    interval: 15s  # More frequent for read instances under load
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - action: replace
+      targetLabel: instance_type
+      replacement: read
+---
+# PodMonitor for Fineract write instances specifically
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fineract-write-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: fineract-write
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: fineract
+      fineract.instance.type: write
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: http
+    path: /fineract-provider/actuator/prometheus
+    interval: 15s
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - action: replace
+      targetLabel: instance_type
+      replacement: write
+---
+# PodMonitor for Fineract batch instances
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: fineract-batch-pods
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: fineract-batch
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: fineract
+      fineract.instance.type: batch
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+  - port: http
+    path: /fineract-provider/actuator/prometheus
+    interval: 30s  # Batch jobs are less time-sensitive
+    scrapeTimeout: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - action: replace
+      targetLabel: instance_type
+      replacement: batch

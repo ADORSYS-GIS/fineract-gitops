@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: fineract-platform
+    environment: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Deploy after infrastructure (wave 1)
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+    targetRevision: deploy-key
+    path: apps/monitoring/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Health assessment - ignore replica count drift for HPA compatibility
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+
+  revisionHistoryLimit: 10
+
+  info:
+    - name: Component
+      value: Monitoring Stack (Prometheus, Grafana, AlertManager)
+    - name: Environment
+      value: Development
+    - name: Auto-Deploy
+      value: "true"

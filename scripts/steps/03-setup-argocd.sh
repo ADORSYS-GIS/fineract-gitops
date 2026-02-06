@@ -193,5 +193,31 @@ case $VALIDATION_EXIT_CODE in
         ;;
 esac
 
+# ============================================================================
+# Deploy Infrastructure App-of-Apps
+# ============================================================================
+
+echo -e "${BLUE}→ Deploying infrastructure-app-of-apps...${NC}"
+if kubectl apply -f "${REPO_ROOT}/argocd/applications/cluster-scoped/infrastructure-app-of-apps.yaml"; then
+    echo -e "${GREEN}✓${NC} Infrastructure app-of-apps deployed"
+
+    # Wait for ArgoCD to sync infrastructure applications
+    echo -e "${BLUE}→ Waiting for infrastructure applications to sync...${NC}"
+    sleep 30
+
+    # Verify key infrastructure apps are created
+    INFRA_APPS=("sealed-secrets-controller" "ingress-nginx" "cert-manager" "reloader")
+    for app in "${INFRA_APPS[@]}"; do
+        if kubectl get application "$app" -n argocd &>/dev/null; then
+            echo -e "${GREEN}  ✓${NC} $app"
+        else
+            echo -e "${YELLOW}  ⚠${NC} $app (still syncing)"
+        fi
+    done
+else
+    echo -e "${RED}✗${NC} Failed to deploy infrastructure-app-of-apps"
+    exit 1
+fi
+
 echo ""
 echo -e "${GREEN}ArgoCD setup complete!${NC}"

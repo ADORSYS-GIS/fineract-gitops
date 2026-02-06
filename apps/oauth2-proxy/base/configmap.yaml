@@ -53,7 +53,7 @@ data:
     insecure_oidc_skip_issuer_verification = false
 
     oidc_email_claim = "email"
-    oidc_groups_claim = "roles"
+    oidc_groups_claim = "realm_access.roles"
 
     # Additional claims to extract
     extra_jwt_issuers = ""
@@ -79,6 +79,16 @@ data:
     # Cookie expiration (4 hours to match Keycloak SSO session)
     cookie_expire = "4h"
     cookie_refresh = "20m"  # Refresh 10 minutes before token expiry to ensure tokens are refreshed while valid
+
+    # ============================================================================
+    # Logout Configuration
+    # ============================================================================
+    # After clearing OAuth2 Proxy session, redirect to Keycloak logout endpoint
+    # to terminate the SSO session. User will then be redirected back via
+    # Keycloak's post_logout_redirect_uris configuration.
+    # NOTE: Uses KEYCLOAK_LOGOUT_URL (external URL) not OIDC_ISSUER_URL (internal)
+    # because the browser needs to access Keycloak directly for the logout redirect
+    backend_logout_url = "${KEYCLOAK_LOGOUT_URL}/protocol/openid-connect/logout?client_id=oauth2-proxy&post_logout_redirect_uri=${REDIRECT_URL}"
 
     # ============================================================================
     # Session Configuration

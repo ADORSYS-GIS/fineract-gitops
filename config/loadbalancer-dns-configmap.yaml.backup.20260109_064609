@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadbalancer-dns
+  namespace: kube-system
+  labels:
+    app: loadbalancer-dns
+    managed-by: automated
+data:
+  # Centralized Load Balancer DNS Configuration
+  # This is the SINGLE SOURCE OF TRUTH for all LoadBalancer references
+  # Auto-updated by: scripts/auto-update-lb-dns.sh
+  # Usage: Reference via ConfigMap in deployments or use envsubst
+
+  # Primary Load Balancer DNS/Hostname
+  # Automatically populated after deployment
+  lb-dns: "aac9409018eda490b9aef1d48d053614-210e3be6823c6dba.elb.eu-central-1.amazonaws.com"
+
+  # Environment label for tracking
+  environment: "dev"
+
+  # Last update timestamp (for monitoring)
+  last-updated: "2026-01-09T00:25:30Z"

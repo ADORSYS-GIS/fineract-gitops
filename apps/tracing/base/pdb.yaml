@@ -1,0 +1,29 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: jaeger-pdb
+  namespace: tracing
+  labels:
+    app: jaeger
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/part-of: tracing-stack
+spec:
+  minAvailable: 0
+  selector:
+    matchLabels:
+      app: jaeger
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: otel-collector-pdb
+  namespace: tracing
+  labels:
+    app: otel-collector
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/part-of: tracing-stack
+spec:
+  minAvailable: 0
+  selector:
+    matchLabels:
+      app: otel-collector

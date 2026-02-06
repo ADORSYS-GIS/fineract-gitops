@@ -15,24 +15,24 @@ metadata:
     # ============================================================================
 
     # Delegate authentication to OAuth2 Proxy
-    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.$(NAMESPACE).svc.cluster.local:4180/oauth2/auth"
-
-    # Redirect unauthenticated users to OAuth2 Proxy login
-    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
-
-    # Pass authentication headers from OAuth2 Proxy to backend
+    nginx.ingress.kubernetes.io/auth-url: "auth-url"
+ 
+     # Redirect unauthenticated users to OAuth2 Proxy login
+    nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
+ 
+     # Pass authentication headers from OAuth2 Proxy to backend
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
 
-    # Auth caching for performance (5 minute cache)
-    nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
-    nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+    # Auth caching disabled to ensure logout works properly
+    # nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
+    # nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
 
     # ============================================================================
     # CORS Configuration
     # ============================================================================
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "cors-allow-origin-url"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
     nginx.ingress.kubernetes.io/cors-max-age: "3600"
@@ -48,7 +48,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
 
     # cert-manager - automatic certificate management
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
 
     # Backend protocol (Fineract services use HTTPS)
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
@@ -89,7 +89,28 @@ metadata:
 
     # Pass correct port to backend and set Authorization header from OAuth2-Proxy token
     # Extract access token from upstream auth response header X-Auth-Request-Access-Token
+    # NOTE: Authentication endpoint is handled in fineract-web-app-protected server-snippet
     nginx.ingress.kubernetes.io/configuration-snippet: |
+      # ============================================================================
+      # Method-Based Routing: Route write methods to fineract-write-service
+      # ============================================================================
+      # Default backend is fineract-read-service (set in spec.rules.backend)
+      # Override $proxy_upstream_name for POST/PUT/DELETE/PATCH to route to write service
+      # Upstream name format: <namespace>-<service>-<port>
+      if ($request_method = POST) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+      if ($request_method = PUT) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+      if ($request_method = DELETE) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+      if ($request_method = PATCH) {
+        set $proxy_upstream_name "fineract-dev-fineract-write-service-8443";
+      }
+
+      # OAuth2 token handling
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
       proxy_set_header Authorization "Bearer $access_token";
       more_set_headers "X-Forwarded-Host: $host";
@@ -102,19 +123,20 @@ spec:
   # TLS configuration
   tls:
   - hosts:
-    - $(APPS_HOSTNAME)
+    - apps-hostname
     secretName: fineract-tls
 
   rules:
-  - host: $(APPS_HOSTNAME)
+  - host: apps-hostname
     http:
       paths:
 
       # ============================================================================
-      # Fineract API Endpoints - Read Operations (GET, HEAD, OPTIONS)
+      # Fineract API Endpoints
       # ============================================================================
-      # Default: Route to read service for GET operations
-      # Write operations handled by canary ingress below
+      # Default backend is fineract-read-service
+      # Write methods (POST/PUT/DELETE/PATCH) are routed to fineract-write-service
+      # via $proxy_upstream_name override in configuration-snippet above
 
       - path: /fineract-provider
         pathType: Prefix

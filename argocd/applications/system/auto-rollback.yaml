@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auto-rollback-webhook
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Deploy after sealed-secrets
+spec:
+  project: default
+
+  source:
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: deploy-key
+    path: apps/auto-rollback/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false  # argocd namespace already exists
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Auto-Rollback Webhook
+    - name: Purpose
+      value: Receives Prometheus alerts and triggers ArgoCD rollback on deployment failures

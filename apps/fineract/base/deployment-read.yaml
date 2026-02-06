@@ -14,6 +14,12 @@ spec:
     metadata:
       labels:
         app: fineract-read
+        app.kubernetes.io/name: fineract
+        app.kubernetes.io/component: read
+        fineract.instance.type: read
+      annotations:
+        # Auto-restart pod when ConfigMap changes (requires Stakater Reloader or similar)
+        configmap.reloader.stakater.com/reload: "fineract-oauth2-config"
     spec:
       affinity:
         # Prefer agent/worker nodes for Fineract read workloads
@@ -42,8 +48,67 @@ spec:
         seccompProfile:
           type: RuntimeDefault
 
-      # Wait for database schema migration to complete
       initContainers:
+      # Step 1: Wait for ConfigMap to have valid OIDC issuer URL with ELB DNS
+      # This ensures the pod doesn't start with placeholder/old DNS values
+      - name: wait-for-oidc-config
+        image: curlimages/curl
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - sh
+        - -c
+        - |
+          echo "========================================="
+          echo "Waiting for Valid OIDC Issuer URL"
+          echo "========================================="
+          echo "Checking fineract-oauth2-config ConfigMap for valid AWS ELB DNS..."
+          echo ""
+
+          MAX_RETRIES=60  # 5 minutes
+          RETRY_COUNT=0
+
+          until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+            # Read oidc-issuer-url from mounted ConfigMap
+            ISSUER=$(cat /etc/oauth2-config/oidc-issuer-url 2>/dev/null || echo "")
+
+            if echo "$ISSUER" | grep -q "\.elb\."; then
+              echo "✓ Valid OIDC issuer URL found in ConfigMap!"
+              echo "  oidc-issuer-url: $ISSUER"
+              echo ""
+              echo "ConfigMap is ready with valid AWS ELB DNS."
+              echo "========================================="
+              exit 0
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Attempt $RETRY_COUNT/$MAX_RETRIES: issuer='$ISSUER' - not valid ELB DNS yet..."
+            sleep 5
+          done
+
+          echo "❌ Timeout waiting for valid OIDC issuer URL in ConfigMap"
+          echo "The fineract-oauth2-config ConfigMap does not contain a valid AWS ELB hostname."
+          echo "Ensure the LoadBalancer has been provisioned and DNS updated."
+          exit 1
+        volumeMounts:
+        - name: oauth2-config
+          mountPath: /etc/oauth2-config
+          readOnly: true
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+
+      # Step 2: Wait for database schema migration to complete
       - name: wait-for-schema-migration
         image: postgres:15-alpine
         securityContext:
@@ -130,7 +195,7 @@ spec:
 
       containers:
       - name: fineract
-        image: apache/fineract:develop
+        image: ghcr.io/adorsys-gis/fineract:5aa35aa15
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -300,6 +365,27 @@ spec:
               name: fineract-oauth2-config
               key: jwk-set-uri-internal
 
+        # OpenTelemetry Distributed Tracing Configuration
+        - name: OTEL_SERVICE_NAME
+          value: "fineract-read"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector.tracing.svc.cluster.local:4317"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "grpc"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.namespace=fineract,service.instance.id=$(POD_NAME),deployment.environment=dev,service.version=1.0.0,fineract.instance.type=read"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        # Spring Boot Micrometer Tracing Configuration
+        - name: MANAGEMENT_TRACING_ENABLED
+          value: "true"
+        - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+          value: "1.0"
+        - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+          value: "http://otel-collector.tracing.svc.cluster.local:4318/v1/traces"
+
         resources:
           requests:
             memory: "1Gi"
@@ -343,3 +429,6 @@ spec:
       volumes:
       - name: tmp
         emptyDir: {}
+      - name: oauth2-config
+        configMap:
+          name: fineract-oauth2-config

@@ -11,17 +11,19 @@ commonLabels:
   infrastructure: aws
   provider: aws-managed
 
-# Generate ingress-config ConfigMap for oauth2-proxy
-# Contains domain configuration used by init container to build URLs
-configMapGenerator:
-  - name: ingress-config
-    behavior: create
-    literals:
-      - apps-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
-      - auth-hostname=a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
+# Override image to v7.6.0 which added --skip-claims-from-profile-url support
+images:
+- name: quay.io/oauth2-proxy/oauth2-proxy
+  newTag: v7.6.0
 
-  # Static configuration (realm name)
-  # Use 'replace' behavior to override the base ConfigMap generator
+# No configMapGenerator needed for ingress-config
+# Domain values are centralized in apps/ingress/overlays/dev/kustomization.yaml
+# and automatically updated by scripts/auto-update-lb-dns.sh
+# OAuth2 Proxy init container reads these and builds full URLs at runtime
+
+# Static configuration (realm name)
+# Use 'replace' behavior to override the base ConfigMap generator
+configMapGenerator:
   - name: oauth2-proxy-config-static
     behavior: replace
     literals:
@@ -29,6 +31,85 @@ configMapGenerator:
 
 # Patch deployment to build URLs dynamically from ingress-config domains
 patches:
+  # Patch wait-for-fineract-realm init container to validate frontendUrl matches LoadBalancer DNS
+  # This prevents race condition where OAuth2-Proxy starts before keycloak-config job completes
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: oauth2-proxy
+      spec:
+        template:
+          spec:
+            initContainers:
+            - name: wait-for-fineract-realm
+              volumeMounts:
+              - name: ingress-config
+                mountPath: /ingress-config
+                readOnly: true
+              command:
+              - sh
+              - -c
+              - |
+                echo "========================================="
+                echo "Waiting for Keycloak Realm Configuration"
+                echo "========================================="
+                echo "This waits for keycloak-config job to fully configure the realm"
+                echo "AND validates that frontendUrl matches expected LoadBalancer DNS."
+                echo ""
+
+                # Read expected hostname from ingress-config (single source of truth)
+                EXPECTED_HOST=$(cat /ingress-config/apps-hostname)
+                echo "Expected LoadBalancer DNS: $EXPECTED_HOST"
+                echo ""
+
+                MAX_RETRIES=90  # 7.5 minutes
+                RETRY_COUNT=0
+
+                until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+                  # Fetch OIDC discovery configuration
+                  # Keycloak 17+ serves from root path (no /auth prefix)
+                  OIDC_CONFIG=$(curl -f -s http://keycloak-service:8080/realms/fineract/.well-known/openid-configuration 2>/dev/null || echo "")
+
+                  if [ -n "$OIDC_CONFIG" ]; then
+                    # Extract authorization_endpoint from OIDC discovery
+                    AUTH_ENDPOINT=$(echo "$OIDC_CONFIG" | grep -o '"authorization_endpoint":"[^"]*"' | head -1)
+
+                    # Verify auth endpoint contains the EXPECTED hostname (not just "not localhost")
+                    # This prevents race condition where old frontendUrl from database is used
+                    if echo "$AUTH_ENDPOINT" | grep -q "$EXPECTED_HOST"; then
+                      echo "✓ Keycloak realm frontendUrl matches expected LoadBalancer DNS!"
+                      echo "  $AUTH_ENDPOINT"
+                      echo ""
+                      echo "Keycloak realm 'fineract' is ready for OAuth2 Proxy!"
+                      echo "========================================="
+                      exit 0
+                    elif echo "$AUTH_ENDPOINT" | grep -q "localhost"; then
+                      echo "⚠  Realm exists but frontendUrl uses localhost (keycloak-config job not started yet)..."
+                    else
+                      echo "⚠  Realm exists but frontendUrl doesn't match expected LoadBalancer DNS"
+                      echo "   Expected: $EXPECTED_HOST"
+                      echo "   Got: $AUTH_ENDPOINT"
+                      echo "   Waiting for keycloak-config job to apply correct configuration..."
+                    fi
+                  fi
+
+                  RETRY_COUNT=$((RETRY_COUNT + 1))
+                  echo "Waiting for realm configuration (attempt $RETRY_COUNT/$MAX_RETRIES)..."
+                  sleep 5
+                done
+
+                echo "❌ Timeout waiting for Keycloak realm configuration"
+                echo "This likely means the keycloak-config job has not completed successfully"
+                echo "or the frontendUrl doesn't match expected LoadBalancer DNS."
+                echo ""
+                echo "Expected hostname: $EXPECTED_HOST"
+                echo "Check the apply-keycloak-config job logs for errors."
+                exit 1
+    target:
+      kind: Deployment
+      name: oauth2-proxy
+
   - patch: |-
       apiVersion: apps/v1
       kind: Deployment
@@ -56,18 +137,22 @@ patches:
                   echo "===================================="
 
                   # Read domain values from ingress-config (single source of truth)
-                  APPS_DOMAIN=$(cat /ingress-config/apps-hostname)
-                  AUTH_DOMAIN=$(cat /ingress-config/auth-hostname)
-                  REALM_NAME=$(cat /static-config/REALM_NAME)
+                  export APPS_DOMAIN=$(cat /ingress-config/apps-hostname)
+                  export AUTH_DOMAIN=$(cat /ingress-config/auth-hostname)
+                  export REALM_NAME=$(cat /static-config/REALM_NAME)
 
                   # Build full URLs from domain components
                   # DEV: Use internal Keycloak service for OIDC discovery (no DNS/certs for ELB)
                   # OAuth2 Proxy runs inside cluster and can access Keycloak directly
                   # Browsers will access Keycloak via the ELB hostname for login redirects
-                  export OIDC_ISSUER_URL="http://keycloak-service:8080/auth/realms/${REALM_NAME}"
+                  # Keycloak 17+ serves from root path (no /auth prefix)
+                  export OIDC_ISSUER_URL="http://keycloak-service:8080/realms/${REALM_NAME}"
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"
+                  # External Keycloak URL for browser redirects (logout)
+                  # Uses AUTH_DOMAIN because browsers need to access Keycloak directly
+                  export KEYCLOAK_LOGOUT_URL="https://${AUTH_DOMAIN}/realms/${REALM_NAME}"
 
                   echo "Domain configuration:"
                   echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
@@ -76,6 +161,7 @@ patches:
                   echo ""
                   echo "Generated URLs:"
                   echo "  OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+                  echo "  KEYCLOAK_LOGOUT_URL: ${KEYCLOAK_LOGOUT_URL}"
                   echo "  REDIRECT_URL: ${REDIRECT_URL}"
                   echo "  WHITELIST_DOMAINS: ${WHITELIST_DOMAINS}"
                   echo "  COOKIE_DOMAINS: ${COOKIE_DOMAINS}"
@@ -106,9 +192,17 @@ patches:
                 mountPath: /static-config
                 readOnly: true
 
-            # Update main container to use processed config
+            # Update main container to use processed config and add skip-claims flag
             containers:
             - name: oauth2-proxy
+              # Add --skip-claims-from-profile-url flag to prevent userinfo endpoint fetch
+              # This fixes the 401 error when oauth2-proxy tries to fetch groups from Keycloak's userinfo endpoint
+              # Note: Requires v7.6.0+ (see images section at top of file)
+              args:
+              - --config=/etc/oauth2-proxy/oauth2_proxy.cfg
+              - --email-domain=*
+              - --skip-claims-from-profile-url=true
+              - --insecure-oidc-allow-unverified-email=true
               volumeMounts:
               - name: config-processed
                 mountPath: /etc/oauth2-proxy
@@ -152,7 +246,9 @@ patches:
           skip_oidc_discovery = false
           insecure_oidc_skip_issuer_verification = true
           oidc_email_claim = "email"
-          oidc_groups_claim = "roles"
+          # Extract roles from JWT token's realm_access.roles claim
+          # The --skip-claims-from-profile-url=true flag prevents userinfo endpoint fetch
+          oidc_groups_claim = "realm_access.roles"
           extra_jwt_issuers = ""
 
           # ============================================================================
@@ -171,6 +267,12 @@ patches:
           cookie_domains = "${COOKIE_DOMAINS}"
           cookie_expire = "4h"
           cookie_refresh = "20m"
+
+          # ============================================================================
+          # Logout Configuration
+          # ============================================================================
+          # NOTE: logout_redirect_url must be set via command-line flag, not config file
+          # See deployment args patch below
 
           # ============================================================================
           # Session Configuration

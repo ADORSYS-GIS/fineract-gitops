@@ -1,0 +1,43 @@
+---
+# Ingress for User Sync Service with OAuth2 Proxy Authentication
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: user-sync-service-ingress
+  labels:
+    app: user-sync-service
+    component: ingress
+  annotations:
+    # OAuth2 Proxy Authentication
+    nginx.ingress.kubernetes.io/auth-url: "auth-url"
+    nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
+    
+    # SSL/TLS Configuration
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # Proxy Settings
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - apps-hostname
+    secretName: fineract-tls
+  rules:
+  - host: apps-hostname
+    http:
+      paths:
+      - path: /api/user-sync
+        pathType: Prefix
+        backend:
+          service:
+            name: user-sync-service
+            port:
+              number: 5000

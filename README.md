@@ -33,7 +33,32 @@ Complete, production-ready GitOps infrastructure for deploying Apache Fineract (
 > 📋 **Prerequisites:** See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for complete tool installation guide
 > 🔧 **Versions:** Check [docs/VERSION_MATRIX.md](docs/VERSION_MATRIX.md) for version requirements
 
-### GitOps Deployment (Recommended)
+### Fully Automated Deployment with Load Balancer DNS Management (NEW! 🚀)
+
+**USE CASE**: Production deployments, CI/CD pipelines, zero-intervention required
+
+```bash
+# Set required environment variables
+export KUBECONFIG=~/.kube/config-fineract-dev
+
+# Run ONE-COMMAND fully automated deployment
+./scripts/wait-for-lb-and-sync.sh dev
+```
+
+**Features**:
+- ✅ Automatically waits for Load Balancer DNS assignment
+- ✅ Updates ALL configuration files with new DNS
+- ✅ Commits and pushes to Git automatically
+- ✅ Monitors ArgoCD sync completion
+- ✅ Runs comprehensive health checks
+- ✅ Validates application endpoints
+- **Duration**: ~15-20 minutes (fully automated, no manual intervention)
+
+**See**: [docs/AUTOMATED_LB_DNS_MANAGEMENT.md](docs/AUTOMATED_LB_DNS_MANAGEMENT.md) for complete automation guide
+
+---
+
+### GitOps Deployment (Interactive)
 
 For step-by-step deployment with validation and user confirmation:
 
@@ -54,6 +79,9 @@ make deploy-gitops
 
 ### Essential Guides
 
+- **[Automated Load Balancer DNS Management](docs/AUTOMATED_LB_DNS_MANAGEMENT.md)** - Complete automation guide (NEW!)
+- **[Critical Deployment Blockers](docs/CRITICAL_DEPLOYMENT_BLOCKERS.md)** - Issues found and fixed (NEW!)
+- **[Start from Scratch](docs/START_FROM_SCRATCH.md)** - Destroy all and redeploy from scratch (NEW!)
 - **[Prerequisites Guide](docs/PREREQUISITES.md)** - Complete tool installation and setup
 - **[Version Matrix](docs/VERSION_MATRIX.md)** - Authoritative version requirements
 - **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete walkthrough
@@ -131,6 +159,11 @@ fineract-gitops/
 │   ├── web-app/               # Main frontend application
 │   ├── accounting-app/        # Accounting module frontend
 │   ├── reporting-app/         # Reporting module frontend
+│   ├── account-manager-app/   # Account manager frontend
+│   ├── cashier-app/           # Cashier/teller frontend
+│   ├── branch-manager-app/    # Branch manager frontend
+│   ├── admin-app/             # Admin frontend
+│   ├── user-sync-service/     # User synchronization service
 │   ├── ingress/               # Ingress resources
 │   ├── ingress-nginx/         # NGINX ingress controller
 │   ├── network-policies/      # Network security policies
@@ -178,6 +211,8 @@ fineract-gitops/
 │   └── ...                    # 30+ additional docs
 │
 └── scripts/                   # Utility scripts
+    ├── auto-update-lb-dns.sh # Automated Load Balancer DNS update (NEW!)
+    ├── wait-for-lb-and-sync.sh # Complete deployment automation (NEW!)
     ├── validate-data.py       # Validate YAML configs
     └── ...
 ```

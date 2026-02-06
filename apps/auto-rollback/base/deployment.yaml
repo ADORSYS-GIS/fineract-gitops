@@ -1,0 +1,246 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-rollback-webhook
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: auto-rollback-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auto-rollback-webhook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: auto-rollback-webhook
+    spec:
+      serviceAccountName: auto-rollback-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: webhook
+        image: python:3.11-slim
+        command:
+        - python
+        - -c
+        - |
+          import json
+          import os
+          import time
+          import subprocess
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+          from datetime import datetime, timedelta
+          import yaml
+
+          # Load configuration
+          with open('/etc/config/config.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+
+          # Track rollbacks to prevent loops
+          rollback_history = {}
+          MAX_ROLLBACKS_PER_HOUR = config.get('rollback', {}).get('max_rollbacks_per_hour', 3)
+          COOLDOWN_MINUTES = config.get('rollback', {}).get('cooldown_minutes', 15)
+          DRY_RUN = config.get('rollback', {}).get('dry_run', False)
+
+          def can_rollback(app_name):
+              now = datetime.now()
+              if app_name not in rollback_history:
+                  rollback_history[app_name] = []
+
+              # Clean old entries
+              rollback_history[app_name] = [
+                  t for t in rollback_history[app_name]
+                  if now - t < timedelta(hours=1)
+              ]
+
+              # Check cooldown
+              if rollback_history[app_name]:
+                  last_rollback = max(rollback_history[app_name])
+                  if now - last_rollback < timedelta(minutes=COOLDOWN_MINUTES):
+                      print(f"Cooldown active for {app_name}, skipping rollback")
+                      return False
+
+              # Check max rollbacks
+              if len(rollback_history[app_name]) >= MAX_ROLLBACKS_PER_HOUR:
+                  print(f"Max rollbacks per hour reached for {app_name}")
+                  return False
+
+              return True
+
+          def record_rollback(app_name):
+              if app_name not in rollback_history:
+                  rollback_history[app_name] = []
+              rollback_history[app_name].append(datetime.now())
+
+          def execute_rollback(app_name, namespace, reason):
+              app_mapping = config.get('app_mapping', {})
+              argocd_app = app_mapping.get(app_name, app_name)
+
+              print(f"Executing rollback for ArgoCD app: {argocd_app}")
+
+              if not can_rollback(argocd_app):
+                  return {"status": "skipped", "reason": "cooldown or rate limit"}
+
+              if DRY_RUN:
+                  print(f"DRY RUN: Would rollback {argocd_app}")
+                  return {"status": "dry_run", "app": argocd_app}
+
+              # Read ArgoCD token from mounted secret
+              token_path = '/var/run/secrets/argocd/token'
+              if not os.path.exists(token_path):
+                  return {"status": "error", "reason": "ArgoCD token not found"}
+
+              with open(token_path, 'r') as f:
+                  token = f.read().strip()
+
+              # Execute rollback via ArgoCD API
+              import urllib.request
+              import ssl
+
+              ctx = ssl.create_default_context()
+              ctx.check_hostname = False
+              ctx.verify_mode = ssl.CERT_NONE
+
+              argocd_server = config.get('argocd', {}).get('server', 'argocd-server.argocd.svc.cluster.local:443')
+
+              # Get application history
+              try:
+                  req = urllib.request.Request(
+                      f"https://{argocd_server}/api/v1/applications/{argocd_app}",
+                      headers={"Authorization": f"Bearer {token}"}
+                  )
+                  with urllib.request.urlopen(req, context=ctx) as resp:
+                      app_data = json.loads(resp.read())
+
+                  history = app_data.get('status', {}).get('history', [])
+                  if len(history) < 2:
+                      return {"status": "error", "reason": "No previous revision available"}
+
+                  previous_revision = history[-2].get('id')
+
+                  # Execute rollback
+                  rollback_data = json.dumps({"id": previous_revision}).encode()
+                  req = urllib.request.Request(
+                      f"https://{argocd_server}/api/v1/applications/{argocd_app}/rollback",
+                      data=rollback_data,
+                      headers={
+                          "Authorization": f"Bearer {token}",
+                          "Content-Type": "application/json"
+                      },
+                      method='POST'
+                  )
+                  with urllib.request.urlopen(req, context=ctx) as resp:
+                      result = json.loads(resp.read())
+
+                  record_rollback(argocd_app)
+                  print(f"Rollback successful for {argocd_app}")
+                  return {"status": "success", "app": argocd_app, "revision": previous_revision}
+
+              except Exception as e:
+                  print(f"Rollback failed: {e}")
+                  return {"status": "error", "reason": str(e)}
+
+          class AlertHandler(BaseHTTPRequestHandler):
+              def do_POST(self):
+                  content_length = int(self.headers.get('Content-Length', 0))
+                  body = self.rfile.read(content_length)
+
+                  try:
+                      alert_data = json.loads(body)
+                      alerts = alert_data.get('alerts', [])
+
+                      results = []
+                      for alert in alerts:
+                          labels = alert.get('labels', {})
+                          annotations = alert.get('annotations', {})
+
+                          # Only process alerts with auto_rollback label
+                          if labels.get('auto_rollback') != 'enabled':
+                              continue
+
+                          if alert.get('status') != 'firing':
+                              continue
+
+                          app_name = annotations.get('rollback_target', labels.get('deployment', ''))
+                          namespace = annotations.get('rollback_namespace', labels.get('namespace', ''))
+                          reason = annotations.get('summary', 'Unknown alert')
+
+                          if app_name:
+                              print(f"Processing rollback for {app_name} in {namespace}: {reason}")
+                              result = execute_rollback(app_name, namespace, reason)
+                              results.append(result)
+
+                      self.send_response(200)
+                      self.send_header('Content-Type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(json.dumps({"results": results}).encode())
+
+                  except Exception as e:
+                      print(f"Error processing alert: {e}")
+                      self.send_response(500)
+                      self.send_header('Content-Type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+              def do_GET(self):
+                  if self.path == '/health':
+                      self.send_response(200)
+                      self.send_header('Content-Type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(json.dumps({"status": "healthy"}).encode())
+                  else:
+                      self.send_response(404)
+                      self.end_headers()
+
+              def log_message(self, format, *args):
+                  print(f"{datetime.now().isoformat()} - {args[0]}")
+
+          print("Starting auto-rollback webhook server on port 8080...")
+          server = HTTPServer(('0.0.0.0', 8080), AlertHandler)
+          server.serve_forever()
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: argocd-token
+          mountPath: /var/run/secrets/argocd
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: auto-rollback-config
+      - name: argocd-token
+        secret:
+          secretName: argocd-auto-rollback-token
+          optional: true

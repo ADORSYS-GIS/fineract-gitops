@@ -21,6 +21,7 @@ terraform {
     # - region         = "us-east-1"
     # - dynamodb_table = "terraform-state-lock"
     # - encrypt        = true
+    # - use_lockfile   = true # This is the new parameter
 
     # Optional: Can be set here if same across all environments
     encrypt = true

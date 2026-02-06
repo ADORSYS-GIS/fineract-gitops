@@ -13,7 +13,7 @@ spec:
   project: default
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
     targetRevision: develop
     path: operations/fineract-database-init/base
 

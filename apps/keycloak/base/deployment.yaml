@@ -18,6 +18,8 @@ spec:
     metadata:
       labels:
         app: keycloak
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/component: auth
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
@@ -50,6 +52,7 @@ spec:
         - --health-enabled=true
         - --metrics-enabled=true  # Enable Prometheus metrics at /metrics endpoint
         - --proxy-headers=xforwarded
+        # Note: Tracing is configured via KC_TRACING_* env vars (Keycloak 24.x)
 
         env:
         # Database Configuration - Using RDS PostgreSQL
@@ -96,9 +99,9 @@ spec:
               name: keycloak-admin-credentials
               key: password
 
-        # HTTP Relative Path - Serve Keycloak from /auth subpath
-        - name: KC_HTTP_RELATIVE_PATH
-          value: "/auth"
+        # NOTE: KC_HTTP_RELATIVE_PATH removed - Keycloak 17+ serves from root path
+        # python-keycloak 7.x expects URLs without /auth prefix
+        # See: https://www.keycloak.org/migration/migrating-to-quarkus
 
         # Hostname Configuration (Keycloak 26.x - Official Best Practice)
         #
@@ -131,6 +134,21 @@ spec:
         - name: JAVA_OPTS
           value: "-Xms192m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=192m"
 
+        # OpenTelemetry Distributed Tracing Configuration
+        # Keycloak 24+ has built-in OpenTelemetry support
+        - name: KC_TRACING_ENABLED
+          value: "true"
+        - name: KC_TRACING_ENDPOINT
+          value: "http://otel-collector.tracing.svc.cluster.local:4317"
+        - name: KC_TRACING_PROTOCOL
+          value: "grpc"
+        - name: KC_TRACING_SAMPLER_TYPE
+          value: "parentbased_always_on"
+        - name: KC_TRACING_SAMPLER_RATIO
+          value: "1.0"
+        - name: KC_TRACING_RESOURCE_ATTRIBUTES
+          value: "service.name=keycloak,service.namespace=fineract,deployment.environment=dev"
+
         ports:
         - name: http
           containerPort: 8080
@@ -147,8 +165,8 @@ spec:
 
         livenessProbe:
           httpGet:
-            path: /auth/health/live
-            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
+            path: /health/live
+            port: 8080
           initialDelaySeconds: 120
           periodSeconds: 30
           timeoutSeconds: 10
@@ -156,8 +174,8 @@ spec:
 
         readinessProbe:
           httpGet:
-            path: /auth/health/ready
-            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
+            path: /health/ready
+            port: 8080
           initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 5
@@ -165,8 +183,8 @@ spec:
 
         startupProbe:
           httpGet:
-            path: /auth/health/started
-            port: 8080  # Changed from 9000 - Keycloak 24.x serves health endpoints on main port
+            path: /health/started
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5

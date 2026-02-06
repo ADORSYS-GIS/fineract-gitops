@@ -1,0 +1,17 @@
+# Centralized LoadBalancer DNS Configuration for UAT Environment
+# This file is the single source of truth for LoadBalancer hostnames
+# Auto-updated by: scripts/auto-update-lb-dns.sh
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadbalancer-config
+  namespace: fineract-uat
+data:
+  # AWS ELB DNS name for the Nginx Ingress Controller LoadBalancer
+  # This value is automatically extracted from the cluster after deployment
+  LOADBALANCER_DNS: "UAT_ELB_HOSTNAME_PENDING"
+
+  # For UAT, both apps and auth use the same LoadBalancer DNS
+  APPS_HOSTNAME: "UAT_ELB_HOSTNAME_PENDING"
+  AUTH_HOSTNAME: "UAT_ELB_HOSTNAME_PENDING"

@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-sync-service
+  labels:
+    app: user-sync-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-sync-service
+  template:
+    metadata:
+      labels:
+        app: user-sync-service
+        app.kubernetes.io/name: user-sync-service
+        app.kubernetes.io/component: sync
+    spec:
+      containers:
+        - name: user-sync-service
+          image: ghcr.io/adorsys-gis/fineract-apps/user-sync-service:2a9a06c
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: user-sync-service-config
+          env:
+            # Keycloak client credentials from consolidated secrets
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: user-sync-service-client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: user-sync-service-client-secret
+            # OpenTelemetry Distributed Tracing Configuration
+            - name: OTEL_SERVICE_NAME
+              value: "user-sync-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.tracing.svc.cluster.local:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=fineract,deployment.environment=dev,service.version=1.0.0"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 5

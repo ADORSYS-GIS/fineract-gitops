@@ -34,6 +34,7 @@ resources:
   - grafana-deployment.yaml
   - grafana-service.yaml
   - grafana-configmap.yaml
+  # Note: grafana-admin-credentials is managed via SealedSecret in secrets/dev/
 
   # AlertManager
   - alertmanager.yaml
@@ -47,8 +48,13 @@ resources:
   - servicemonitor-oauth2-proxy.yaml
   - servicemonitor-redis.yaml
 
+  # Pod Monitors (granular pod-level metrics)
+  - podmonitor-fineract.yaml
+  - podmonitor-keycloak.yaml
+
   # Alert Rules
   - alert-rules.yaml
+  - auto-rollback-alerts.yaml
 
   # Additional Scrape Configs
   - prometheus-additional-scrape-configs.yaml
@@ -56,9 +62,13 @@ resources:
   # Pod Disruption Budgets
   - pdb.yaml
 
-commonLabels:
-  app.kubernetes.io/part-of: monitoring-stack
-  managed-by: argocd
+# Use labels transformer to avoid adding labels to service selectors
+# This prevents issues with Prometheus Operator pods that don't have these labels
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: monitoring-stack
+      managed-by: argocd
+    includeSelectors: false
 
 commonAnnotations:
   component: "monitoring"

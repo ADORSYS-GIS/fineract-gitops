@@ -6,6 +6,7 @@ kind: Kustomization
 
 resources:
   - create-keycloak-db-job.yaml
+  - sync-marker.yaml  # Ensures ArgoCD syncs this app, triggering the Sync hook
 
 # Image version management
 # Allows overriding postgres image tag per environment

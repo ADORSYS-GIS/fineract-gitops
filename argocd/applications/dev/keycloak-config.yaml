@@ -12,7 +12,7 @@ spec:
   project: fineract-dev
 
   source:
-    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
     targetRevision: deploy-key  # Will be replaced by kustomization.yaml
     path: operations/keycloak-config/overlays/dev  # Environment-specific overlay
 

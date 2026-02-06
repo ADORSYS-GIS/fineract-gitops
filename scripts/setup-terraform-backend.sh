@@ -21,9 +21,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-AWS_REGION="${AWS_REGION:-us-east-2}"
-S3_BUCKET="${S3_BUCKET:-fineract-gitops-terraform-state}"
-DYNAMODB_TABLE="${DYNAMODB_TABLE:-fineract-gitops-terraform-lock}"
+AWS_REGION="${AWS_REGION:-eu-central-1}"
+S3_BUCKET="${S3_BUCKET:-fineract-gitops-tf-state-dev-2026}"
+DYNAMODB_TABLE="${DYNAMODB_TABLE:-fineract-gitops-tf-lock-2026}"
 
 # Logging functions
 log() {

@@ -4,6 +4,12 @@ metadata:
   name: ingress-config
   namespace: fineract-dev
 data:
-  apps-hostname: a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
-  auth-hostname: a248fc3d904694d09b61c2bbdb848eb9-a61d9dde0b2567a1.elb.us-east-2.amazonaws.com
+  # AWS ELB hostname - used for all ingress routing
+  # IMPORTANT: This hostname MUST match the actual load balancer hostname
+  # Update this value after deploying ingress-nginx if the LB hostname changes
+  apps-hostname: aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com
+  auth-hostname: aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com
   cluster-issuer: selfsigned-issuer
+  auth-signin-url: https://aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com/oauth2/start?rd=$escaped_request_uri
+  cors-allow-origin-url: https://aa0ec358e78fc4c57acf73f1cf0732cb-95e4174ade364e81.elb.eu-central-1.amazonaws.com
+  auth-url: http://oauth2-proxy.fineract-dev.svc.cluster.local:4180/oauth2/auth

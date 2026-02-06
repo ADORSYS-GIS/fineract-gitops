@@ -60,14 +60,43 @@ for ns in argocd ingress-nginx cert-manager fineract-dev; do
 done
 
 if [ ${#STUCK_NAMESPACES[@]} -gt 0 ]; then
-    echo -e "${RED}✗ Found stuck namespaces: ${STUCK_NAMESPACES[@]}${NC}"
+    echo -e "${YELLOW}⚠ Found stuck namespaces: ${STUCK_NAMESPACES[@]}${NC}"
     echo ""
-    echo -e "${YELLOW}These namespaces are stuck in 'Terminating' state.${NC}"
-    echo -e "${YELLOW}Run the cleanup command to fix this:${NC}"
-    echo ""
-    echo -e "${BLUE}  make cleanup-cluster${NC}"
-    echo ""
-    exit 1
+    echo -e "${BLUE}→ Auto-fixing stuck namespaces...${NC}"
+
+    # Get script directory
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Run the cleanup script in stuck-only mode
+    if [ -f "$SCRIPT_DIR/../cleanup-cluster.sh" ]; then
+        "$SCRIPT_DIR/../cleanup-cluster.sh" --stuck-only
+
+        # Verify fix worked
+        sleep 2
+        STILL_STUCK=()
+        for ns in "${STUCK_NAMESPACES[@]}"; do
+            status=$(check_namespace_stuck $ns)
+            if [ "$status" = "stuck" ]; then
+                STILL_STUCK+=($ns)
+            fi
+        done
+
+        if [ ${#STILL_STUCK[@]} -gt 0 ]; then
+            echo -e "${RED}✗ Some namespaces still stuck: ${STILL_STUCK[@]}${NC}"
+            echo ""
+            echo -e "${YELLOW}Try running manually:${NC}"
+            echo -e "${BLUE}  make cleanup-cluster${NC}"
+            echo ""
+            exit 1
+        else
+            echo -e "${GREEN}✓${NC} All stuck namespaces fixed!"
+            echo ""
+        fi
+    else
+        echo -e "${RED}✗ cleanup-cluster.sh not found${NC}"
+        echo -e "${YELLOW}Run manually: make cleanup-cluster${NC}"
+        exit 1
+    fi
 fi
 
 echo -e "${GREEN}✓${NC} No stuck namespaces detected"
