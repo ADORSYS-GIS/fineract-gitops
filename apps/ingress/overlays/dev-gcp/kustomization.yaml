@@ -10,7 +10,9 @@ resources:
   - ../../base
   - ingress-config.yaml
 
-commonLabels:
-  environment: dev
-  deployment-type: gcp
-  managed-by: argocd
+labels:
+  - pairs:
+      environment: dev
+      deployment-type: gcp
+      managed-by: argocd
+    includeSelectors: false

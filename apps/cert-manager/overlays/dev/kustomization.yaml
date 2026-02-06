@@ -37,5 +37,7 @@ patches:
       kind: ClusterIssuer
       name: letsencrypt-prod
 
-commonLabels:
-  environment: dev
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false

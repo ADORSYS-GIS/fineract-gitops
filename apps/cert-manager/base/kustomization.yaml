@@ -6,17 +6,22 @@ metadata:
 
 namespace: cert-manager
 
+# Note: cert-manager CRDs and controllers are installed separately via:
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+# This kustomization only manages ClusterIssuers and Certificates.
+
 resources:
   - namespace.yaml
-  - cert-manager.yaml
   - selfsigned-issuer.yaml
   - internal-ca-certificate.yaml
   - letsencrypt-staging.yaml
   - letsencrypt-prod.yaml
 
-commonLabels:
-  app: cert-manager
-  managed-by: argocd
+labels:
+  - pairs:
+      app: cert-manager
+      managed-by: argocd
+    includeSelectors: false
 
 commonAnnotations:
   component: "certificate-management"

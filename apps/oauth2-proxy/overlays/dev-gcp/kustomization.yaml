@@ -9,10 +9,12 @@ namespace: fineract-dev
 resources:
   - ../../base
 
-commonLabels:
-  environment: dev
-  infrastructure: gcp
-  provider: gcp-managed
+labels:
+  - pairs:
+      environment: dev
+      infrastructure: gcp
+      provider: gcp-managed
+    includeSelectors: false
 
 # Generate ingress-config ConfigMap for oauth2-proxy
 # Contains domain configuration used by init container to build URLs
@@ -20,9 +22,9 @@ configMapGenerator:
   - name: ingress-config
     behavior: create
     literals:
-      # Placeholder - will be updated with actual GCP LB IP
-      - apps-hostname=PENDING_GCP_LB_IP
-      - auth-hostname=PENDING_GCP_LB_IP
+      # GCP Load Balancer IP
+      - apps-hostname=34.61.82.131
+      - auth-hostname=34.61.82.131
 
   # Static configuration (realm name)
   - name: oauth2-proxy-config-static

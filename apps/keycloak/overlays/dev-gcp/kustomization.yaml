@@ -22,8 +22,7 @@ configMapGenerator:
   - name: ingress-config
     behavior: merge
     literals:
-      # Placeholder - will be updated with actual GCP LB IP
-      - auth-hostname=PENDING_GCP_LB_IP
+      - auth-hostname=34.61.82.131
 
 patches:
   # Patch Deployment for GCP
@@ -40,9 +39,9 @@ patches:
             containers:
             - name: keycloak
               env:
-              # Placeholder - will be updated with actual GCP LB IP
+              # GCP Load Balancer IP
               - name: KC_HOSTNAME
-                value: PENDING_GCP_LB_IP
+                value: "34.61.82.131"
               - name: KC_HOSTNAME_STRICT
                 value: "false"
               - name: KC_HTTP_ENABLED

@@ -6,14 +6,13 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 
-namespace: fineract-dev
+# Note: namespace is set by overlay
 
-commonLabels:
-  app.kubernetes.io/managed-by: argocd
-  app.kubernetes.io/part-of: fineract-platform
-  environment: dev
-  infrastructure: aws
-  provider: aws-managed
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: argocd
+      app.kubernetes.io/part-of: fineract-platform
+    includeSelectors: false
 
 resources:
 - configmap.yaml

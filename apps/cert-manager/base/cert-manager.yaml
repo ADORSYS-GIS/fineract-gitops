@@ -1,1 +1,9 @@
-The content of the fetched cert-manager.yaml file
+# ==============================================================================
+# cert-manager Installation
+# ==============================================================================
+# This file references the official cert-manager installation manifest.
+# cert-manager should be installed separately using:
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+#
+# The other files in this base provide ClusterIssuers and Certificates.
+# ==============================================================================

@@ -48,8 +48,10 @@ vars:
     fieldref:
       fieldpath: metadata.namespace
 
-commonLabels:
-  managed-by: argocd
+labels:
+  - pairs:
+      managed-by: argocd
+    includeSelectors: false
 
 commonAnnotations:
   component: "ingress"
