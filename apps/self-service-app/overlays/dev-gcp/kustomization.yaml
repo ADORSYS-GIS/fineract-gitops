@@ -1,0 +1,32 @@
+# ==============================================================================
+# GCP Self-Service App Overlay for Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      environment: dev
+      deployment-type: gcp
+      managed-by: argocd
+    includeSelectors: false
+
+patches:
+  # Use GCP service account
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: self-service-app
+      spec:
+        template:
+          spec:
+            serviceAccountName: fineract-gcp
+    target:
+      kind: Deployment
+      name: self-service-app

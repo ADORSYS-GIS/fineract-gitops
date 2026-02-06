@@ -1,0 +1,44 @@
+# ==============================================================================
+# ArgoCD Application: Cashier App for GCP Dev Environment
+# ==============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-gcp-cashier-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: feature/gcp-implementation
+    path: apps/cashier-app/overlays/dev-gcp
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Cashier Frontend
+    - name: Environment
+      value: GCP Development
+    - name: Purpose
+      value: "Teller operations interface"

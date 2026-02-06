@@ -1,0 +1,42 @@
+# ==============================================================================
+# GCP Payment Gateway Service Overlay for Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract-dev
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      environment: dev
+      deployment-type: gcp
+      managed-by: argocd
+    includeSelectors: false
+
+patches:
+  # Reduce resources and replicas for dev GCP cluster (2-node e2-medium)
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: payment-gateway-service
+      spec:
+        replicas: 1
+        template:
+          spec:
+            serviceAccountName: fineract-gcp
+            containers:
+            - name: payment-gateway-service
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+    target:
+      kind: Deployment
+      name: payment-gateway-service
