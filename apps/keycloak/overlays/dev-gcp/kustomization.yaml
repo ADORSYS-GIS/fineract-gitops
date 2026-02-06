@@ -25,6 +25,17 @@ configMapGenerator:
       - auth-hostname=fineract.34.61.82.131.nip.io
 
 patches:
+  # Remove rollingUpdate field first (required before switching to Recreate)
+  - target:
+      kind: Deployment
+      name: keycloak
+    patch: |-
+      - op: remove
+        path: /spec/strategy/rollingUpdate
+      - op: replace
+        path: /spec/strategy/type
+        value: Recreate
+
   # Patch Deployment for GCP - reduced resources for dev environment
   - patch: |-
       apiVersion: apps/v1
@@ -32,9 +43,6 @@ patches:
       metadata:
         name: keycloak
       spec:
-        # Use Recreate strategy to avoid rolling update deadlock on resource-constrained cluster
-        strategy:
-          type: Recreate
         template:
           spec:
             # Use GCP service account
