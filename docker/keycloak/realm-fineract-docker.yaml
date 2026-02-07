@@ -77,6 +77,8 @@ clients:
     # HTTP localhost redirect URIs for local development
     rootUrl: "http://localhost:4180"
     redirectUris:
+      - "http://localhost:8080/oauth2/callback"
+      - "http://localhost:8080/*"
       - "http://localhost:4180/oauth2/callback"
       - "http://localhost:4180/*"
       - "http://localhost:4200/*"
@@ -88,6 +90,7 @@ clients:
       - "http://localhost:4206/*"
       - "http://localhost:4207/*"
     webOrigins:
+      - "http://localhost:8080"
       - "http://localhost:4180"
       - "http://localhost:4200"
       - "http://localhost:4201"
@@ -108,7 +111,7 @@ clients:
       - address
       - phone
     attributes:
-      post.logout.redirect.uris: "http://localhost:4180/##http://localhost:4200/##http://localhost:4201/"
+      post.logout.redirect.uris: "http://localhost:8080/##http://localhost:4180/##http://localhost:4200/##http://localhost:4201/"
       backchannel.logout.session.required: "true"
       backchannel.logout.revoke.offline.tokens: "false"
     protocolMappers:
@@ -358,9 +361,12 @@ clients:
       - "http://localhost:4201/*"
       - "http://localhost:3000/callback"
       - "http://localhost:3000/*"
+      - "http://localhost:8080/self-service/callback"
+      - "http://localhost:8080/self-service/*"
     webOrigins:
       - "http://localhost:4201"
       - "http://localhost:3000"
+      - "http://localhost:8080"
     fullScopeAllowed: false
     defaultClientScopes:
       - profile
@@ -370,7 +376,7 @@ clients:
       - address
       - phone
     attributes:
-      post.logout.redirect.uris: "http://localhost:4201/##http://localhost:4201/*##http://localhost:3000/##http://localhost:3000/*"
+      post.logout.redirect.uris: "http://localhost:4201/##http://localhost:4201/*##http://localhost:3000/##http://localhost:3000/*##http://localhost:8080/self-service/##http://localhost:8080/self-service/*"
       pkce.code.challenge.method: "S256"
     authenticationFlowBindingOverrides:
       browser: self-service-browser
@@ -626,7 +632,7 @@ users:
     credentials:
       - type: password
         userLabel: "initial"
-        value: "admin"
+        value: "admin1234"
         temporary: false
     realmRoles:
       - admin

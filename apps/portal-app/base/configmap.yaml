@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-app-config
+  labels:
+    app: portal-app
+    component: frontend
+data:
+  # Portal Configuration
+  portalTitle: "Fineract Platform"
+  portalSubtitle: "Select an application to continue"
+
+  # OAuth2-Proxy Configuration
+  oauth2ProxyLogoutUrl: "/oauth2/sign_out"

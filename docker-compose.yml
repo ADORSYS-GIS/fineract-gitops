@@ -130,6 +130,25 @@ services:
     networks:
       - fineract-net
 
+  # keycloak-config-cli does NOT update existing user credentials on re-import.
+  # This service runs after realm import to ensure passwords are always set.
+  keycloak-users-init:
+    image: alpine:3.20
+    command: ["sh", "/scripts/init-users.sh"]
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      ADMIN_USER_PASSWORD: ${KC_ADMIN_USER_PASSWORD:-admin}
+      MIFOS_PASSWORD: ${KC_MIFOS_PASSWORD:-password}
+    volumes:
+      - ./docker/keycloak/init-users.sh:/scripts/init-users.sh:ro
+    depends_on:
+      keycloak-config:
+        condition: service_completed_successfully
+    networks:
+      - fineract-net
+
   fineract:
     image: ${FINERACT_IMAGE}
     ports:
@@ -226,7 +245,9 @@ services:
       redis:
         condition: service_healthy
     # Note: oauth2-proxy uses a distroless image (no shell/wget/curl)
-    # The /ping endpoint confirms the service is running via logs
+    # K8s uses httpGet probes for /ping and /ready, but Docker healthcheck
+    # requires a binary in the image. Distroless has none, so no healthcheck.
+    # The /ping endpoint can be checked externally: curl http://localhost:4180/ping
     networks:
       - fineract-net
 
@@ -342,6 +363,8 @@ services:
     image: ${CUSTOMER_SELF_SERVICE_IMAGE}
     ports:
       - "4208:8080"
+    volumes:
+      - ./docker/customer-self-service/transaction-limits.yaml:/app/config/transaction-limits.yaml:ro
     environment:
       # Keycloak
       KEYCLOAK_URL: "http://keycloak:8080"
@@ -349,6 +372,9 @@ services:
       KEYCLOAK_ADMIN_REALM: master
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CSS_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CSS_CLIENT_SECRET}
+      # JWT validation (override image defaults that point to localhost:9000)
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8180/realms/fineract"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak:8080/realms/fineract/protocol/openid-connect/certs"
       # Fineract API
       FINERACT_URL: "https://fineract:8443"
       FINERACT_TENANT: default
@@ -388,6 +414,103 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Fineract Config CLI (replicates K8s PostSync Job)
+  # Provisions Fineract with offices, roles, staff, products, etc.
+  # ===========================================================================
+
+  fineract-config:
+    image: ghcr.io/adorsys-gis/fineract/fineract-config-cli:yaml-data-c0e455e
+    environment:
+      # Fineract API connection
+      FINERACT_BASE_URL: "https://fineract:8443/fineract-provider"
+      FINERACT_TENANT: "default"
+      FINERACT_SSL_VERIFY: "false"
+      # OAuth2 authentication (fineract-data-loader service account)
+      FINERACT_AUTH_TYPE: "oauth2"
+      FINERACT_AUTH_OAUTH2_TOKEN_URL: "http://keycloak:8080/realms/fineract/protocol/openid-connect/token"
+      FINERACT_AUTH_OAUTH2_CLIENT_ID: "fineract-data-loader"
+      FINERACT_AUTH_OAUTH2_CLIENT_SECRET: "${KC_FINERACT_DATA_LOADER_SECRET}"
+      FINERACT_AUTH_OAUTH2_GRANT_TYPE: "client_credentials"
+      # Import configuration
+      IMPORT_FILES_LOCATIONS: "/config/*.yml"
+      IMPORT_VALIDATE: "true"
+      IMPORT_PARALLEL: "false"
+      IMPORT_FORCE: "false"
+      IMPORT_DRY_RUN: "false"
+      IMPORT_AUTO_IMPORT_ENABLED: "true"
+      IMPORT_EXIT_AFTER_IMPORT: "true"
+      IMPORT_FAIL_ON_ERROR: "false"
+      # State management
+      IMPORT_REMOTE_STATE_ENABLED: "true"
+      IMPORT_REMOTE_STATE_CHECKSUM_BEHAVIOR: "continue"
+      # Variable substitution (not needed, config has no variables)
+      IMPORT_VAR_SUBSTITUTION_ENABLED: "false"
+      # Managed resource modes (no-delete for safety)
+      IMPORT_MANAGED_OFFICE: "no-delete"
+      IMPORT_MANAGED_ROLE: "no-delete"
+      IMPORT_MANAGED_STAFF: "no-delete"
+      IMPORT_MANAGED_CLIENT: "no-delete"
+      IMPORT_MANAGED_LOANPRODUCT: "no-delete"
+      IMPORT_MANAGED_SAVINGSPRODUCT: "no-delete"
+      # Logging
+      LOGGING_LEVEL_ROOT: "INFO"
+      LOGGING_LEVEL_ORG_APACHE_FINERACT_CONFIG: "DEBUG"
+      # Java options
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+    volumes:
+      - ./operations/fineract-config/base/config:/config:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+      keycloak-config:
+        condition: service_completed_successfully
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Gateway (replicates K8s Ingress with OAuth2-Proxy auth_request)
+  # ===========================================================================
+
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      oauth2-proxy:
+        condition: service_started
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Portal (App Launcher Home Page)
+  # ===========================================================================
+
+  portal-app:
+    image: ${PORTAL_APP_IMAGE}
+    volumes:
+      - ./docker/portal-app/index.html:/usr/share/nginx/html/index.html:ro
+      - ./docker/portal-app/styles.css:/usr/share/nginx/html/styles.css:ro
+      - ./docker/nginx/portal-app.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     networks:
       - fineract-net
 
@@ -472,7 +595,7 @@ services:
     ports:
       - "4204:80"
     volumes:
-      - ./docker/nginx/frontend-default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/accounting-app.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       fineract:
         condition: service_healthy
@@ -526,7 +649,7 @@ services:
     ports:
       - "4207:80"
     volumes:
-      - ./docker/nginx/frontend-default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/cashier-app.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       fineract:
         condition: service_healthy
