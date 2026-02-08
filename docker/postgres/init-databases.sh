@@ -53,4 +53,22 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 EOSQL
 
 echo "Customer registration database '${CUSTOMER_REG_DB_NAME}' created."
+
+# Create Asset Service database and user
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DO \$\$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${ASSET_SERVICE_DB_USER}') THEN
+            CREATE ROLE ${ASSET_SERVICE_DB_USER} WITH LOGIN PASSWORD '${ASSET_SERVICE_DB_PASSWORD}';
+        END IF;
+    END
+    \$\$;
+
+    SELECT 'CREATE DATABASE ${ASSET_SERVICE_DB_NAME} OWNER ${ASSET_SERVICE_DB_USER}'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${ASSET_SERVICE_DB_NAME}')\gexec
+
+    GRANT ALL PRIVILEGES ON DATABASE ${ASSET_SERVICE_DB_NAME} TO ${ASSET_SERVICE_DB_USER};
+EOSQL
+
+echo "Asset service database '${ASSET_SERVICE_DB_NAME}' created."
 echo "All databases initialized successfully."

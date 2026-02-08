@@ -20,6 +20,7 @@ volumes:
   grafana-data:
   prometheus-data:
   loki-data:
+  asset-service-postgres-data:
 
 services:
 
@@ -41,6 +42,9 @@ services:
       CUSTOMER_REG_DB_USER: ${CUSTOMER_REG_DB_USER}
       CUSTOMER_REG_DB_PASSWORD: ${CUSTOMER_REG_DB_PASSWORD}
       CUSTOMER_REG_DB_NAME: ${CUSTOMER_REG_DB_NAME}
+      ASSET_SERVICE_DB_USER: ${ASSET_SERVICE_DB_USER}
+      ASSET_SERVICE_DB_PASSWORD: ${ASSET_SERVICE_DB_PASSWORD}
+      ASSET_SERVICE_DB_NAME: ${ASSET_SERVICE_DB_NAME}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
@@ -417,6 +421,63 @@ services:
     networks:
       - fineract-net
 
+  asset-service:
+    image: ${ASSET_SERVICE_IMAGE}
+    ports:
+      - "8083:8083"
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${ASSET_SERVICE_DB_NAME}"
+      SPRING_DATASOURCE_USERNAME: ${ASSET_SERVICE_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${ASSET_SERVICE_DB_PASSWORD}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Keycloak
+      KEYCLOAK_ISSUER_URI: "http://keycloak:8080/realms/fineract"
+      KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/fineract/protocol/openid-connect/certs"
+      # Fineract API
+      FINERACT_URL: "https://fineract:8443/fineract-provider"
+      FINERACT_TENANT: default
+      FINERACT_AUTH_TYPE: oauth
+      FINERACT_TOKEN_URL: "http://keycloak:8080/realms/fineract/protocol/openid-connect/token"
+      FINERACT_CLIENT_ID: ${KEYCLOAK_ASSET_CLIENT_ID}
+      FINERACT_CLIENT_SECRET: ${KEYCLOAK_ASSET_CLIENT_SECRET}
+      FINERACT_USERNAME: ${FINERACT_API_USERNAME}
+      FINERACT_PASSWORD: ${FINERACT_API_PASSWORD}
+      # Spring Boot
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: "8083"
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_ADORSYS: DEBUG
+      # JVM
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+      # Tracing
+      OTEL_SERVICE_NAME: asset-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      fineract:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - fineract-net
+
   # ===========================================================================
   # Fineract Config CLI (replicates K8s PostSync Job)
   # Provisions Fineract with offices, roles, staff, products, etc.
@@ -650,6 +711,24 @@ services:
       - "4207:80"
     volumes:
       - ./docker/nginx/cashier-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  asset-manager-app:
+    image: ${ASSET_MANAGER_APP_IMAGE}
+    ports:
+      - "4209:80"
+    volumes:
+      - ./docker/nginx/frontend-default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       fineract:
         condition: service_healthy

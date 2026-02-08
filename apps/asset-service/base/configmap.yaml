@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asset-service-config
+data:
+  # Keycloak Configuration
+  KEYCLOAK_ISSUER_URI: "http://keycloak-service:8080/realms/fineract"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/certs"
+
+  # Fineract API Configuration
+  FINERACT_URL: "https://fineract-service:8443/fineract-provider"
+  FINERACT_TENANT: "default"
+  FINERACT_AUTH_TYPE: "oauth"
+  FINERACT_TOKEN_URL: "http://keycloak-service:8080/realms/fineract/protocol/openid-connect/token"
+
+  # Redis Configuration
+  REDIS_HOST: "redis.fineract.svc.cluster.local"
+  REDIS_PORT: "6379"
+
+  # Database Configuration
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://asset-service-db:5432/asset_service"
+  SPRING_DATASOURCE_USERNAME: "asset_service"
+
+  # Spring Boot Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  SERVER_PORT: "8083"
+
+  # Logging Configuration
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_ADORSYS: "DEBUG"

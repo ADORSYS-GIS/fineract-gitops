@@ -1398,6 +1398,36 @@ chartOfAccounts:
   accountUsage: Detail
   manualEntriesAllowed: true
   description: Cash overages from teller operations
+- name: Digital Asset Inventory
+  glCode: 47
+  accountType: Asset
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: Vault holding of digital asset units across all asset types
+- name: Asset Transfer Suspense
+  glCode: 48
+  accountType: Asset
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: Clearing account for in-flight asset transfers
+- name: Customer Digital Asset Holdings
+  glCode: 65
+  accountType: Liability
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: Bank obligation for digital asset units held by customers
+- name: Company Asset Capital
+  glCode: 73
+  accountType: Equity
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: Equity origin for minted/issued digital asset units
+- name: Asset Trading Fee Income
+  glCode: 87
+  accountType: Income
+  accountUsage: Detail
+  manualEntriesAllowed: true
+  description: Revenue from asset trading fees and spreads
 paymentTypes:
 - name: Cash
   description: Cash payment
@@ -1436,6 +1466,18 @@ paymentTypes:
   description: Afriland bank transfer (self-service portal - Tier 2 only)
   isCashPayment: false
   position: 13
+- name: Asset Purchase
+  description: Internal transfer for digital asset buy
+  isCashPayment: false
+  position: 20
+- name: Asset Sale
+  description: Internal transfer for digital asset sell-back
+  isCashPayment: false
+  position: 21
+- name: Asset Issuance
+  description: Initial treasury deposit of asset units
+  isCashPayment: false
+  position: 22
 fundSources:
 - name: Own Capital
   externalId: FUND-001
@@ -1589,6 +1631,13 @@ charges:
   chargeTimeType: Savings Activation
   chargeCalculationType: Flat
   amount: 2000.0
+  currencyCode: XAF
+  active: true
+- name: Asset Trading Fee
+  chargeAppliesTo: Savings
+  chargeTimeType: Specified Due Date
+  chargeCalculationType: Percentage of Amount
+  amount: 0.50
   currencyCode: XAF
   active: true
 loanProducts:
