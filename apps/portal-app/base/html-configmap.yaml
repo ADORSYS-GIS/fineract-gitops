@@ -102,6 +102,16 @@ data:
                         <p>Branch management and operations oversight</p>
                     </div>
                 </a>
+
+                <a href="/asset-manager" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Asset Manager</h2>
+                        <p>Digital asset management and trading administration</p>
+                    </div>
+                </a>
             </main>
 
             <footer class="footer">

@@ -26,6 +26,8 @@ resources:
   - branch-manager-app.yaml # Branch Manager frontend application
   - admin-app.yaml # Admin frontend application
   - portal-app.yaml # Portal/Home frontend application
+  - asset-service.yaml # Asset service backend
+  - asset-manager-app.yaml # Asset Manager frontend application
   - user-sync-service.yaml # User Sync service
   - customer-registration-service.yaml # Self-service customer registration
   - self-service-app.yaml # Self-service React frontend

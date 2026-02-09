@@ -88,6 +88,14 @@ metadata:
         proxy_set_header Host $host;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
       }
+      # Asset manager app static assets
+      location ~* ^/asset-manager/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/asset-manager/(.*)$ /$1 break;
+        proxy_pass http://asset-manager-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
       # Authentication endpoint - NO OAuth2 required to authenticate!
       location = /fineract-provider/api/v1/authentication {
         # CORS configuration (allow request origin)
@@ -233,6 +241,13 @@ spec:
         backend:
           service:
             name: cashier-app
+            port:
+              number: 80
+      - path: /asset-manager(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: asset-manager-app
             port:
               number: 80
       - path: /home(/|$)(.*)

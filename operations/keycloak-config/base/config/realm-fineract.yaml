@@ -574,6 +574,11 @@ roles:
       description: Read-only access - view only, no modifications
       composite: false
 
+    # Asset Management Roles
+    - name: asset-manager
+      description: Asset manager - create and manage digital assets, pricing, trading
+      composite: false
+
     # Self-Service Customer Roles
     - name: self-service-customer
       description: Self-service banking customer - limited to own accounts
@@ -899,6 +904,7 @@ users:
       - Admin
       - Super User
       - Accountant
+      - asset-manager
     groups:
       - /head-office
     attributes:
