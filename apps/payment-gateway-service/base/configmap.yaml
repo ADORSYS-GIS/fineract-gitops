@@ -37,6 +37,16 @@ data:
   PAYMENT_GATEWAY_BASE_URL: "https://payments.webank.cm"
   SELF_SERVICE_APP_BASE_URL: "https://self-service.webank.cm"
 
+  # Redis Configuration
+  REDIS_HOST: "redis.fineract.svc.cluster.local"
+  REDIS_PORT: "6379"
+
+  # CORS Configuration
+  APP_CORS_ALLOWED_ORIGINS: "https://self-service.webank.cm"
+
+  # Step-up authentication (disabled until frontend ready)
+  APP_STEPUP_ENABLED: "false"
+
   # Spring Boot Configuration
   SPRING_PROFILES_ACTIVE: "kubernetes"
   SERVER_PORT: "8082"
