@@ -6,6 +6,9 @@ resources:
   - service.yaml
   - configmap.yaml
   - serviceaccount.yaml
+  - networkpolicy.yaml
+  - pdb.yaml
+  - hpa.yaml
 
 commonLabels:
   app.kubernetes.io/name: asset-service

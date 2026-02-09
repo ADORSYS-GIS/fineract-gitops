@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: asset-manager-app
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: asset-manager-app

@@ -6,6 +6,7 @@ resources:
   - service.yaml
   - configmap.yaml
   - nginx-configmap.yaml
+  - pdb.yaml
 
 commonLabels:
   app.kubernetes.io/name: asset-manager-app

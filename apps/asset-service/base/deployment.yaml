@@ -20,6 +20,8 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8083"
         prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/scheme: "http"
+        reloader.stakater.com/auto: "true"
     spec:
       serviceAccountName: asset-service
       securityContext:
@@ -83,7 +85,10 @@ spec:
             - name: OTEL_SERVICE_NAME
               value: "asset-service"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://otel-collector.tracing.svc.cluster.local:4317"
+              valueFrom:
+                configMapKeyRef:
+                  name: asset-service-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
             - name: OTEL_RESOURCE_ATTRIBUTES

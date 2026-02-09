@@ -25,6 +25,24 @@ data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
   SERVER_PORT: "8083"
 
+  # CORS Configuration
+  APP_CORS_ALLOWED_ORIGINS: "https://selfservice.fineract.adorsys.team,https://asset-manager.fineract.adorsys.team"
+
+  # Asset Service Configuration
+  FEE_COLLECTION_ACCOUNT_ID: "0"  # Must be set per environment to actual Fineract savings account ID
+  GL_DIGITAL_ASSET_INVENTORY: "47"
+  GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS: "65"
+  ASSET_ISSUANCE_PAYMENT_TYPE: "22"
+
+  # Connection Pool Tuning
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "20"
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "5"
+  SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: "10000"
+  SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD: "60000"
+
+  # OpenTelemetry Configuration
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.tracing.svc.cluster.local:4317"
+
   # Logging Configuration
   LOGGING_LEVEL_ROOT: "INFO"
   LOGGING_LEVEL_COM_ADORSYS: "DEBUG"
