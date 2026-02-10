@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: asset-service-alert-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: monitoring-stack
+    prometheus: fineract
+spec:
+  groups:
+  - name: asset-service-alerts
+    interval: 30s
+    rules:
+    - alert: AssetTradeFailureRate
+      expr: |
+        rate(asset_trades_failures_total{app="asset-service"}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: asset-service
+      annotations:
+        summary: "Asset service has elevated trade failure rate"
+        description: "Trade failures are occurring at {{ $value | humanize }}/sec over the last 5 minutes"
+
+    - alert: AssetTradeLockContention
+      expr: |
+        rate(asset_trades_lock_failures_total{app="asset-service"}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        component: asset-service
+      annotations:
+        summary: "Asset service trade lock contention detected"
+        description: "Lock failures at {{ $value | humanize }}/sec — possible concurrent trading bottleneck"
+
+    - alert: AssetServiceDown
+      expr: |
+        up{job="asset-service"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: asset-service
+      annotations:
+        summary: "Asset service is down"
+        description: "Asset service has been unreachable for more than 2 minutes"
