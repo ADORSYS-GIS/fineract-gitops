@@ -12,6 +12,7 @@
 realm: fineract
 displayName: Fineract Banking Platform
 enabled: true
+sslRequired: none
 
 # Realm Settings
 internationalizationEnabled: true
@@ -111,7 +112,7 @@ clients:
       - address
       - phone
     attributes:
-      post.logout.redirect.uris: "http://localhost:8080/##http://localhost:4180/##http://localhost:4200/##http://localhost:4201/"
+      post.logout.redirect.uris: "http://localhost:8080/##http://localhost:8080/home/##http://localhost:4180/##http://localhost:4200/##http://localhost:4201/"
       backchannel.logout.session.required: "true"
       backchannel.logout.revoke.offline.tokens: "false"
     protocolMappers:
