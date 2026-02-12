@@ -19,7 +19,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: postgres-client
-        image: postgres
+        image: postgres:17-alpine
         # SENSITIVE DATA IN ENVIRONMENT VARIABLES:
         # Database credentials (PGPASSWORD) exposed as environment variables
         #

@@ -25,8 +25,8 @@ spec:
       containers:
       - name: create-db
         # Image tag managed by Kustomize image transformers per environment
-        # Default: postgres:15-alpine (from environment kustomization.yaml)
-        image: postgres
+        # Default: postgres:17-alpine (from environment kustomization.yaml)
+        image: postgres:17-alpine
         # SENSITIVE DATA IN ENVIRONMENT VARIABLES:
         # Same pattern as create-databases-job.yaml
         # See operations/database-init/base/create-databases-job.yaml lines 23-61

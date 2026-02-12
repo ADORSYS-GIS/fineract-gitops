@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: keycloak-config-cli
-        image: adorsys/keycloak-config-cli:6.0.0
+        image: adorsys/keycloak-config-cli:6.2.1
         env:
         # Keycloak Connection
         # KEYCLOAK_URL should be set via ConfigMap in environment overlays
@@ -126,7 +126,7 @@ spec:
       - name: substitute-variables
         # Image tag managed by Kustomize image transformers per environment
         # Default: alpine:3.20 (from environment kustomization.yaml)
-        image: alpine
+        image: alpine:3.21
         securityContext:
           runAsUser: 0
           runAsNonRoot: false
@@ -286,7 +286,7 @@ spec:
           mountPath: /config-processed
 
       - name: wait-for-keycloak
-        image: curlimages/curl:8.4.0
+        image: curlimages/curl:8.11.1
         command:
         - sh
         - -c

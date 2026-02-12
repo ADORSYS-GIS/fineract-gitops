@@ -29,7 +29,7 @@ spec:
         fsGroup: 10001
       containers:
       - name: otel-collector
-        image: otel/opentelemetry-collector-contrib:0.91.0
+        image: otel/opentelemetry-collector-contrib:0.96.0
         imagePullPolicy: IfNotPresent
         args:
           - "--config=/etc/otel-collector/otel-collector-config.yaml"

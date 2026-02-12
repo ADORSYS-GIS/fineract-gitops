@@ -121,7 +121,7 @@ patches:
             # Init container to build URLs from domain configuration and substitute in config file
             initContainers:
             - name: envsubst-config
-              image: alpine:3.18
+              image: alpine:3.21
               securityContext:
                 runAsUser: 0
                 runAsNonRoot: false
