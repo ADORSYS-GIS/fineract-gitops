@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-self-service-app
+  namespace: argocd
+  annotations:
+    # Deploy after Keycloak is ready (for OIDC)
+    argocd.argoproj.io/sync-wave: "4"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: deploy-key
+    path: apps/self-service-app/base
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Self-Service App - Customer-facing React portal
+    - name: Environment
+      value: Development
+    - name: Part Of
+      value: Self-Service Banking Application
+    - name: Authentication
+      value: OIDC with PKCE (WebAuthn passwordless)

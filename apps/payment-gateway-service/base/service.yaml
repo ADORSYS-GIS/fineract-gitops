@@ -5,6 +5,7 @@ metadata:
   labels:
     app: payment-gateway-service
 spec:
+  type: ClusterIP
   ports:
     - port: 8082
       targetPort: 8082

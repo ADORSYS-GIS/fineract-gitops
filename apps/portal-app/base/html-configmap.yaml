@@ -1,0 +1,316 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-app-html
+  labels:
+    app: portal-app
+    component: frontend
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Fineract Platform - Home</title>
+        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+              integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+              crossorigin="anonymous" referrerpolicy="no-referrer" />
+    </head>
+    <body>
+        <div class="container">
+            <header class="header">
+                <div class="logo">
+                    <i class="fas fa-university"></i>
+                    <h1>Fineract Platform</h1>
+                </div>
+                <p class="subtitle">Select an application to continue</p>
+                <a href="/oauth2/sign_out" class="logout-btn" title="Sign Out">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sign Out</span>
+                </a>
+            </header>
+
+            <main class="apps-grid">
+                <a href="/mifosweb" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Web App</h2>
+                        <p>Primary Fineract interface for core banking operations</p>
+                    </div>
+                </a>
+
+                <a href="/administration" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Admin App</h2>
+                        <p>System administration and configuration management</p>
+                    </div>
+                </a>
+
+                <a href="/account" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Account Manager</h2>
+                        <p>User account management and profile settings</p>
+                    </div>
+                </a>
+
+                <a href="/reporting" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Reporting App</h2>
+                        <p>Read-only reporting and analytics dashboard</p>
+                    </div>
+                </a>
+
+                <a href="/accounting" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Accounting App</h2>
+                        <p>Financial ledger and accounting operations</p>
+                    </div>
+                </a>
+
+                <a href="/cashier" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Cashier App</h2>
+                        <p>Teller operations and cash management</p>
+                    </div>
+                </a>
+
+                <a href="/branch" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Branch Manager</h2>
+                        <p>Branch management and operations oversight</p>
+                    </div>
+                </a>
+
+                <a href="/asset-manager" class="app-card">
+                    <div class="app-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="app-info">
+                        <h2>Asset Manager</h2>
+                        <p>Digital asset management and trading administration</p>
+                    </div>
+                </a>
+            </main>
+
+            <footer class="footer">
+                <p>Apache Fineract - Financial Inclusion Platform</p>
+            </footer>
+        </div>
+    </body>
+    </html>
+
+  styles.css: |
+    :root {
+        --primary-color: #1976d2;
+        --primary-dark: #1565c0;
+        --primary-light: #42a5f5;
+        --secondary-color: #424242;
+        --background-color: #f5f5f5;
+        --card-background: #ffffff;
+        --text-primary: #212121;
+        --text-secondary: #757575;
+        --shadow-color: rgba(0, 0, 0, 0.1);
+        --border-radius: 12px;
+        --transition-speed: 0.3s;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        min-height: 100vh;
+        color: var(--text-primary);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .header {
+        text-align: center;
+        color: white;
+        padding: 2rem 0;
+        position: relative;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .logo i {
+        font-size: 2.5rem;
+    }
+
+    .logo h1 {
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .logout-btn {
+        position: absolute;
+        top: 1rem;
+        right: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        color: white;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all var(--transition-speed);
+    }
+
+    .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .apps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        padding: 2rem 0;
+        flex: 1;
+    }
+
+    .app-card {
+        background: var(--card-background);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        box-shadow: 0 4px 20px var(--shadow-color);
+        transition: all var(--transition-speed);
+        border: 2px solid transparent;
+    }
+
+    .app-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary-light);
+    }
+
+    .app-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .app-icon i {
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .app-info h2 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .app-info p {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    .footer {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.7);
+        padding: 1.5rem 0;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+        }
+
+        .logo i {
+            font-size: 2rem;
+        }
+
+        .logout-btn span {
+            display: none;
+        }
+
+        .logout-btn {
+            padding: 0.5rem;
+        }
+
+        .apps-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .app-card {
+            padding: 1rem;
+        }
+
+        .app-icon {
+            width: 50px;
+            height: 50px;
+        }
+
+        .app-icon i {
+            font-size: 1.25rem;
+        }
+    }

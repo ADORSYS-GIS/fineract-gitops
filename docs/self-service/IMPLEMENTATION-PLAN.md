@@ -6,6 +6,42 @@ Build a customer-facing self-service application enabling user self-registration
 
 ---
 
+## Implementation Progress
+
+| Phase | Description | Status | Commit |
+|-------|-------------|--------|--------|
+| **Phase 1** | Keycloak & GL Configuration | ✅ Complete | `64eb9e0` |
+| **Phase 2** | Customer Registration Service | ✅ Complete | `b10d99a` |
+| **Phase 3** | Self-Service Frontend App | ✅ Complete | `4da00ca` |
+| **Phase 4** | Documentation | 🔄 In Progress | - |
+| **Phase 5** | Payment Gateway Service | ⏳ Pending | - |
+| **Phase 6** | Security & Testing | ⏳ Pending | - |
+| **Phase 7** | Staff KYC Review Interface | ⏳ Pending | - |
+
+### Phase 1 Details (Complete)
+- ✅ Self-service roles added: `self-service-customer`, `self-service-deposit`, `self-service-withdrawal`
+- ✅ Self-service group added: `/self-service-customers`
+- ✅ Self-service client added: `self-service-app` (public, PKCE)
+- ✅ WebAuthn passwordless flow: `self-service-browser`
+- ✅ GL accounts added: UBA (45), Afriland (46)
+- ✅ Payment types added: MTN Transfer, Orange Transfer, UBA Bank Transfer, Afriland Bank Transfer
+
+### Phase 2 Details (Complete)
+- ✅ `apps/customer-registration-service/base/` created
+- ✅ Deployment with Java Spring Boot configuration
+- ✅ Transaction limits ConfigMap (Tier 1/Tier 2)
+- ✅ ArgoCD application added
+
+### Phase 3 Details (Complete)
+- ✅ `apps/self-service-app/base/` created (GitOps manifests)
+- ✅ OIDC ConfigMap with Keycloak settings
+- ✅ NGINX ConfigMap with API proxies
+- ✅ Public Ingress (no OAuth2-Proxy) at `/self-service/*`
+- ✅ ArgoCD application added
+- ✅ React app scaffolding in `fineract-apps` repo (branch: `self-service`)
+
+---
+
 ## Current State Analysis
 
 ### Existing Architecture
@@ -82,15 +118,21 @@ Add new client:
     pkce.code.challenge.method: "S256"
 ```
 
-**1.2 Configure WebAuthn Passwordless Flow**
+**1.2 Configure WebAuthn Passwordless Flow with OTP Fallback**
 
-Create custom authentication flow:
+Create custom authentication flow with OTP fallback for device recovery:
 ```
 self-service-browser:
   1. Cookie (ALTERNATIVE)
-  2. Username Form (REQUIRED)
-  3. WebAuthn Passwordless (REQUIRED)
+  2. self-service-passwordless-forms (ALTERNATIVE):
+     - Username Form (REQUIRED)
+     - self-service-2fa-options (REQUIRED):
+       - WebAuthn Passwordless (ALTERNATIVE) - primary
+       - OTP Form (ALTERNATIVE) - fallback for device recovery
 ```
+
+**Important**: Customers must set up BOTH WebAuthn and TOTP during first login.
+This ensures they can recover their account if they lose their WebAuthn device.
 
 Bind flow to `self-service-app` client.
 
@@ -160,7 +202,7 @@ paymentTypes:
    - `kyc_tier`: "1" (unverified)
    - `kyc_status`: "pending"
 5. Assign to `/self-service-customers` group
-6. Set required actions: `VERIFY_EMAIL`, `webauthn-register-passwordless`
+6. Set required actions: `VERIFY_EMAIL`, `webauthn-register-passwordless`, `CONFIGURE_TOTP`
 7. Handle rollback if any step fails
 
 **KYC Document Upload Flow** (in self-service app):
@@ -520,7 +562,7 @@ Flow:
 │            "kyc_status": ["pending"]                                     │
 │          },                                                              │
 │          "groups": ["/self-service-customers"],                          │
-│          "requiredActions": ["VERIFY_EMAIL", "webauthn-register-..."]    │
+│          "requiredActions": ["VERIFY_EMAIL", "webauthn-register-...", "CONFIGURE_TOTP"] │
 │        }                                                                 │
 │                                                                          │
 │ 5. UUID is now the link between systems                                  │
@@ -573,7 +615,7 @@ public class RegistrationService {
                     "kyc_status", List.of("pending")
                 ))
                 .groups(List.of("/self-service-customers"))
-                .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless"))
+                .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless", "CONFIGURE_TOTP"))
                 .build();
 
             keycloakClient.createUser(keycloakRequest);
@@ -1167,7 +1209,7 @@ public class RegistrationService {
                         "kyc_status", List.of("pending")
                     ))
                     .groups(List.of("/self-service-customers"))
-                    .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless"))
+                    .requiredActions(List.of("VERIFY_EMAIL", "webauthn-register-passwordless", "CONFIGURE_TOTP"))
                     .build()
             );
             log.info("Created Keycloak user: {}", data.getEmail());
@@ -1794,6 +1836,148 @@ gh pr create --title "feat: add self-service banking application" \
 "
 ```
 - [ ] Created PR
+
+---
+
+## Branching & Testing Strategy
+
+### Branch Structure
+```
+main (or deploy-key)     ← Production/EKS deployment branch
+    │
+    └── self-service     ← Feature branch for self-service implementation
+```
+
+### How to Test Before Merging
+
+**Option A: Deploy self-service branch to dev environment (Recommended)**
+
+1. **Update ArgoCD to track self-service branch for dev**:
+   ```yaml
+   # In argocd/applications/dev/*.yaml, temporarily change:
+   spec:
+     source:
+       targetRevision: self-service  # Instead of main/deploy-key
+   ```
+
+2. **Or create a separate ArgoCD Application Set for testing**:
+   ```yaml
+   # argocd/applications/dev/self-service-test.yaml
+   apiVersion: argoproj.io/v1alpha1
+   kind: Application
+   metadata:
+     name: self-service-test
+   spec:
+     source:
+       repoURL: https://github.com/ADORSYS-GIS/fineract-gitops.git
+       targetRevision: self-service
+       path: apps/self-service-app/overlays/dev
+   ```
+
+3. **Sync and test**:
+   ```bash
+   # ArgoCD will deploy from self-service branch
+   argocd app sync self-service-test
+   ```
+
+**Option B: Use Kustomize overlays for feature testing**
+
+Create a dedicated overlay for testing the self-service feature:
+```
+apps/self-service-app/
+└── overlays/
+    ├── dev/           # Regular dev
+    ├── self-service-test/  # Feature testing
+    └── production/
+```
+
+### Testing Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ FEATURE TESTING WORKFLOW                                                 │
+│                                                                          │
+│ 1. Implement on self-service branch                                      │
+│    └── All commits go to self-service branch                             │
+│                                                                          │
+│ 2. Push changes                                                          │
+│    └── git push origin self-service                                      │
+│                                                                          │
+│ 3. Deploy to dev for testing                                             │
+│    └── ArgoCD syncs from self-service branch                             │
+│    └── Access at: https://apps.dev.domain.com/self-service               │
+│                                                                          │
+│ 4. Run test checklist:                                                   │
+│    □ Customer registration works                                         │
+│    □ WebAuthn passwordless login works                                   │
+│    □ Keycloak user created with correct attributes                       │
+│    □ Fineract client created with externalId                             │
+│    □ Deposit via MTN/Orange works                                        │
+│    □ Withdrawal with limits enforced                                     │
+│    □ KYC document upload works                                           │
+│    □ Staff can review KYC in Account Manager                             │
+│                                                                          │
+│ 5. Fix issues, repeat steps 1-4                                          │
+│                                                                          │
+│ 6. When ready, create PR:                                                │
+│    └── gh pr create --base deploy-key --head self-service                │
+│                                                                          │
+│ 7. Code review + approval                                                │
+│                                                                          │
+│ 8. Merge to deploy-key                                                   │
+│    └── Feature goes to production                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Commands for Testing
+
+```bash
+# 1. Ensure you're on self-service branch
+git checkout self-service
+
+# 2. Make changes and commit
+git add .
+git commit -m "feat: implement X"
+
+# 3. Push to remote
+git push origin self-service
+
+# 4. Check ArgoCD sync status (if configured)
+argocd app list | grep self-service
+
+# 5. When testing complete, create PR
+gh pr create \
+  --base deploy-key \
+  --head self-service \
+  --title "feat: add self-service banking application" \
+  --body "## Summary
+- Self-service customer portal with WebAuthn passwordless
+- Customer registration service
+- Payment gateway for MTN/Orange
+- Tiered KYC with transaction limits
+
+## Testing Done
+- [x] Registration flow tested
+- [x] Login flow tested
+- [x] Deposit/withdrawal tested
+- [x] KYC workflow tested"
+
+# 6. After PR approved and merged
+git checkout deploy-key
+git pull origin deploy-key
+```
+
+### Keeping Branches in Sync
+
+If `deploy-key` gets updates while you're working on `self-service`:
+
+```bash
+# On self-service branch
+git checkout self-service
+git fetch origin
+git rebase origin/deploy-key  # Or merge: git merge origin/deploy-key
+git push origin self-service --force-with-lease  # If rebased
+```
 
 ---
 

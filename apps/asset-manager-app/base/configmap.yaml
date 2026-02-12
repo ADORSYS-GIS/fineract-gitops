@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asset-manager-app-config
+  labels:
+    app: asset-manager-app
+data:
+  # Fineract API Configuration
+  fineractApiUrl: "/fineract-provider/api"
+  fineractTenantId: "default"
+
+  # Asset Service API
+  assetServiceUrl: "/api"
+
+  # Authentication Mode
+  authMode: "oauth"
+
+  # Application Settings
+  defaultLanguage: "en"
+  supportedLanguages: "en,fr"
+  defaultCurrency: "XAF"

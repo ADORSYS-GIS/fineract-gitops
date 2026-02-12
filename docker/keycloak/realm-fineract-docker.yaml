@@ -1,0 +1,685 @@
+# =============================================================================
+# Keycloak Realm Configuration for Docker Compose Local Development
+# =============================================================================
+# Derived from: operations/keycloak-config/base/config/realm-fineract.yaml
+# Differences from K8s version:
+#   - Uses HTTP localhost redirect URIs (no TLS for local dev)
+#   - Client secrets use dev defaults from .env
+#   - SMTP disabled
+#   - WebAuthn domain set to localhost
+# =============================================================================
+
+realm: fineract
+displayName: Fineract Banking Platform
+enabled: true
+sslRequired: none
+
+# Realm Settings
+internationalizationEnabled: true
+supportedLocales:
+  - en
+  - fr
+  - sw
+defaultLocale: en
+
+# Login Settings
+registrationAllowed: false
+registrationEmailAsUsername: false
+rememberMe: true
+verifyEmail: false
+loginWithEmailAllowed: true
+duplicateEmailsAllowed: false
+resetPasswordAllowed: true
+editUsernameAllowed: false
+
+# Token Settings
+accessTokenLifespan: 1800
+ssoSessionIdleTimeout: 1800
+ssoSessionMaxLifespan: 14400
+offlineSessionIdleTimeout: 2592000
+revokeRefreshToken: true
+refreshTokenMaxReuse: 0
+accessCodeLifespan: 60
+accessCodeLifespanUserAction: 300
+accessCodeLifespanLogin: 1800
+
+# Themes
+adminTheme: keycloak
+
+# Security Defenses
+bruteForceProtected: true
+permanentLockout: false
+maxFailureWaitSeconds: 1800
+minimumQuickLoginWaitSeconds: 60
+waitIncrementSeconds: 120
+quickLoginCheckMilliSeconds: 500
+maxDeltaTimeSeconds: 43200
+failureFactor: 5  # More lenient for dev
+
+# Password Policy (relaxed for dev)
+passwordPolicy: "length(8)"
+
+# Clients
+clients:
+  # 1. OAuth2 Proxy Client
+  - clientId: "oauth2-proxy"
+    name: Fineract OAuth2 Proxy
+    description: OAuth2 Proxy - protects all web frontends with OIDC authentication
+    enabled: true
+    clientAuthenticatorType: client-secret
+    secret: "oauth2-proxy-secret"
+    protocol: openid-connect
+    publicClient: false
+    bearerOnly: false
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    # HTTP localhost redirect URIs for local development
+    rootUrl: "http://localhost:4180"
+    redirectUris:
+      - "http://localhost:8080/oauth2/callback"
+      - "http://localhost:8080/*"
+      - "http://localhost:4180/oauth2/callback"
+      - "http://localhost:4180/*"
+      - "http://localhost:4200/*"
+      - "http://localhost:4201/*"
+      - "http://localhost:4202/*"
+      - "http://localhost:4203/*"
+      - "http://localhost:4204/*"
+      - "http://localhost:4205/*"
+      - "http://localhost:4206/*"
+      - "http://localhost:4207/*"
+    webOrigins:
+      - "http://localhost:8080"
+      - "http://localhost:4180"
+      - "http://localhost:4200"
+      - "http://localhost:4201"
+      - "http://localhost:4202"
+      - "http://localhost:4203"
+      - "http://localhost:4204"
+      - "http://localhost:4205"
+      - "http://localhost:4206"
+      - "http://localhost:4207"
+    fullScopeAllowed: true
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+      - web-origins
+      - offline_access
+    optionalClientScopes:
+      - address
+      - phone
+    attributes:
+      post.logout.redirect.uris: "http://localhost:8080/##http://localhost:8080/home/##http://localhost:4180/##http://localhost:4200/##http://localhost:4201/"
+      backchannel.logout.session.required: "true"
+      backchannel.logout.revoke.offline.tokens: "false"
+    protocolMappers:
+      - name: fineract-user-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_user_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_user_id"
+          jsonType.label: "String"
+      - name: office-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "office_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "office_id"
+          jsonType.label: "String"
+      - name: employee-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "employee_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "employee_id"
+          jsonType.label: "String"
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+      - name: audience-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: "oauth2-proxy"
+          id.token.claim: "false"
+          access.token.claim: "true"
+      - name: username-in-sub
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-property-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "username"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "sub"
+          jsonType.label: "String"
+      - name: realm-roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        consentRequired: false
+        config:
+          claim.name: "realm_access.roles"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+          multivalued: "true"
+
+  # 2. Admin CLI
+  - clientId: admin-cli
+    name: Webank Admin CLI
+    description: Keycloak configuration management
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "admin-cli-secret"
+    protocol: openid-connect
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    defaultClientScopes:
+      - profile
+      - email
+
+  # 3. Fineract API
+  - clientId: fineract-api
+    name: Fineract API Service Account
+    description: Generic service account for backend integrations with Fineract
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "fineract-api-secret"
+    protocol: openid-connect
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+    protocolMappers:
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+
+  # 4. Fineract Data Loader
+  - clientId: fineract-data-loader
+    name: Fineract Data Loader Service
+    description: Service account for automated data loading jobs
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "fineract-data-loader-secret"
+    protocol: openid-connect
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+    protocolMappers:
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+      - name: mifos-sub-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "sub"
+          claim.value: "mifos"
+          jsonType.label: "String"
+
+  # 5. User Sync Service
+  - clientId: "user-sync-service"
+    name: User Sync Service
+    description: Service account for user synchronization between Fineract and Keycloak
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "user-sync-service-secret"
+    protocol: openid-connect
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+
+  # 6. Payment Gateway
+  - clientId: "payment-gateway"
+    name: Payment Gateway Service
+    description: Service account for payment gateway operations
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "payment-gateway-secret"
+    protocol: openid-connect
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+    protocolMappers:
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+
+  # 7. Customer Registration (Customer Self-Service backend)
+  - clientId: "customer-registration"
+    name: Customer Registration Service
+    description: Service account for customer self-service registration
+    enabled: true
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "customer-registration-secret"
+    protocol: openid-connect
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+
+  # 8. Self-Service App (Public SPA with PKCE)
+  - clientId: "self-service-app"
+    name: Self-Service Banking Portal
+    description: Customer self-service portal with passwordless authentication
+    enabled: true
+    publicClient: true
+    clientAuthenticatorType: client-secret
+    protocol: openid-connect
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    rootUrl: "http://localhost:4201"
+    redirectUris:
+      - "http://localhost:4201/callback"
+      - "http://localhost:4201/*"
+      - "http://localhost:3000/callback"
+      - "http://localhost:3000/*"
+      - "http://localhost:8080/self-service/callback"
+      - "http://localhost:8080/self-service/*"
+    webOrigins:
+      - "http://localhost:4201"
+      - "http://localhost:3000"
+      - "http://localhost:8080"
+    fullScopeAllowed: false
+    defaultClientScopes:
+      - profile
+      - email
+      - offline_access
+    optionalClientScopes:
+      - address
+      - phone
+    attributes:
+      post.logout.redirect.uris: "http://localhost:4201/##http://localhost:4201/*##http://localhost:3000/##http://localhost:3000/*##http://localhost:8080/self-service/##http://localhost:8080/self-service/*"
+      pkce.code.challenge.method: "S256"
+    authenticationFlowBindingOverrides:
+      browser: self-service-browser
+    protocolMappers:
+      - name: fineract-external-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_external_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_external_id"
+          jsonType.label: "String"
+      - name: fineract-client-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_client_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_client_id"
+          jsonType.label: "long"
+      - name: kyc-tier-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "kyc_tier"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "kyc_tier"
+          jsonType.label: "String"
+      - name: kyc-status-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "kyc_status"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "kyc_status"
+          jsonType.label: "String"
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+      - name: realm-roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        consentRequired: false
+        config:
+          claim.name: "realm_access.roles"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+          multivalued: "true"
+
+# Realm Roles
+roles:
+  realm:
+    - name: admin
+      description: Full administrative access
+    - name: Admin
+      description: Admin role (capitalized for frontend apps)
+    - name: Super User
+      description: Full administrative access (Fineract native role name)
+    - name: staff
+      description: Generic staff member with operational access
+    - name: loan-officer
+      description: Loan officer - create and manage loans, clients
+    - name: teller
+      description: Teller/cashier - cash transactions
+    - name: accountant
+      description: Accountant - financial reports
+    - name: Accountant
+      description: Accountant role (capitalized for frontend apps)
+    - name: Supervisor Accountant
+      description: Supervisor Accountant
+    - name: Manager
+      description: Manager role
+    - name: Viewer
+      description: Viewer role - read-only access
+    - name: branch-manager
+      description: Branch manager
+      composite: true
+      composites:
+        realm:
+          - loan-officer
+          - staff
+    - name: field-officer
+      description: Field officer
+    - name: operations-manager
+      description: Operations manager
+      composite: true
+      composites:
+        realm:
+          - branch-manager
+          - staff
+    - name: credit-committee
+      description: Credit committee member
+    - name: checker
+      description: Maker-checker approval workflows
+    - name: client
+      description: Client/customer
+    - name: readonly
+      description: Read-only access
+    - name: self-service-customer
+      description: Self-service banking customer
+    - name: self-service-deposit
+      description: Can perform deposits via self-service
+    - name: self-service-withdrawal
+      description: Can perform withdrawals via self-service
+
+# Groups
+groups:
+  - name: head-office
+    path: /head-office
+    attributes:
+      office_id: ["1"]
+    realmRoles:
+      - admin
+      - staff
+  - name: branch-managers
+    path: /branch-managers
+    realmRoles:
+      - branch-manager
+      - staff
+  - name: loan-officers
+    path: /loan-officers
+    realmRoles:
+      - loan-officer
+      - staff
+  - name: tellers
+    path: /tellers
+    realmRoles:
+      - teller
+      - staff
+  - name: clients
+    path: /clients
+    realmRoles:
+      - client
+  - name: self-service-customers
+    path: /self-service-customers
+    realmRoles:
+      - self-service-customer
+      - self-service-deposit
+      - self-service-withdrawal
+    attributes:
+      registration_allowed: ["true"]
+      kyc_tier_default: ["1"]
+
+# Authentication Flows
+authenticationFlows:
+  - alias: self-service-browser
+    description: Passwordless browser flow for self-service customers
+    providerId: basic-flow
+    topLevel: true
+    builtIn: false
+    authenticationExecutions:
+      - authenticator: auth-cookie
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      - flowAlias: self-service-passwordless-forms
+        authenticatorFlow: true
+        requirement: ALTERNATIVE
+        priority: 20
+
+  - alias: self-service-passwordless-forms
+    description: Username form followed by 2FA authentication
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      - authenticator: auth-username-form
+        authenticatorFlow: false
+        requirement: REQUIRED
+        priority: 10
+      - flowAlias: self-service-2fa-options
+        authenticatorFlow: true
+        requirement: REQUIRED
+        priority: 20
+
+  - alias: self-service-2fa-options
+    description: WebAuthn or OTP authentication
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      - authenticator: webauthn-authenticator-passwordless
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      - authenticator: auth-otp-form
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 20
+
+# Required Actions
+requiredActions:
+  - alias: UPDATE_PASSWORD
+    name: Update Password
+    providerId: UPDATE_PASSWORD
+    enabled: true
+    defaultAction: false
+    priority: 10
+  - alias: CONFIGURE_TOTP
+    name: Configure OTP
+    providerId: CONFIGURE_TOTP
+    enabled: true
+    defaultAction: false
+    priority: 40
+  - alias: webauthn-register-passwordless
+    name: Webauthn Register Passwordless
+    providerId: webauthn-register-passwordless
+    enabled: true
+    defaultAction: false
+    priority: 35
+
+# Service Account Users - Role Assignments
+users:
+  # User Sync Service Account
+  - username: service-account-user-sync-service
+    enabled: true
+    serviceAccountClientId: "user-sync-service"
+    clientRoles:
+      realm-management:
+        - manage-users
+        - view-users
+        - query-users
+        - view-realm
+
+  # Admin user
+  - username: admin
+    enabled: true
+    emailVerified: true
+    firstName: System
+    lastName: Administrator
+    email: admin@fineract.dev
+    credentials:
+      - type: password
+        userLabel: "initial"
+        value: "admin1234"
+        temporary: false
+    realmRoles:
+      - admin
+      - staff
+    groups:
+      - /head-office
+    attributes:
+      employee_id: ["EMP001"]
+      office_id: ["1"]
+
+  # Mifos user
+  - username: mifos
+    enabled: true
+    emailVerified: true
+    firstName: Mifos
+    lastName: User
+    email: mifos@fineract.dev
+    credentials:
+      - type: password
+        userLabel: "initial"
+        value: "password"
+        temporary: false
+    realmRoles:
+      - Admin
+      - Super User
+      - Accountant
+    groups:
+      - /head-office
+    attributes:
+      employee_id: ["EMP002"]
+      office_id: ["1"]
+
+# Attributes
+attributes:
+  frontendUrl: "http://localhost:8180"
+  webAuthnPolicyRpEntityName: "Fineract Dev"
+  webAuthnPolicyRpId: "localhost"
+  webAuthnPolicySignatureAlgorithms: '["ES256","RS256"]'
+  webAuthnPolicyAttestationConveyancePreference: "none"
+  webAuthnPolicyAuthenticatorAttachment: "cross-platform,platform"
+  webAuthnPolicyRequireResidentKey: "No"
+  webAuthnPolicyUserVerificationRequirement: "required"
+  webAuthnPolicyPasswordlessRpEntityName: "Fineract Dev"
+  webAuthnPolicyPasswordlessRpId: "localhost"
+  webAuthnPolicyPasswordlessSignatureAlgorithms: '["ES256","RS256"]'
+  webAuthnPolicyPasswordlessAttestationConveyancePreference: "none"
+  webAuthnPolicyPasswordlessAuthenticatorAttachment: "cross-platform,platform"
+  webAuthnPolicyPasswordlessRequireResidentKey: "No"
+  webAuthnPolicyPasswordlessUserVerificationRequirement: "required"

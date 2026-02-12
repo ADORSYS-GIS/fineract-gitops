@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "fineract"
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /fineract-provider/actuator/prometheus
+    static_configs:
+      - targets: ["fineract:8443"]
+
+  - job_name: "keycloak"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["keycloak:8080"]
+
+  - job_name: "oauth2-proxy"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["oauth2-proxy:9090"]
+
+  - job_name: "payment-gateway"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["payment-gateway-service:8082"]
+
+  - job_name: "user-sync"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["user-sync-service:5000"]
+
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis:6379"]

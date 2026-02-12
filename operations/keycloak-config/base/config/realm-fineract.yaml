@@ -18,7 +18,7 @@ defaultLocale: en
 registrationAllowed: false  # Users created by admin only
 registrationEmailAsUsername: false
 rememberMe: true
-verifyEmail: true  # Enable email verification for security compliance
+verifyEmail: false  # Disabled - email verification not required for customer login
 loginWithEmailAllowed: true
 duplicateEmailsAllowed: false
 resetPasswordAllowed: true  # Enable password reset for better user experience
@@ -341,6 +341,135 @@ clients:
       - email
       - roles
 
+  # 6. Self-Service App (Customer-facing portal with WebAuthn passwordless)
+  - clientId: "self-service-app"
+    name: Self-Service Banking Portal
+    description: Customer self-service portal with WebAuthn passwordless authentication
+    enabled: true
+
+    # Public client for SPA (PKCE required)
+    publicClient: true
+    clientAuthenticatorType: client-secret
+    protocol: openid-connect
+
+    # Authorization Code flow with PKCE (standard for SPAs)
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+
+    # URLs - Self-service app endpoints
+    rootUrl: "https://${APPS_HOSTNAME}/self-service"
+    redirectUris:
+      - "https://${APPS_HOSTNAME}/self-service/callback"
+      - "https://${APPS_HOSTNAME}/self-service/*"
+      - "http://localhost:3000/callback"
+      - "http://localhost:3000/*"
+    webOrigins:
+      - "https://${APPS_HOSTNAME}"
+      - "http://localhost:3000"
+
+    # Scopes
+    fullScopeAllowed: false
+    defaultClientScopes:
+      - profile
+      - email
+      - offline_access
+    optionalClientScopes:
+      - address
+      - phone
+
+    # Logout and PKCE Configuration
+    attributes:
+      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/self-service/##https://${APPS_HOSTNAME}/self-service/*##http://localhost:3000/##http://localhost:3000/*"
+      pkce.code.challenge.method: "S256"
+
+    # Bind custom WebAuthn passwordless authentication flow
+    authenticationFlowBindingOverrides:
+      browser: self-service-browser
+
+    # Protocol Mappers for self-service specific claims
+    protocolMappers:
+      # Map Fineract external ID (UUID) to JWT - used for fallback lookup
+      - name: fineract-external-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_external_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_external_id"
+          jsonType.label: "String"
+
+      # Map Fineract client ID (numeric) to JWT - used for fast ownership verification
+      # This is the primary identifier for account ownership checks.
+      # Set by customer-self-service during registration after Fineract client creation.
+      # Falls back to fineract_external_id lookup if missing.
+      - name: fineract-client-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_client_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_client_id"
+          jsonType.label: "long"
+
+      # Map KYC tier to JWT
+      - name: kyc-tier-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "kyc_tier"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "kyc_tier"
+          jsonType.label: "String"
+
+      # Map KYC status to JWT
+      - name: kyc-status-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "kyc_status"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "kyc_status"
+          jsonType.label: "String"
+
+      # Hardcoded tenant claim
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+
+      # Realm roles mapper
+      - name: realm-roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        consentRequired: false
+        config:
+          claim.name: "realm_access.roles"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+          multivalued: "true"
+
 # Client Scopes
 clientScopes:
   - name: fineract-api
@@ -397,6 +526,24 @@ roles:
       description: Senior accountant for audit and approval (Checker)
       composite: false
 
+    # Asset Management Roles
+    - name: asset-manager
+      description: Asset manager - create and manage digital assets, pricing, trading
+      composite: false
+
+    # Self-Service Customer Roles
+    - name: self-service-customer
+      description: Self-service banking customer - limited to own accounts
+      composite: false
+
+    - name: self-service-deposit
+      description: Can perform deposits to own accounts via self-service
+      composite: false
+
+    - name: self-service-withdrawal
+      description: Can perform withdrawals from own accounts via self-service
+      composite: false
+
 # Groups (mapped to offices/departments)
 groups:
   - name: head-office
@@ -427,13 +574,80 @@ groups:
     realmRoles:
       - Self Service User
 
+  # Self-Service Customers Group
+  # Customers who register via the self-service portal
+  - name: self-service-customers
+    path: /self-service-customers
+    realmRoles:
+      - self-service-customer
+      - self-service-deposit
+      - self-service-withdrawal
+    attributes:
+      registration_allowed: ["true"]
+      kyc_tier_default: ["1"]
+
 # Identity Providers (optional - configure if using external IdP)
 identityProviders: []
 
-# Authentication Flows - Removed (using Keycloak defaults)
-# Built-in flows are automatically created by Keycloak and don't need to be defined
-# in the configuration. Attempting to define them causes NullPointerException
-# in keycloak-config-cli when authenticationExecutions is null.
+# Authentication Flows
+# Custom authentication flows for different user types
+authenticationFlows:
+  # Self-Service Browser Flow - WebAuthn Passwordless for customers
+  # This flow is bound to the self-service-app client and provides
+  # passwordless authentication using WebAuthn (biometrics/security keys)
+  - alias: self-service-browser
+    description: Passwordless browser flow for self-service customers using WebAuthn
+    providerId: basic-flow
+    topLevel: true
+    builtIn: false
+    authenticationExecutions:
+      # Check for existing session cookie first
+      - authenticator: auth-cookie
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      # Username + WebAuthn sub-flow (if no cookie)
+      - flowAlias: self-service-passwordless-forms
+        authenticatorFlow: true
+        requirement: ALTERNATIVE
+        priority: 20
+
+  # Sub-flow for username + 2FA (WebAuthn or OTP)
+  - alias: self-service-passwordless-forms
+    description: Username form followed by 2FA authentication (WebAuthn or OTP)
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      # Username input (no password field)
+      - authenticator: auth-username-form
+        authenticatorFlow: false
+        requirement: REQUIRED
+        priority: 10
+      # 2FA options sub-flow (WebAuthn OR OTP)
+      - flowAlias: self-service-2fa-options
+        authenticatorFlow: true
+        requirement: REQUIRED
+        priority: 20
+
+  # Sub-flow for 2FA options - WebAuthn (primary) or OTP (fallback)
+  # This provides account recovery for customers who lose their WebAuthn device
+  - alias: self-service-2fa-options
+    description: WebAuthn or OTP authentication for self-service customers
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      # WebAuthn passwordless (primary authentication method)
+      - authenticator: webauthn-authenticator-passwordless
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      # OTP fallback (for device recovery)
+      - authenticator: auth-otp-form
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 20
 
 # Required Actions (Configured for First Login Flow)
 requiredActions:
@@ -457,6 +671,14 @@ requiredActions:
     enabled: true
     defaultAction: false  # Optional - users can skip registration
     priority: 30
+
+  # WebAuthn Passwordless Registration - Required for self-service customers
+  - alias: webauthn-register-passwordless
+    name: Webauthn Register Passwordless
+    providerId: webauthn-register-passwordless
+    enabled: true
+    defaultAction: false  # Set by registration service for new customers
+    priority: 35
 
   - alias: CONFIGURE_TOTP
     name: Configure OTP
@@ -627,9 +849,10 @@ users:
         value: "${MIFOS_PASSWORD}"
         temporary: false
     realmRoles:
-      - admin
-      - Super user
-      - accountant
+      - Admin
+      - Super User
+      - Accountant
+      - asset-manager
     groups:
       - /head-office
     attributes:

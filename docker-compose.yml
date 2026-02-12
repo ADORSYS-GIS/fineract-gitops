@@ -1,0 +1,849 @@
+# =============================================================================
+# Fineract GitOps - Docker Compose for Local Development
+# =============================================================================
+# Usage:
+#   cp .env.example .env
+#   docker compose up -d                          # Core services only
+#   docker compose --profile monitoring up -d     # With observability stack
+#   docker compose down                           # Stop (preserve data)
+#   docker compose down -v                        # Stop and remove volumes
+# =============================================================================
+
+networks:
+  fineract-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  keycloak-data:
+  grafana-data:
+  prometheus-data:
+  loki-data:
+  asset-service-postgres-data:
+
+services:
+
+  # ===========================================================================
+  # Infrastructure
+  # ===========================================================================
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME}
+      CUSTOMER_REG_DB_USER: ${CUSTOMER_REG_DB_USER}
+      CUSTOMER_REG_DB_PASSWORD: ${CUSTOMER_REG_DB_PASSWORD}
+      CUSTOMER_REG_DB_NAME: ${CUSTOMER_REG_DB_NAME}
+      ASSET_SERVICE_DB_USER: ${ASSET_SERVICE_DB_USER}
+      ASSET_SERVICE_DB_PASSWORD: ${ASSET_SERVICE_DB_PASSWORD}
+      ASSET_SERVICE_DB_NAME: ${ASSET_SERVICE_DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fineract-net
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+      - ./docker/redis/redis.conf:/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fineract-net
+
+  keycloak:
+    image: ${KEYCLOAK_IMAGE}
+    ports:
+      - "8180:8080"
+    command:
+      - start-dev
+      - --http-enabled=true
+      - --health-enabled=true
+      - --metrics-enabled=true
+      - --hostname-strict=false
+      - --hostname-strict-backchannel=false
+    environment:
+      # Database
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: ${KEYCLOAK_DB_NAME}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # JVM
+      JAVA_OPTS: "-Xms192m -Xmx512m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=192m"
+      # Logging
+      KC_LOG_LEVEL: INFO
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q UP"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - fineract-net
+
+  keycloak-config:
+    image: adorsys/keycloak-config-cli:6.0.0
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: "120s"
+      IMPORT_FILES_LOCATIONS: "/config/realm-fineract-docker.yaml"
+      IMPORT_FORCE: "true"
+      IMPORT_VAR_SUBSTITUTION_ENABLED: "false"
+      IMPORT_VALIDATE: "true"
+      LOGGING_LEVEL_ROOT: INFO
+    volumes:
+      - ./docker/keycloak:/config:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - fineract-net
+
+  # keycloak-config-cli does NOT update existing user credentials on re-import.
+  # This service runs after realm import to ensure passwords are always set.
+  keycloak-users-init:
+    image: alpine:3.20
+    command: ["sh", "/scripts/init-users.sh"]
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      ADMIN_USER_PASSWORD: ${KC_ADMIN_USER_PASSWORD:-admin}
+      MIFOS_PASSWORD: ${KC_MIFOS_PASSWORD:-password}
+    volumes:
+      - ./docker/keycloak/init-users.sh:/scripts/init-users.sh:ro
+    depends_on:
+      keycloak-config:
+        condition: service_completed_successfully
+    networks:
+      - fineract-net
+
+  fineract:
+    image: ${FINERACT_IMAGE}
+    ports:
+      - "8443:8443"
+    environment:
+      # PostgreSQL Database
+      FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME: org.postgresql.Driver
+      FINERACT_HIKARI_JDBC_URL: ${FINERACT_HIKARI_JDBC_URL}
+      FINERACT_HIKARI_USERNAME: ${FINERACT_HIKARI_USERNAME}
+      FINERACT_HIKARI_PASSWORD: ${FINERACT_HIKARI_PASSWORD}
+      # HikariCP Connection Pool
+      FINERACT_HIKARI_MINIMUM_IDLE: "3"
+      FINERACT_HIKARI_MAXIMUM_POOL_SIZE: "10"
+      FINERACT_HIKARI_IDLE_TIMEOUT: "60000"
+      FINERACT_HIKARI_CONNECTION_TIMEOUT: "20000"
+      FINERACT_HIKARI_MAX_LIFETIME: "1800000"
+      FINERACT_HIKARI_LEAK_DETECTION_THRESHOLD: "60000"
+      FINERACT_HIKARI_CONNECTION_TEST_QUERY: "SELECT 1"
+      # Tenant Database
+      FINERACT_DEFAULT_TENANTDB_HOSTNAME: ${FINERACT_DEFAULT_TENANTDB_HOSTNAME}
+      FINERACT_DEFAULT_TENANTDB_PORT: ${FINERACT_DEFAULT_TENANTDB_PORT}
+      FINERACT_DEFAULT_TENANTDB_IDENTIFIER: default
+      FINERACT_DEFAULT_TENANTDB_NAME: fineract_default
+      FINERACT_DEFAULT_TENANTDB_UID: ${FINERACT_DEFAULT_TENANTDB_UID}
+      FINERACT_DEFAULT_TENANTDB_PWD: ${FINERACT_DEFAULT_TENANTDB_PWD}
+      # Combined mode (read + write + batch in single instance)
+      FINERACT_MODE_READ_ENABLED: "true"
+      FINERACT_MODE_WRITE_ENABLED: "true"
+      FINERACT_MODE_BATCH_ENABLED: "true"
+      # S3 disabled for local dev
+      FINERACT_CONTENT_S3_ENABLED: "false"
+      # Redis Cache
+      SPRING_CACHE_TYPE: redis
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: "6379"
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_CACHE_REDIS_TIME_TO_LIVE: "3600000"
+      SPRING_CACHE_REDIS_KEY_PREFIX: "fineract:cache:"
+      # Liquibase enabled for auto-migration in dev
+      FINERACT_LIQUIBASE_ENABLED: "true"
+      # JVM
+      JAVA_OPTS: "-Xmx2048m -Xms512m -Djavax.net.ssl.trustAll=true -Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
+      # OAuth2
+      FINERACT_SECURITY_BASICAUTH_ENABLED: "false"
+      FINERACT_SECURITY_OAUTH_ENABLED: "true"
+      FINERACT_SERVER_OAUTH_RESOURCE_URL: "http://localhost:8180/realms/fineract"
+      # JWT Issuer URI must match the 'iss' claim in tokens (public-facing Keycloak URL)
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8180/realms/fineract"
+      # JWK Set URI uses internal Docker network URL for key fetching
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak:8080/realms/fineract/protocol/openid-connect/certs"
+      # Logging
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2: DEBUG
+      # Tracing (only active when monitoring profile is running)
+      OTEL_SERVICE_NAME: fineract
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      MANAGEMENT_TRACING_ENABLED: "true"
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://otel-collector:4318/v1/traces"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --no-check-certificate -O /dev/null https://localhost:8443/fineract-provider/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    networks:
+      - fineract-net
+
+  oauth2-proxy:
+    image: ${OAUTH2_PROXY_IMAGE}
+    ports:
+      - "4180:4180"
+    command:
+      - --config=/etc/oauth2-proxy/oauth2_proxy.cfg
+    environment:
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
+      OAUTH2_PROXY_REDIS_CONNECTION_URL: "redis://redis:6379"
+      OAUTH2_PROXY_REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - ./docker/oauth2-proxy/oauth2_proxy.cfg:/etc/oauth2-proxy/oauth2_proxy.cfg:ro
+    depends_on:
+      keycloak-config:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    # Note: oauth2-proxy uses a distroless image (no shell/wget/curl)
+    # K8s uses httpGet probes for /ping and /ready, but Docker healthcheck
+    # requires a binary in the image. Distroless has none, so no healthcheck.
+    # The /ping endpoint can be checked externally: curl http://localhost:4180/ping
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Backend Services
+  # ===========================================================================
+
+  payment-gateway-service:
+    image: ${PAYMENT_GATEWAY_IMAGE}
+    ports:
+      - "8082:8082"
+    environment:
+      # Keycloak
+      KEYCLOAK_ISSUER_URI: "http://keycloak:8080/realms/fineract"
+      KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/fineract/protocol/openid-connect/certs"
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_PGW_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_PGW_CLIENT_SECRET}
+      # Fineract API
+      FINERACT_URL: "https://fineract:8443/fineract-provider"
+      FINERACT_TENANT: default
+      FINERACT_AUTH_TYPE: oauth
+      FINERACT_TOKEN_URL: "http://keycloak:8080/realms/fineract/protocol/openid-connect/token"
+      FINERACT_SAVINGS_PRODUCT_ID: "1"
+      FINERACT_USERNAME: ${FINERACT_API_USERNAME}
+      FINERACT_PASSWORD: ${FINERACT_API_PASSWORD}
+      # MTN MoMo
+      MTN_BASE_URL: "https://sandbox.momodeveloper.mtn.com"
+      MTN_TARGET_ENV: sandbox
+      MTN_CALLBACK_URL: "http://localhost:8082/api/callbacks"
+      MTN_FINERACT_PAYMENT_TYPE_ID: "1"
+      MTN_COLLECTION_KEY: ${MTN_COLLECTION_KEY}
+      MTN_DISBURSEMENT_KEY: ${MTN_DISBURSEMENT_KEY}
+      MTN_API_USER_ID: ${MTN_API_USER_ID}
+      MTN_API_KEY: ${MTN_API_KEY}
+      MTN_GL_ACCOUNT_CODE: ${MTN_GL_ACCOUNT_CODE}
+      # Orange Money
+      ORANGE_BASE_URL: "https://api.orange.com/orange-money-webpay/dev/v1"
+      ORANGE_TOKEN_URL: "https://api.orange.com/oauth/v3/token"
+      ORANGE_CALLBACK_URL: "http://localhost:8082/api/callbacks"
+      ORANGE_RETURN_URL: "http://localhost:4201/transactions"
+      ORANGE_CANCEL_URL: "http://localhost:4201/transactions"
+      ORANGE_FINERACT_PAYMENT_TYPE_ID: "2"
+      ORANGE_CLIENT_ID: ${ORANGE_CLIENT_ID}
+      ORANGE_CLIENT_SECRET: ${ORANGE_CLIENT_SECRET}
+      ORANGE_MERCHANT_CODE: ${ORANGE_MERCHANT_CODE}
+      ORANGE_GL_ACCOUNT_CODE: ${ORANGE_GL_ACCOUNT_CODE}
+      # CinetPay
+      CINETPAY_BASE_URL: "https://api-checkout.cinetpay.com"
+      CINETPAY_TRANSFER_URL: "https://client.cinetpay.com"
+      CINETPAY_API_KEY: ${CINETPAY_API_KEY}
+      CINETPAY_SITE_ID: ${CINETPAY_SITE_ID}
+      CINETPAY_API_PASSWORD: ${CINETPAY_API_PASSWORD}
+      # Base URLs
+      PAYMENT_GATEWAY_BASE_URL: "http://localhost:8082"
+      SELF_SERVICE_APP_BASE_URL: "http://localhost:4201"
+      # Spring Boot
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: "8082"
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_ADORSYS: DEBUG
+      # JVM
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+      # Tracing
+      OTEL_SERVICE_NAME: payment-gateway-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      fineract:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - fineract-net
+
+  user-sync-service:
+    image: ${USER_SYNC_IMAGE}
+    ports:
+      - "5001:5000"
+    environment:
+      KEYCLOAK_URL: "http://keycloak:8080"
+      KEYCLOAK_REALM: fineract
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_USS_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_USS_CLIENT_SECRET}
+      # Tracing
+      OTEL_SERVICE_NAME: user-sync-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      keycloak-config:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/health')\" || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - fineract-net
+
+  customer-self-service:
+    image: ${CUSTOMER_SELF_SERVICE_IMAGE}
+    ports:
+      - "4208:8080"
+    volumes:
+      - ./docker/customer-self-service/transaction-limits.yaml:/app/config/transaction-limits.yaml:ro
+    environment:
+      # Keycloak
+      KEYCLOAK_URL: "http://keycloak:8080"
+      KEYCLOAK_REALM: fineract
+      KEYCLOAK_ADMIN_REALM: master
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CSS_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CSS_CLIENT_SECRET}
+      # JWT validation (override image defaults that point to localhost:9000)
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8180/realms/fineract"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak:8080/realms/fineract/protocol/openid-connect/certs"
+      # Fineract API
+      FINERACT_URL: "https://fineract:8443"
+      FINERACT_TENANT: default
+      FINERACT_USERNAME: ${FINERACT_API_USERNAME}
+      FINERACT_PASSWORD: ${FINERACT_API_PASSWORD}
+      # Self-Service Configuration
+      DEFAULT_OFFICE_ID: "1"
+      DEFAULT_GROUP_PATH: "/self-service-customers"
+      DEFAULT_KYC_TIER: "1"
+      DEFAULT_KYC_STATUS: pending
+      # Database
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${CUSTOMER_REG_DB_NAME}"
+      SPRING_DATASOURCE_USERNAME: ${CUSTOMER_REG_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${CUSTOMER_REG_DB_PASSWORD}
+      # Spring Boot
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: "8080"
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_ADORSYS: DEBUG
+      # Tracing
+      OTEL_SERVICE_NAME: customer-self-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak-config:
+        condition: service_completed_successfully
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - fineract-net
+
+  asset-service:
+    image: ${ASSET_SERVICE_IMAGE}
+    ports:
+      - "8083:8083"
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${ASSET_SERVICE_DB_NAME}"
+      SPRING_DATASOURCE_USERNAME: ${ASSET_SERVICE_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${ASSET_SERVICE_DB_PASSWORD}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Keycloak
+      KEYCLOAK_ISSUER_URI: "http://keycloak:8080/realms/fineract"
+      KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/fineract/protocol/openid-connect/certs"
+      # Fineract API
+      FINERACT_URL: "https://fineract:8443/fineract-provider"
+      FINERACT_TENANT: default
+      FINERACT_AUTH_TYPE: oauth
+      FINERACT_TOKEN_URL: "http://keycloak:8080/realms/fineract/protocol/openid-connect/token"
+      FINERACT_CLIENT_ID: ${KEYCLOAK_ASSET_CLIENT_ID}
+      FINERACT_CLIENT_SECRET: ${KEYCLOAK_ASSET_CLIENT_SECRET}
+      FINERACT_USERNAME: ${FINERACT_API_USERNAME}
+      FINERACT_PASSWORD: ${FINERACT_API_PASSWORD}
+      # Asset Service Config
+      FEE_COLLECTION_ACCOUNT_ID: "1"
+      # Security - permit admin endpoints without JWT for local development
+      APP_SECURITY_PERMIT_ALL_ADMIN: "true"
+      APP_CORS_ALLOWED_ORIGINS: "http://localhost:4209,http://localhost:3000,http://localhost:5173"
+      # Spring Boot
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: "8083"
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_ADORSYS: DEBUG
+      # JVM
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+      # Tracing
+      OTEL_SERVICE_NAME: asset-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      fineract:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Fineract Config CLI (replicates K8s PostSync Job)
+  # Provisions Fineract with offices, roles, staff, products, etc.
+  # ===========================================================================
+
+  fineract-config:
+    image: ghcr.io/adorsys-gis/fineract/fineract-config-cli:yaml-data-c0e455e
+    environment:
+      # Fineract API connection
+      FINERACT_BASE_URL: "https://fineract:8443/fineract-provider"
+      FINERACT_TENANT: "default"
+      FINERACT_SSL_VERIFY: "false"
+      # OAuth2 authentication (fineract-data-loader service account)
+      FINERACT_AUTH_TYPE: "oauth2"
+      FINERACT_AUTH_OAUTH2_TOKEN_URL: "http://keycloak:8080/realms/fineract/protocol/openid-connect/token"
+      FINERACT_AUTH_OAUTH2_CLIENT_ID: "fineract-data-loader"
+      FINERACT_AUTH_OAUTH2_CLIENT_SECRET: "${KC_FINERACT_DATA_LOADER_SECRET}"
+      FINERACT_AUTH_OAUTH2_GRANT_TYPE: "client_credentials"
+      # Import configuration
+      IMPORT_FILES_LOCATIONS: "/config/*.yml"
+      IMPORT_VALIDATE: "true"
+      IMPORT_PARALLEL: "false"
+      IMPORT_FORCE: "false"
+      IMPORT_DRY_RUN: "false"
+      IMPORT_AUTO_IMPORT_ENABLED: "true"
+      IMPORT_EXIT_AFTER_IMPORT: "true"
+      IMPORT_FAIL_ON_ERROR: "false"
+      # State management
+      IMPORT_REMOTE_STATE_ENABLED: "true"
+      IMPORT_REMOTE_STATE_CHECKSUM_BEHAVIOR: "continue"
+      # Variable substitution (not needed, config has no variables)
+      IMPORT_VAR_SUBSTITUTION_ENABLED: "false"
+      # Managed resource modes (no-delete for safety)
+      IMPORT_MANAGED_OFFICE: "no-delete"
+      IMPORT_MANAGED_ROLE: "no-delete"
+      IMPORT_MANAGED_STAFF: "no-delete"
+      IMPORT_MANAGED_CLIENT: "no-delete"
+      IMPORT_MANAGED_LOANPRODUCT: "no-delete"
+      IMPORT_MANAGED_SAVINGSPRODUCT: "no-delete"
+      # Logging
+      LOGGING_LEVEL_ROOT: "INFO"
+      LOGGING_LEVEL_ORG_APACHE_FINERACT_CONFIG: "DEBUG"
+      # Java options
+      JAVA_OPTS: "-Xmx512m -Xms256m"
+    volumes:
+      - ./operations/fineract-config/base/config:/config:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+      keycloak-config:
+        condition: service_completed_successfully
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Gateway (replicates K8s Ingress with OAuth2-Proxy auth_request)
+  # ===========================================================================
+
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      oauth2-proxy:
+        condition: service_started
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Portal (App Launcher Home Page)
+  # ===========================================================================
+
+  portal-app:
+    image: ${PORTAL_APP_IMAGE}
+    volumes:
+      - ./docker/portal-app/index.html:/usr/share/nginx/html/index.html:ro
+      - ./docker/portal-app/styles.css:/usr/share/nginx/html/styles.css:ro
+      - ./docker/nginx/portal-app.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Frontend Applications
+  # ===========================================================================
+
+  web-app:
+    image: ${WEB_APP_IMAGE}
+    ports:
+      - "4200:80"
+    volumes:
+      - ./docker/nginx/web-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  self-service-app:
+    image: ${SELF_SERVICE_APP_IMAGE}
+    ports:
+      - "4201:80"
+    volumes:
+      - ./docker/nginx/self-service-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  admin-app:
+    image: ${ADMIN_APP_IMAGE}
+    ports:
+      - "4202:80"
+    volumes:
+      - ./docker/nginx/admin-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  account-manager-app:
+    image: ${ACCOUNT_MANAGER_APP_IMAGE}
+    ports:
+      - "4203:80"
+    volumes:
+      - ./docker/nginx/frontend-default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  accounting-app:
+    image: ${ACCOUNTING_APP_IMAGE}
+    ports:
+      - "4204:80"
+    volumes:
+      - ./docker/nginx/accounting-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  reporting-app:
+    image: ${REPORTING_APP_IMAGE}
+    ports:
+      - "4205:80"
+    volumes:
+      - ./docker/nginx/frontend-default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  branch-manager-app:
+    image: ${BRANCH_MANAGER_APP_IMAGE}
+    ports:
+      - "4206:80"
+    volumes:
+      - ./docker/nginx/frontend-default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  cashier-app:
+    image: ${CASHIER_APP_IMAGE}
+    ports:
+      - "4207:80"
+    volumes:
+      - ./docker/nginx/cashier-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  asset-manager-app:
+    image: ${ASSET_MANAGER_APP_IMAGE}
+    ports:
+      - "4209:80"
+    volumes:
+      - ./docker/nginx/asset-manager-app.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      fineract:
+        condition: service_healthy
+      asset-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  # ===========================================================================
+  # Observability (optional: docker compose --profile monitoring up -d)
+  # ===========================================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    profiles: ["monitoring"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+    volumes:
+      - ./docker/otel-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:13133/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - fineract-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.53.0
+    profiles: ["monitoring"]
+    ports:
+      - "16686:16686"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: memory
+    command: ["--memory.max-traces=50000", "--query.base-path=/jaeger"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:14269/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - fineract-net
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+    networks:
+      - fineract-net
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+    depends_on:
+      - prometheus
+    networks:
+      - fineract-net
+
+  loki:
+    image: grafana/loki:2.9.3
+    profiles: ["monitoring"]
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./docker/loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - fineract-net
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    profiles: ["monitoring"]
+    command: -config.file=/etc/promtail/promtail.yaml
+    volumes:
+      - ./docker/promtail/promtail.yaml:/etc/promtail/promtail.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    networks:
+      - fineract-net

@@ -11,6 +11,7 @@ resources:
   - fineract-web-app-protected.yaml
   - keycloak-ingress.yaml
   - user-sync-ingress.yaml
+  - self-service-public.yaml  # Self-service app (public - no OAuth2-Proxy)
 
 
 labels:

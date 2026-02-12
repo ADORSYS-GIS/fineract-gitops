@@ -28,7 +28,7 @@ metadata:
 
       # Determine which app to redirect to after logout (default to cashier)
       set $post_logout_app "cashier";
-      if ($http_referer ~* "^https://[^/]+/(cashier|web-app|accounting-app|admin-app|reporting-app|branch-manager-app|account-manager-app)/") {
+      if ($http_referer ~* "^https://[^/]+/(cashier|web-app|accounting-app|admin-app|reporting-app|branch-manager-app|account-manager-app|asset-manager)/") {
         set $post_logout_app $1;
       }
 
