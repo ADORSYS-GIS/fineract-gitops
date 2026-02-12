@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-gateway-service
+  labels:
+    app: payment-gateway-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-gateway-service
+  template:
+    metadata:
+      labels:
+        app: payment-gateway-service
+        app.kubernetes.io/name: payment-gateway-service
+        app.kubernetes.io/component: payment
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:15-alpine
+          command: ['sh', '-c', 
+            'until pg_isready -h $DB_HOST -p 5432; do echo waiting for database; sleep 2; done']
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-db-credentials
+                  key: host
+      containers:
+        - name: payment-gateway-service
+          image: ghcr.io/adorsys-gis/fineract-apps/payment-gateway-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            # Database configuration
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-db-credentials
+                  key: jdbc-url
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-db-credentials
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-db-credentials
+                  key: password
+            
+            # Keycloak client credentials
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: payment-gateway-service-client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: payment-gateway-service-client-secret
+            
+            # OpenTelemetry
+            - name: OTEL_SERVICE_NAME
+              value: "payment-gateway-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.tracing.svc.cluster.local:4317"
+            
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10

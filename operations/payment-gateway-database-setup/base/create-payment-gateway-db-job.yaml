@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-payment-gateway-db
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/sync-wave: "-15"
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: create-db
+        image: postgres:15-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Check if database exists
+          if psql -h $DB_HOST -U $DB_USER -d postgres -tc \
+            "SELECT 1 FROM pg_database WHERE datname = 'payment_gateway'" | grep -q 1; then
+            echo "Database payment_gateway already exists"
+          else
+            echo "Creating database payment_gateway..."
+            psql -h $DB_HOST -U $DB_USER -d postgres -c "CREATE DATABASE payment_gateway"
+          fi
+
+          # Create user if not exists
+          psql -h $DB_HOST -U $DB_USER -d postgres -c \
+            "DO \$\$ BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'payment_gateway') THEN
+                CREATE USER payment_gateway WITH PASSWORD '$PG_PASSWORD';
+              END IF;
+            END \$\$;"
+
+          # Grant privileges
+          psql -h $DB_HOST -U $DB_USER -d payment_gateway -c \
+            "GRANT ALL PRIVILEGES ON DATABASE payment_gateway TO payment_gateway;
+             GRANT ALL ON SCHEMA public TO payment_gateway;
+             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO payment_gateway;
+             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO payment_gateway;"
+
+          echo "Database setup complete"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: password
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: host
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: fineract-db-credentials
+              key: username
+        - name: PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: payment-gateway-db-credentials
+              key: password
