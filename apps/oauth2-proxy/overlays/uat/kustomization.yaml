@@ -11,11 +11,16 @@ commonLabels:
   infrastructure: aws
   provider: aws-managed
 
-# No configMapGenerator needed - URLs are built dynamically from ingress-config
-# Domain values are centralized in apps/ingress/overlays/uat/kustomization.yaml:
-#   - apps-hostname=apps.uat.fineract.com
-#   - auth-hostname=auth.uat.fineract.com
-# OAuth2 Proxy init container reads these and builds full URLs at runtime
+# Static configuration (realm name)
+# Use 'replace' behavior to override the base ConfigMap generator
+configMapGenerator:
+  - name: oauth2-proxy-config-static
+    behavior: replace
+    literals:
+      - REALM_NAME=fineract
+
+# Domain values are centralized in apps/ingress/overlays/uat/kustomization.yaml
+# and will be updated automatically by scripts/auto-update-lb-dns.sh
 
 # Patch deployment to build URLs dynamically from ingress-config domains
 patches:
@@ -52,10 +57,14 @@ patches:
 
                   # Build full URLs from domain components
                   # Use internal Kubernetes service URL for OIDC discovery (no dependency on ingress/DNS)
+                  # Keycloak 17+ serves from root path (no /auth prefix)
                   export OIDC_ISSUER_URL="http://keycloak-service:8080/realms/${REALM_NAME}"
                   export REDIRECT_URL="https://${APPS_DOMAIN}/oauth2/callback"
                   export WHITELIST_DOMAINS="${APPS_DOMAIN}"
                   export COOKIE_DOMAINS="${APPS_DOMAIN}"
+                  # External Keycloak URL for browser redirects (logout)
+                  # Uses AUTH_DOMAIN because browsers need to access Keycloak directly
+                  export KEYCLOAK_LOGOUT_URL="https://${AUTH_DOMAIN}/realms/${REALM_NAME}"
 
                   echo "Domain configuration:"
                   echo "  APPS_DOMAIN: ${APPS_DOMAIN}"
@@ -64,6 +73,7 @@ patches:
                   echo ""
                   echo "Generated URLs:"
                   echo "  OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+                  echo "  KEYCLOAK_LOGOUT_URL: ${KEYCLOAK_LOGOUT_URL}"
                   echo "  REDIRECT_URL: ${REDIRECT_URL}"
                   echo "  WHITELIST_DOMAINS: ${WHITELIST_DOMAINS}"
                   echo "  COOKIE_DOMAINS: ${COOKIE_DOMAINS}"

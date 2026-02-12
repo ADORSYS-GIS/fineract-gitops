@@ -11,7 +11,7 @@ spec:
   project: fineract-dev
 
   source:
-    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
     targetRevision: deploy-key  # Auto-sync from eks branch
     path: operations/fineract-database-init/base
 
@@ -25,6 +25,7 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # - ApplyOutOfSyncOnly=true
     retry:
       limit: 5
       backoff:

@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Stakater Reloader - automatically restarts pods when ConfigMaps/Secrets change
+# https://github.com/stakater/Reloader
+
+namespace: kube-system
+
+resources:
+  - https://raw.githubusercontent.com/stakater/Reloader/v1.0.72/deployments/kubernetes/reloader.yaml
+
+commonLabels:
+  app.kubernetes.io/name: reloader
+  app.kubernetes.io/component: config-reloader
+  managed-by: argocd

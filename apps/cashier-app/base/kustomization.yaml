@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - nginx-configmap.yaml
+
+commonLabels:
+  app.kubernetes.io/name: cashier-app
+  app.kubernetes.io/component: frontend
+  app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: ghcr.io/adorsys-gis/fineract-apps/cashier-app
+    newTag: dc9ade2

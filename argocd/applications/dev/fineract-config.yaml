@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fineract-dev-fineract-config
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"  # After Fineract deployment (Wave 3)
+spec:
+  project: fineract-dev
+
+  source:
+    repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: deploy-key  # Auto-sync from deploy-key branch
+    path: operations/fineract-config/overlays/dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fineract-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true  # Auto-sync when config files change
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: Component
+      value: Fineract Config CLI
+    - name: Environment
+      value: Development
+    - name: Purpose
+      value: Declarative Fineract configuration management
+    - name: Auto-Deploy
+      value: "true"
+    - name: Pattern
+      value: Configuration as Code (GitOps)
+    - name: Similar To
+      value: keycloak-config-cli

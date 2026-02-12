@@ -114,7 +114,12 @@ SES_SMTP_PASS=$(echo "$TF_STATE_JSON" | jq -r '.values.root_module.child_modules
 # Get non-sensitive Terraform outputs (these are safe to expose)
 RDS_HOST=$(terraform output -raw rds_instance_endpoint 2>/dev/null | cut -d: -f1 || echo "")
 RDS_PORT=$(terraform output -raw rds_instance_endpoint 2>/dev/null | cut -d: -f2 || echo "5432")
-RDS_DATABASE=$(terraform output -raw rds_database_name 2>/dev/null || echo "fineract")
+RDS_DATABASE=$(terraform output -raw rds_database_name 2>/dev/null || true)
+# Default to fineract_tenants if empty (RDS created without default database, apps create their own)
+# Use explicit check since terraform may return empty string
+if [ -z "$RDS_DATABASE" ] || [ "$RDS_DATABASE" = "null" ]; then
+    RDS_DATABASE="fineract_tenants"
+fi
 RDS_USERNAME=$(terraform output -json rds_master_username 2>/dev/null | jq -r '.' || echo "fineract")
 # Fineract uses fineract_tenants as the tenant-store database (not the raw RDS database name)
 RDS_JDBC_URL="jdbc:postgresql://${RDS_HOST}:${RDS_PORT}/fineract_tenants"
@@ -280,15 +285,17 @@ echo -e "${YELLOW}  Used by: oauth2-proxy, data loader jobs, keycloak realm conf
 OAUTH2_CLIENT_ID="fineract-oauth2-proxy"
 # OAUTH2_CLIENT_SECRET and OAUTH2_COOKIE_SECRET already fetched from Terraform above (before cd ..)
 
-# Generate random secrets for service account clients (admin-cli and fineract-api)
+# Generate random secrets for service account clients (admin-cli, fineract-api, user-sync-service)
 # These are used by backend services for machine-to-machine authentication
 ADMIN_CLI_SECRET=$(openssl rand -base64 32)
 FINERACT_API_SECRET=$(openssl rand -base64 32)
+USER_SYNC_SERVICE_SECRET=$(openssl rand -base64 32)
 
 # Create consolidated keycloak-client-secrets with:
 # - Both client-id AND client-secret for all OAuth clients
 # - Renamed keys with -client-id and -client-secret suffixes for clarity
 # - Added oauth2-proxy-cookie-secret for completeness (also in oauth2-proxy-secrets for backward compatibility)
+# - Added fineract-data-loader keys for config loader job
 create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "oauth2-proxy-client-id=${OAUTH2_CLIENT_ID}" \
     "oauth2-proxy-client-secret=${OAUTH2_CLIENT_SECRET}" \
@@ -296,7 +303,11 @@ create_sealed_secret "keycloak-client-secrets" "${NAMESPACE}" \
     "admin-cli-client-id=admin-cli" \
     "admin-cli-client-secret=${ADMIN_CLI_SECRET}" \
     "fineract-api-client-id=fineract-api" \
-    "fineract-api-client-secret=${FINERACT_API_SECRET}"
+    "fineract-api-client-secret=${FINERACT_API_SECRET}" \
+    "fineract-data-loader-client-id=fineract-api" \
+    "fineract-data-loader-client-secret=${FINERACT_API_SECRET}" \
+    "user-sync-service-client-id=user-sync-service" \
+    "user-sync-service-client-secret=${USER_SYNC_SERVICE_SECRET}"
 
 echo
 

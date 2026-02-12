@@ -1,0 +1,88 @@
+---
+# Self-Service App Public Ingress (NO OAuth2-Proxy)
+# This ingress serves the customer-facing self-service React app
+# Authentication is handled directly by the React app using OIDC with PKCE
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: self-service-public
+  labels:
+    app: self-service-app
+    component: ingress
+    purpose: self-service-public
+  annotations:
+    # ==========================================================================
+    # NO OAuth2-Proxy Authentication
+    # The React app handles OIDC directly with Keycloak using PKCE flow
+    # ==========================================================================
+
+    # ==========================================================================
+    # CORS Configuration (allow Keycloak for OIDC)
+    # ==========================================================================
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "cors-allow-origin-url"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "3600"
+
+    # ==========================================================================
+    # SSL/TLS Configuration
+    # ==========================================================================
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+    # ==========================================================================
+    # URL Rewriting - Strip /self-service prefix
+    # ==========================================================================
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+
+    # ==========================================================================
+    # Rate Limiting (protect against abuse)
+    # ==========================================================================
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    nginx.ingress.kubernetes.io/limit-connections: "25"
+
+    # ==========================================================================
+    # Proxy Configuration
+    # ==========================================================================
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+    # ==========================================================================
+    # Server Snippet - Static assets bypass for performance
+    # ==========================================================================
+    nginx.ingress.kubernetes.io/server-snippet: |
+      # Self-service app static assets - long cache
+      location ~* ^/self-service/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        rewrite ^/self-service/(.*)$ /$1 break;
+        proxy_pass http://self-service-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - apps-hostname
+    secretName: fineract-tls
+  rules:
+  - host: apps-hostname
+    http:
+      paths:
+      # Self-service React app (public - no OAuth2)
+      - path: /self-service(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: self-service-app
+            port:
+              number: 80

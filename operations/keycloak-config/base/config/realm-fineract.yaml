@@ -18,7 +18,7 @@ defaultLocale: en
 registrationAllowed: false  # Users created by admin only
 registrationEmailAsUsername: false
 rememberMe: true
-verifyEmail: true  # Enable email verification for security compliance
+verifyEmail: false  # Disabled - email verification not required for customer login
 loginWithEmailAllowed: true
 duplicateEmailsAllowed: false
 resetPasswordAllowed: true  # Enable password reset for better user experience
@@ -36,10 +36,10 @@ accessCodeLifespanUserAction: 300
 accessCodeLifespanLogin: 1800
 
 # Themes - Using custom Webank theme for professional banking UI
-loginTheme: webank
-accountTheme: webank
+# loginTheme: webank
+# accountTheme: webank
 adminTheme: keycloak
-emailTheme: webank
+# emailTheme: webank
 
 # Security Defenses (Enhanced for Production)
 bruteForceProtected: true
@@ -100,6 +100,15 @@ clients:
     optionalClientScopes:
       - address
       - phone
+
+    # Logout Configuration - Enable RP-initiated logout for global logout
+    # When user logs out from any app, ALL devices/sessions are terminated
+    # Note: backchannel logout attributes must use dot notation inside 'attributes' block
+    attributes:
+      # Multiple URIs separated by ## - include root URL explicitly for logout redirect
+      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/##https://${APPS_HOSTNAME}/*"
+      backchannel.logout.session.required: "true"
+      backchannel.logout.revoke.offline.tokens: "false"
 
     # Protocol Mappers for custom claims
     protocolMappers:
@@ -171,6 +180,17 @@ clients:
           access.token.claim: "true"
           claim.name: "sub"
           jsonType.label: "String"
+
+      - name: realm-roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        consentRequired: false
+        config:
+          claim.name: "realm_access.roles"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+          multivalued: "true"
 
 
 
@@ -298,6 +318,158 @@ clients:
     # Note: Realm roles for service accounts must be assigned after creation
     # via the Keycloak admin console or a separate script
 
+  # 5. User Sync Service (User management service account)
+  - clientId: "${USER_SYNC_SERVICE_CLIENT_ID}"
+    name: User Sync Service
+    description: Service account for user synchronization between Fineract and Keycloak
+    enabled: true
+
+    # Confidential service account
+    publicClient: false
+    clientAuthenticatorType: client-secret
+    secret: "${USER_SYNC_SERVICE_CLIENT_SECRET}"
+    protocol: openid-connect
+
+    # Service account only (client credentials grant)
+    standardFlowEnabled: false
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: true
+
+    defaultClientScopes:
+      - profile
+      - email
+      - roles
+
+  # 6. Self-Service App (Customer-facing portal with WebAuthn passwordless)
+  - clientId: "self-service-app"
+    name: Self-Service Banking Portal
+    description: Customer self-service portal with WebAuthn passwordless authentication
+    enabled: true
+
+    # Public client for SPA (PKCE required)
+    publicClient: true
+    clientAuthenticatorType: client-secret
+    protocol: openid-connect
+
+    # Authorization Code flow with PKCE (standard for SPAs)
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+
+    # URLs - Self-service app endpoints
+    rootUrl: "https://${APPS_HOSTNAME}/self-service"
+    redirectUris:
+      - "https://${APPS_HOSTNAME}/self-service/callback"
+      - "https://${APPS_HOSTNAME}/self-service/*"
+      - "http://localhost:3000/callback"
+      - "http://localhost:3000/*"
+    webOrigins:
+      - "https://${APPS_HOSTNAME}"
+      - "http://localhost:3000"
+
+    # Scopes
+    fullScopeAllowed: false
+    defaultClientScopes:
+      - profile
+      - email
+      - offline_access
+    optionalClientScopes:
+      - address
+      - phone
+
+    # Logout and PKCE Configuration
+    attributes:
+      post.logout.redirect.uris: "https://${APPS_HOSTNAME}/self-service/##https://${APPS_HOSTNAME}/self-service/*##http://localhost:3000/##http://localhost:3000/*"
+      pkce.code.challenge.method: "S256"
+
+    # Bind custom WebAuthn passwordless authentication flow
+    authenticationFlowBindingOverrides:
+      browser: self-service-browser
+
+    # Protocol Mappers for self-service specific claims
+    protocolMappers:
+      # Map Fineract external ID (UUID) to JWT - used for fallback lookup
+      - name: fineract-external-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_external_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_external_id"
+          jsonType.label: "String"
+
+      # Map Fineract client ID (numeric) to JWT - used for fast ownership verification
+      # This is the primary identifier for account ownership checks.
+      # Set by customer-self-service during registration after Fineract client creation.
+      # Falls back to fineract_external_id lookup if missing.
+      - name: fineract-client-id-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "fineract_client_id"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "fineract_client_id"
+          jsonType.label: "long"
+
+      # Map KYC tier to JWT
+      - name: kyc-tier-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "kyc_tier"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "kyc_tier"
+          jsonType.label: "String"
+
+      # Map KYC status to JWT
+      - name: kyc-status-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-attribute-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          user.attribute: "kyc_status"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "kyc_status"
+          jsonType.label: "String"
+
+      # Hardcoded tenant claim
+      - name: tenant-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        consentRequired: false
+        config:
+          userinfo.token.claim: "true"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          claim.name: "tenant"
+          claim.value: "default"
+          jsonType.label: "String"
+
+      # Realm roles mapper
+      - name: realm-roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        consentRequired: false
+        config:
+          claim.name: "realm_access.roles"
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+          multivalued: "true"
+
 # Client Scopes
 clientScopes:
   - name: fineract-api
@@ -326,6 +498,14 @@ roles:
       description: Full administrative access (Super user)
       composite: false
 
+    - name: Admin
+      description: Admin role (capitalized for frontend apps)
+      composite: false
+
+    - name: Super User
+      description: Full administrative access (Fineract native role name)
+      composite: false
+
     - name: staff
       description: Generic staff member with operational access
       composite: false
@@ -339,7 +519,23 @@ roles:
       composite: false
 
     - name: accountant
-      description: Accountant - financial reports, manage accounting
+      description: Accountant - financial reports, manage accounting (lowercase)
+      composite: false
+
+    - name: Accountant
+      description: Accountant role (capitalized for frontend apps)
+      composite: false
+
+    - name: Supervisor Accountant
+      description: Supervisor Accountant - can approve journal entries
+      composite: false
+
+    - name: Manager
+      description: Manager role - can create and view entries but cannot approve
+      composite: false
+
+    - name: Viewer
+      description: Viewer role - read-only access to accounting features
       composite: false
 
     - name: branch-manager
@@ -378,6 +574,24 @@ roles:
       description: Read-only access - view only, no modifications
       composite: false
 
+    # Asset Management Roles
+    - name: asset-manager
+      description: Asset manager - create and manage digital assets, pricing, trading
+      composite: false
+
+    # Self-Service Customer Roles
+    - name: self-service-customer
+      description: Self-service banking customer - limited to own accounts
+      composite: false
+
+    - name: self-service-deposit
+      description: Can perform deposits to own accounts via self-service
+      composite: false
+
+    - name: self-service-withdrawal
+      description: Can perform withdrawals from own accounts via self-service
+      composite: false
+
 # Groups (mapped to offices/departments)
 groups:
   - name: head-office
@@ -411,13 +625,80 @@ groups:
     realmRoles:
       - client
 
+  # Self-Service Customers Group
+  # Customers who register via the self-service portal
+  - name: self-service-customers
+    path: /self-service-customers
+    realmRoles:
+      - self-service-customer
+      - self-service-deposit
+      - self-service-withdrawal
+    attributes:
+      registration_allowed: ["true"]
+      kyc_tier_default: ["1"]
+
 # Identity Providers (optional - configure if using external IdP)
 identityProviders: []
 
-# Authentication Flows - Removed (using Keycloak defaults)
-# Built-in flows are automatically created by Keycloak and don't need to be defined
-# in the configuration. Attempting to define them causes NullPointerException
-# in keycloak-config-cli when authenticationExecutions is null.
+# Authentication Flows
+# Custom authentication flows for different user types
+authenticationFlows:
+  # Self-Service Browser Flow - WebAuthn Passwordless for customers
+  # This flow is bound to the self-service-app client and provides
+  # passwordless authentication using WebAuthn (biometrics/security keys)
+  - alias: self-service-browser
+    description: Passwordless browser flow for self-service customers using WebAuthn
+    providerId: basic-flow
+    topLevel: true
+    builtIn: false
+    authenticationExecutions:
+      # Check for existing session cookie first
+      - authenticator: auth-cookie
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      # Username + WebAuthn sub-flow (if no cookie)
+      - flowAlias: self-service-passwordless-forms
+        authenticatorFlow: true
+        requirement: ALTERNATIVE
+        priority: 20
+
+  # Sub-flow for username + 2FA (WebAuthn or OTP)
+  - alias: self-service-passwordless-forms
+    description: Username form followed by 2FA authentication (WebAuthn or OTP)
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      # Username input (no password field)
+      - authenticator: auth-username-form
+        authenticatorFlow: false
+        requirement: REQUIRED
+        priority: 10
+      # 2FA options sub-flow (WebAuthn OR OTP)
+      - flowAlias: self-service-2fa-options
+        authenticatorFlow: true
+        requirement: REQUIRED
+        priority: 20
+
+  # Sub-flow for 2FA options - WebAuthn (primary) or OTP (fallback)
+  # This provides account recovery for customers who lose their WebAuthn device
+  - alias: self-service-2fa-options
+    description: WebAuthn or OTP authentication for self-service customers
+    providerId: basic-flow
+    topLevel: false
+    builtIn: false
+    authenticationExecutions:
+      # WebAuthn passwordless (primary authentication method)
+      - authenticator: webauthn-authenticator-passwordless
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+      # OTP fallback (for device recovery)
+      - authenticator: auth-otp-form
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 20
 
 # Required Actions (Configured for First Login Flow)
 requiredActions:
@@ -441,6 +722,14 @@ requiredActions:
     enabled: true
     defaultAction: false  # Optional - users can skip registration
     priority: 30
+
+  # WebAuthn Passwordless Registration - Required for self-service customers
+  - alias: webauthn-register-passwordless
+    name: Webauthn Register Passwordless
+    providerId: webauthn-register-passwordless
+    enabled: true
+    defaultAction: false  # Set by registration service for new customers
+    priority: 35
 
   - alias: CONFIGURE_TOTP
     name: Configure OTP
@@ -512,13 +801,13 @@ attributes:
   # IMPORTANT: This value is critical for JWT token validation
   # - Fineract validates the 'iss' claim in JWT tokens against this URL
   # - If there's a mismatch, authentication will fail with 302 redirects
-  # - The value MUST include the /auth path to match KC_HTTP_RELATIVE_PATH
+  # - Keycloak 17+ serves from root path (no /auth prefix)
   #
   # Environment-specific values (from overlays/*/kustomization.yaml):
   # - dev: Uses AUTH_HOSTNAME from environment (LoadBalancer DNS)
   # - uat: auth.uat.fineract.com
   # - production: auth.fineract.com
-  frontendUrl: "https://${AUTH_HOSTNAME}/auth"
+  frontendUrl: "https://${AUTH_HOSTNAME}"
 
   acr.loa.map: '{"copper": 0, "silver": 1, "gold": 2}'
 
@@ -554,10 +843,29 @@ attributes:
   webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister: false
   webAuthnPolicyPasswordlessAcceptableAaguids: '[]'
 
-# Default Users for Development
-# NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
-# Passwords are substituted from keycloak-default-users secret at runtime
+# Service Account Users - Role Assignments
+# These service accounts are automatically created by Keycloak when clients have
+# serviceAccountsEnabled: true. We define them here to assign realm-management roles.
 users:
+  # User Sync Service Account
+  # Requires manage-users permission to sync users between Fineract and Keycloak
+  - username: service-account-${USER_SYNC_SERVICE_CLIENT_ID}
+    enabled: true
+    serviceAccountClientId: "${USER_SYNC_SERVICE_CLIENT_ID}"
+    clientRoles:
+      realm-management:
+        - manage-users
+        - view-users
+        - query-users
+        - view-realm  # Required for admin.get_realm() health check
+    attributes:
+      description: ["Service account for user-sync-service - manages user synchronization"]
+      managed_by: ["keycloak-config-cli"]
+
+  # Default Users for Development
+  # NOTE: These are initial users for dev/uat. Production users should be created via UI/API.
+  # Passwords are substituted from keycloak-default-users secret at runtime
+
   # Admin user - Full administrative access
   - username: admin
     enabled: true
@@ -580,7 +888,7 @@ users:
       office_id: ["1"]
       department: ["IT"]
 
-  # Mifos user - Standard staff user with loan officer permissions
+  # Mifos user - Admin user with full access to all frontend apps
   - username: mifos
     enabled: true
     emailVerified: true
@@ -593,11 +901,38 @@ users:
         value: "${MIFOS_PASSWORD}"
         temporary: false
     realmRoles:
-      - loan-officer
-      - staff
+      - Admin
+      - Super User
+      - Accountant
+      - asset-manager
     groups:
-      - /loan-officers
+      - /head-office
     attributes:
       employee_id: ["EMP002"]
       office_id: ["1"]
       department: ["Lending"]
+
+#   # ============================================================================
+#   # Service Account Users - Role Assignments
+#   # ============================================================================
+#   # Service accounts are automatically created by Keycloak when a client has
+#   # serviceAccountsEnabled: true. We define them here to assign realm roles
+#   # via keycloak-config-cli, making role assignment GitOps-native and idempotent.
+#   #
+#   # Naming Convention: service-account-{client-id}
+#   # ============================================================================
+
+#   # Fineract Data Loader Service Account
+#   # Used by: fineract-config-cli for automated data loading operations
+#   # Requires: admin and Super User roles for full CRUD access to Fineract entities
+#   - username: service-account-${FINERACT_DATA_LOADER_CLIENT_ID}
+#     enabled: true
+#     serviceAccountClientId: "${FINERACT_DATA_LOADER_CLIENT_ID}"
+#     realmRoles:
+#       - admin
+#       - Super User
+#       - staff
+#     attributes:
+#       description: ["Service account for fineract-config-cli automated data loading"]
+#       managed_by: ["keycloak-config-cli"]
+#       purpose: ["Automated Fineract configuration and data loading via fineract-config-cli"]

@@ -11,8 +11,8 @@ spec:
   project: default
 
   source:
-    repoURL: "https://github.com/guymoyo/fineract-gitops.git"
-    targetRevision: main
+    repoURL: "git@github.com:ADORSYS-GIS/fineract-gitops.git"
+    targetRevision: deploy-key
     path: argocd/applications/cluster-scoped
     directory:
       recurse: false

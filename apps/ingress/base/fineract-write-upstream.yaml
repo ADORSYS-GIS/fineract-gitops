@@ -1,0 +1,46 @@
+---
+# Fineract Write Service Upstream Registration
+# This ingress registers the fineract-write-service upstream so that
+# $proxy_upstream_name override in fineract-oauth2-protected.yaml can route to it.
+#
+# The path is intentionally set to a non-existent endpoint to prevent any
+# direct traffic from matching this ingress.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-write-upstream-registration
+  labels:
+    app: fineract
+    component: ingress
+    purpose: upstream-registration
+  annotations:
+    # Backend protocol must match the main ingress
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # SSL/TLS Configuration (minimal, for upstream registration only)
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
+
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration (must match main ingress)
+  tls:
+  - hosts:
+    - apps-hostname
+    secretName: fineract-tls
+
+  rules:
+  - host: apps-hostname
+    http:
+      paths:
+      # Path that will never match real requests
+      # This ingress only exists to register the upstream
+      - path: /.internal/fineract-write-upstream-registration
+        pathType: Exact
+        backend:
+          service:
+            name: fineract-write-service
+            port:
+              number: 8443

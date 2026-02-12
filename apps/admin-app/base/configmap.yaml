@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-app-config
+  labels:
+    app: admin-app
+    component: frontend
+data:
+  # Fineract API Configuration
+  fineractApiUrl: ""
+  fineractApiProvider: "/fineract-provider/api/v1"
+  fineractApiVersion: ""
+
+  # Tenant Configuration
+  fineractPlatformTenantId: "default"
+
+  # OAuth2-Proxy Configuration
+  oauth2ProxyLogoutUrl: "/oauth2/sign_out"
+
+  # Application Configuration
+  defaultLanguage: "en-US"
+  sessionIdleTimeout: "0"
+
+  # User Sync Service URL
+  USER_SYNC_API_URL: "/api/user-sync"

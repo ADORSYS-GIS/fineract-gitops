@@ -14,6 +14,7 @@ This document contains detailed architecture diagrams for the Fineract GitOps pl
 6. [GitOps Workflow](#gitops-workflow)
 7. [Network Architecture](#network-architecture)
 8. [Data Flow](#data-flow)
+9. [Self-Service Data Flow](#self-service-data-flow)
 
 ---
 
@@ -56,6 +57,21 @@ Complete system architecture showing all components:
   └────────┘      └─────────┘          └─────────────┘
    Self-Hosted or Cloud-Managed         Self-Hosted or
    (RDS, Azure DB, Cloud SQL)           Cloud-Managed
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Self-Service Layer                              │
+├─────────────────┬────────────────────┬──────────────────────────────┤
+│  Self-Service   │ Customer           │  Payment Gateway             │
+│  App (PWA)      │ Registration Svc   │  Service                     │
+└─────────────────┴────────────────────┴──────────────────────────────┘
+                          │                      │
+                          ▼                      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    External Payment Providers                        │
+├──────────────────────────────┬──────────────────────────────────────┤
+│         MTN MoMo API         │        Orange Money API              │
+│   (Collection/Disbursement)  │        (Web Payments)                │
+└──────────────────────────────┴──────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      Supporting Services                            │
@@ -461,6 +477,131 @@ User Request → Response Journey:
    │   Browser    │ Shows success message
    └──────────────┘
 ```
+
+---
+
+## Self-Service Data Flow
+
+How customer self-service requests flow through the system:
+
+### Customer Registration Flow
+
+```
+1. Customer Registration
+   ┌────────────────┐
+   │ Self-Service   │ POST /register
+   │    App         │
+   └───────┬────────┘
+           │
+           ▼
+2. Registration Service
+   ┌────────────────────┐
+   │ Customer           │ Create Fineract Client
+   │ Registration Svc   │ Create Savings Account
+   └───────┬────────────┘
+           │
+           ├───────────────────┐
+           ▼                   ▼
+3. Backend Systems
+   ┌───────────┐       ┌───────────┐
+   │ Fineract  │       │ Keycloak  │
+   │  Write    │       │ (Create   │
+   └───────────┘       │   User)   │
+                       └───────────┘
+```
+
+### Mobile Money Deposit Flow
+
+```
+1. Deposit Request
+   ┌────────────────┐
+   │ Self-Service   │ POST /deposits/mtn
+   │    App         │
+   └───────┬────────┘
+           │
+           ▼
+2. Payment Gateway
+   ┌────────────────┐
+   │ Payment        │ Initiates collection
+   │ Gateway Svc    │
+   └───────┬────────┘
+           │
+           ▼
+3. MTN MoMo API
+   ┌────────────────┐
+   │  MTN MoMo      │ Request to Pay
+   │    API         │ Customer approves
+   └───────┬────────┘
+           │ Callback
+           ▼
+4. Create Transaction
+   ┌────────────────┐       ┌───────────┐
+   │ Payment        │──────▶│ Fineract  │
+   │ Gateway Svc    │       │  Write    │
+   └────────────────┘       └───────────┘
+```
+
+### View Transactions Flow (Direct to Fineract)
+
+```
+1. View Request
+   ┌────────────────┐
+   │ Self-Service   │ GET /savingsaccounts/{id}/transactions
+   │    App         │
+   └───────┬────────┘
+           │
+           ▼
+2. Direct API Call
+   ┌────────────────┐
+   │  Fineract      │ Read-only query
+   │   Read         │
+   └───────┬────────┘
+           │
+           ▼
+3. Response
+   ┌────────────────┐
+   │ Self-Service   │ Display transactions
+   │    App         │
+   └────────────────┘
+```
+
+### KYC Document Upload Flow
+
+```
+1. Upload Request
+   ┌────────────────┐
+   │ Self-Service   │ POST /kyc/documents
+   │    App         │ (id_front, id_back, selfie)
+   └───────┬────────┘
+           │
+           ▼
+2. Registration Service
+   ┌────────────────────┐
+   │ Customer           │ Validate & process
+   │ Registration Svc   │
+   └───────┬────────────┘
+           │
+           ├───────────────────┐
+           ▼                   ▼
+3. Backend Systems
+   ┌───────────────┐   ┌───────────────┐
+   │   Fineract    │   │   Keycloak    │
+   │   (Document   │   │  (Update KYC  │
+   │    Upload)    │   │    Status)    │
+   └───────────────┘   └───────────────┘
+```
+
+**API Routing Summary:**
+
+| Operation | Route | Reason |
+|-----------|-------|--------|
+| Login/Auth | Self-Service → Keycloak | OIDC authentication |
+| View account | Self-Service → Fineract (direct) | Read-only, no business logic needed |
+| View transactions | Self-Service → Fineract (direct) | Read-only, no business logic needed |
+| Registration | Self-Service → CRS → Fineract/KC | Creates accounts in multiple systems |
+| KYC upload | Self-Service → CRS → Fineract | Needs validation, status tracking |
+| Deposits | Self-Service → PGS → MTN/Orange → Fineract | Payment provider integration |
+| Withdrawals | Self-Service → PGS → MTN/Orange → Fineract | Payment provider integration |
 
 ---
 

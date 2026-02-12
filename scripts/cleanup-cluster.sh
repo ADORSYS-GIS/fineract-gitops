@@ -1,8 +1,76 @@
 #!/bin/bash
 # Cleanup Cluster - Force remove stuck namespaces and resources
 # This script handles stuck namespaces in "Terminating" state by removing finalizers
+#
+# Usage: ./cleanup-cluster.sh [--env dev|uat|prod] [--force] [--stuck-only]
 
 set -e
+set -o pipefail
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Default environment
+ENV="${ENV:-dev}"
+FORCE_MODE=false
+STUCK_ONLY=false
+SKIP_DB_CLEANUP=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --env|-e)
+            ENV="$2"
+            shift 2
+            ;;
+        --force|-f)
+            FORCE_MODE=true
+            shift
+            ;;
+        --stuck-only)
+            STUCK_ONLY=true
+            FORCE_MODE=true  # stuck-only implies force mode
+            shift
+            ;;
+        --skip-db)
+            SKIP_DB_CLEANUP=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--env dev|uat|prod] [--force] [--stuck-only]"
+            echo ""
+            echo "Options:"
+            echo "  --env, -e      Environment to clean (dev, uat, prod). Default: dev"
+            echo "  --force, -f    Non-interactive mode (skip all confirmations)"
+            echo "  --stuck-only   Only clean stuck (Terminating) namespaces, then exit"
+            echo "  --skip-db      Skip database cleanup prompt"
+            echo "  --help, -h     Show this help message"
+            exit 0
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Validate and set namespace based on environment
+case "$ENV" in
+    dev)
+        FINERACT_NAMESPACE="fineract-dev"
+        ;;
+    uat)
+        FINERACT_NAMESPACE="fineract-uat"
+        ;;
+    prod|production)
+        FINERACT_NAMESPACE="fineract-production"
+        ENV="prod"
+        ;;
+    *)
+        echo "Invalid environment: $ENV"
+        echo "Valid values: dev, uat, prod"
+        exit 1
+        ;;
+esac
 
 # Colors
 RED='\033[0;31m'
@@ -13,6 +81,7 @@ NC='\033[0m'
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE} Fineract GitOps - Cluster Cleanup${NC}"
+echo -e "${BLUE} Environment: ${ENV}${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
@@ -265,7 +334,34 @@ clean_namespace_resources() {
         if kubectl api-resources --verbs=list -o name 2>/dev/null | grep -q "^${resource}$"; then
             local count=$(kubectl get $resource -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
             if [ "$count" -gt 0 ]; then
-                echo -e "${BLUE}    Removing finalizers from $resource...${NC}"
+                echo -e "${BLUE}    Removing finalizers from $resource ($count found)...${NC}"
+
+                # Special handling for ArgoCD resources (AppProjects, Applications, ApplicationSets)
+                if [[ "$resource" == "appprojects.argoproj.io" ]] || [[ "$resource" == "applications.argoproj.io" ]] || [[ "$resource" == "applicationsets.argoproj.io" ]]; then
+                    echo -e "${BLUE}      ArgoCD resource cleanup for $resource...${NC}"
+
+                    # Get each resource and remove finalizers individually
+                    kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
+                        echo -e "${YELLOW}        Cleaning: $obj${NC}"
+                        # Remove finalizers
+                        kubectl patch "$obj" -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                        kubectl patch "$obj" -n $ns --type json -p='[{"op": "remove", "path": "/metadata/finalizers"}]' 2>/dev/null || true
+                        # Force delete
+                        kubectl delete "$obj" -n $ns --force --grace-period=0 2>/dev/null || true
+                    done
+
+                    # Also try bulk delete
+                    kubectl delete $resource --all -n $ns --force --grace-period=0 2>/dev/null || true
+
+                    sleep 2
+                    local remaining=$(kubectl get $resource -n $ns --no-headers 2>/dev/null | wc -l || echo "0")
+                    if [ "$remaining" -gt 0 ]; then
+                        echo -e "${YELLOW}      Warning: $remaining $resource still remain${NC}"
+                    else
+                        echo -e "${GREEN}      ✓ All $resource deleted${NC}"
+                    fi
+                    continue
+                fi
 
                 # Enhanced job cleanup with proper pod deletion and finalizer handling
                 if [[ "$resource" == "jobs" ]]; then
@@ -542,10 +638,11 @@ force_delete_namespace() {
     fi
 }
 
-# Function to delete all ArgoCD Applications (removes finalizers)
+# Function to delete all ArgoCD Applications and AppProjects (removes finalizers)
 delete_argocd_applications() {
-    echo -e "${BLUE}→ Checking for ArgoCD Applications...${NC}"
+    echo -e "${BLUE}→ Checking for ArgoCD resources...${NC}"
 
+    # Delete Applications
     local app_count=$(kubectl get applications -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
 
     if [ "$app_count" -gt 0 ]; then
@@ -558,11 +655,45 @@ delete_argocd_applications() {
         done
 
         # Delete all applications
-        kubectl delete applications --all -n argocd --timeout=30s 2>/dev/null || true
+        kubectl delete applications --all -n argocd --force --grace-period=0 2>/dev/null || true
 
         echo -e "${GREEN}  ✓${NC} ArgoCD Applications removed"
     else
         echo -e "${GREEN}  ✓${NC} No ArgoCD Applications found"
+    fi
+
+    # Delete ApplicationSets
+    local appset_count=$(kubectl get applicationsets -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$appset_count" -gt 0 ]; then
+        echo -e "${YELLOW}  Found $appset_count ArgoCD ApplicationSet(s)${NC}"
+
+        kubectl get applicationsets -n argocd -o name 2>/dev/null | while read appset; do
+            kubectl patch $appset -n argocd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        done
+
+        kubectl delete applicationsets --all -n argocd --force --grace-period=0 2>/dev/null || true
+        echo -e "${GREEN}  ✓${NC} ArgoCD ApplicationSets removed"
+    fi
+
+    # Delete AppProjects (IMPORTANT - these can block namespace deletion)
+    local project_count=$(kubectl get appprojects -n argocd --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$project_count" -gt 0 ]; then
+        echo -e "${YELLOW}  Found $project_count ArgoCD AppProject(s)${NC}"
+        echo -e "${YELLOW}  → Removing finalizers and deleting...${NC}"
+
+        # Remove finalizers from all appprojects
+        kubectl get appprojects -n argocd -o name 2>/dev/null | while read proj; do
+            kubectl patch $proj -n argocd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        done
+
+        # Delete all appprojects (except 'default' which is protected)
+        kubectl delete appprojects --all -n argocd --force --grace-period=0 2>/dev/null || true
+
+        echo -e "${GREEN}  ✓${NC} ArgoCD AppProjects removed"
+    else
+        echo -e "${GREEN}  ✓${NC} No ArgoCD AppProjects found"
     fi
 }
 
@@ -660,12 +791,119 @@ cleanup_sealed_secrets() {
     echo -e "${GREEN}  ✓${NC} Sealed Secrets cleanup complete"
 }
 
+# Function to cleanup Reloader from kube-system
+cleanup_reloader() {
+    echo -e "${BLUE}→ Checking for Reloader in kube-system...${NC}"
+
+    local found=false
+
+    # Check by label
+    if kubectl get deployment -n kube-system -l app.kubernetes.io/name=reloader --no-headers 2>/dev/null | grep -q .; then
+        found=true
+    fi
+
+    # Also check by name pattern
+    if kubectl get deployment -n kube-system reloader-reloader --no-headers 2>/dev/null | grep -q .; then
+        found=true
+    fi
+
+    if [ "$found" = true ]; then
+        echo -e "${YELLOW}  Found Reloader deployment${NC}"
+        echo -e "${YELLOW}  → Deleting Reloader resources...${NC}"
+
+        # Delete by label
+        kubectl delete deployment -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+        kubectl delete serviceaccount -n kube-system -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete by name (fallback)
+        kubectl delete deployment -n kube-system reloader-reloader --force --grace-period=0 2>/dev/null || true
+        kubectl delete serviceaccount -n kube-system reloader-reloader --force --grace-period=0 2>/dev/null || true
+
+        # Delete ClusterRole and ClusterRoleBinding
+        kubectl delete clusterrole reloader-reloader-role --force --grace-period=0 2>/dev/null || true
+        kubectl delete clusterrolebinding reloader-reloader-role-binding --force --grace-period=0 2>/dev/null || true
+
+        echo -e "${GREEN}  ✓${NC} Reloader deleted"
+    else
+        echo -e "${GREEN}  ✓${NC} No Reloader found"
+    fi
+}
+
+# Function to cleanup cluster-scoped resources
+cleanup_cluster_scoped_resources() {
+    echo -e "${BLUE}→ Cleaning up cluster-scoped resources...${NC}"
+
+    # ClusterRoles - delete by name pattern (grep for our components)
+    echo -e "${BLUE}  → Deleting ClusterRoles...${NC}"
+
+    # Delete all ArgoCD cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'argocd' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete all cert-manager cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'cert-manager' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete all ingress-nginx cluster roles
+    kubectl get clusterroles -o name 2>/dev/null | grep -E 'ingress-nginx' | while read role; do
+        kubectl delete "$role" --force --grace-period=0 2>/dev/null || true
+    done
+
+    # Delete reloader cluster role
+    kubectl delete clusterrole reloader-reloader-role --force --grace-period=0 2>/dev/null || true
+
+    # Also delete by label (in case name doesn't match)
+    kubectl delete clusterroles -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterroles -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+    # ClusterRoleBindings - delete by name pattern
+    echo -e "${BLUE}  → Deleting ClusterRoleBindings...${NC}"
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'argocd' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'cert-manager' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl get clusterrolebindings -o name 2>/dev/null | grep -E 'ingress-nginx' | while read binding; do
+        kubectl delete "$binding" --force --grace-period=0 2>/dev/null || true
+    done
+
+    kubectl delete clusterrolebinding reloader-reloader-role-binding --force --grace-period=0 2>/dev/null || true
+
+    # Also delete by label
+    kubectl delete clusterrolebindings -l app.kubernetes.io/part-of=argocd --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/name=ingress-nginx --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/instance=cert-manager --force --grace-period=0 2>/dev/null || true
+    kubectl delete clusterrolebindings -l app.kubernetes.io/name=reloader --force --grace-period=0 2>/dev/null || true
+
+    # IngressClass
+    echo -e "${BLUE}  → Deleting IngressClass...${NC}"
+    kubectl delete ingressclass nginx --force --grace-period=0 2>/dev/null || true
+
+    # PersistentVolumes (all - since we're doing a full cleanup)
+    echo -e "${BLUE}  → Deleting PersistentVolumes...${NC}"
+    kubectl get pv -o name 2>/dev/null | while read pv; do
+        echo "    Deleting $pv..."
+        kubectl patch "$pv" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+        kubectl delete "$pv" --force --grace-period=0 2>/dev/null || true
+    done
+
+    echo -e "${GREEN}  ✓${NC} Cluster-scoped resources cleaned"
+}
+
 # Function to cleanup RDS databases (drop and recreate)
 cleanup_rds_databases() {
     echo -e "${BLUE}→ Cleaning up RDS databases...${NC}"
 
     # Check if fineract-db-credentials secret exists (needed for DB access)
-    if ! kubectl get secret -n fineract-dev fineract-db-credentials &>/dev/null; then
+    if ! kubectl get secret -n "$FINERACT_NAMESPACE" fineract-db-credentials &>/dev/null; then
         echo -e "${YELLOW}  ⚠ fineract-db-credentials secret not found${NC}"
         echo -e "${YELLOW}  → Skipping database cleanup (cluster may not be fully deployed)${NC}"
         return 0
@@ -673,16 +911,21 @@ cleanup_rds_databases() {
 
     echo -e "${YELLOW}  This will drop and recreate the following databases:${NC}"
     echo "    - keycloak (Keycloak identity management)"
+    echo "    - fineract_tenants (Fineract tenant store - contains tenant credentials)"
     echo "    - fineract_default (Fineract core banking)"
     echo ""
     echo -e "${YELLOW}  This ensures a clean state for the next deployment.${NC}"
     echo ""
 
-    read -p "  Drop and recreate RDS databases? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}  → Skipping database cleanup${NC}"
-        return 0
+    if [ "$FORCE_MODE" = false ]; then
+        read -p "  Drop and recreate RDS databases? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}  → Skipping database cleanup${NC}"
+            return 0
+        fi
+    else
+        echo -e "${BLUE}  [Force mode] Proceeding with database cleanup...${NC}"
     fi
 
     # Create a temporary job to drop and recreate databases
@@ -693,7 +936,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: cleanup-rds-databases
-  namespace: fineract-dev
+  namespace: $FINERACT_NAMESPACE
   labels:
     app: database-cleanup
 spec:
@@ -707,7 +950,7 @@ spec:
       - name: cleanup-db
         image: postgres:15-alpine
         command:
-        - /bin/bash
+        - /bin/sh
         - -c
         - |
           set -e
@@ -725,19 +968,27 @@ spec:
           echo ""
 
           # Terminate connections to keycloak database
-          echo "1/4: Terminating connections to keycloak database..."
+          echo "1/6: Terminating connections to keycloak database..."
           psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'keycloak' AND pid <> pg_backend_pid();" || true
 
           # Drop keycloak database
-          echo "2/4: Dropping keycloak database..."
+          echo "2/6: Dropping keycloak database..."
           psql -c "DROP DATABASE IF EXISTS keycloak;" || echo "  (database may not exist)"
 
+          # Terminate connections to fineract_tenants database (tenant store with credentials)
+          echo "3/6: Terminating connections to fineract_tenants database..."
+          psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fineract_tenants' AND pid <> pg_backend_pid();" || true
+
+          # Drop fineract_tenants database (contains tenant credentials that must match secrets)
+          echo "4/6: Dropping fineract_tenants database..."
+          psql -c "DROP DATABASE IF EXISTS fineract_tenants;" || echo "  (database may not exist)"
+
           # Terminate connections to fineract_default database
-          echo "3/4: Terminating connections to fineract_default database..."
+          echo "5/6: Terminating connections to fineract_default database..."
           psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fineract_default' AND pid <> pg_backend_pid();" || true
 
           # Drop fineract_default database
-          echo "4/4: Dropping fineract_default database..."
+          echo "6/6: Dropping fineract_default database..."
           psql -c "DROP DATABASE IF EXISTS fineract_default;" || echo "  (database may not exist)"
 
           echo ""
@@ -782,36 +1033,137 @@ EOF
 
         # Wait for job to complete
         echo -e "${BLUE}  → Waiting for database cleanup to complete...${NC}"
-        if kubectl wait --for=condition=complete --timeout=60s job/cleanup-rds-databases -n fineract-dev 2>/dev/null; then
+        if kubectl wait --for=condition=complete --timeout=60s job/cleanup-rds-databases -n "$FINERACT_NAMESPACE" 2>/dev/null; then
             echo -e "${GREEN}  ✓${NC} Databases cleaned successfully"
 
             # Show job logs
             echo -e "${BLUE}  → Cleanup job output:${NC}"
-            kubectl logs job/cleanup-rds-databases -n fineract-dev 2>/dev/null | sed 's/^/    /'
+            kubectl logs job/cleanup-rds-databases -n "$FINERACT_NAMESPACE" 2>/dev/null | sed 's/^/    /'
         else
             echo -e "${YELLOW}  ⚠ Database cleanup job did not complete within 60s${NC}"
             echo -e "${YELLOW}  → Checking job logs...${NC}"
-            kubectl logs job/cleanup-rds-databases -n fineract-dev 2>/dev/null | sed 's/^/    /' || echo "    (no logs available)"
+            kubectl logs job/cleanup-rds-databases -n "$FINERACT_NAMESPACE" 2>/dev/null | sed 's/^/    /' || echo "    (no logs available)"
         fi
 
         # Clean up the job
-        kubectl delete job cleanup-rds-databases -n fineract-dev --force --grace-period=0 2>/dev/null || true
+        kubectl delete job cleanup-rds-databases -n "$FINERACT_NAMESPACE" --force --grace-period=0 2>/dev/null || true
     else
         echo -e "${YELLOW}  ⚠ Failed to create database cleanup job${NC}"
         echo -e "${YELLOW}  → Continuing with namespace cleanup...${NC}"
     fi
 
     echo -e "${GREEN}  ✓${NC} Database cleanup complete"
+
+    # After database cleanup, delete ALL deployments in the namespace
+    # This ensures:
+    # 1. No stale database connections (Keycloak, Fineract services)
+    # 2. No resource exhaustion from old pods
+    # 3. ArgoCD recreates everything in correct order (migrations first)
+    echo -e "${BLUE}  → Deleting all deployments in $FINERACT_NAMESPACE (will restart fresh)...${NC}"
+    kubectl delete deployments --all -n "$FINERACT_NAMESPACE" --ignore-not-found 2>/dev/null || true
+    echo -e "${GREEN}  ✓${NC} All deployments deleted - ArgoCD will recreate them on next sync"
 }
 
 # Main cleanup process
 if [ "$CLUSTER_ACCESSIBLE" = true ]; then
-    echo -e "${YELLOW}This will remove all ArgoCD applications and force-delete stuck namespaces:${NC}"
+
+    # ===========================================================================
+    # STUCK-ONLY MODE: Quick fix for stuck namespaces before deployment
+    # ===========================================================================
+    if [ "$STUCK_ONLY" = true ]; then
+        echo -e "${BLUE}========================================${NC}"
+        echo -e "${BLUE} Quick Fix: Cleaning Stuck Namespaces${NC}"
+        echo -e "${BLUE}========================================${NC}"
+        echo ""
+
+        # Find all stuck namespaces
+        STUCK_NAMESPACES=$(kubectl get namespaces -o json 2>/dev/null | \
+            jq -r '.items[] | select(.status.phase=="Terminating") | .metadata.name' 2>/dev/null || echo "")
+
+        if [ -z "$STUCK_NAMESPACES" ]; then
+            echo -e "${GREEN}✓ No stuck namespaces found${NC}"
+            exit 0
+        fi
+
+        echo -e "${YELLOW}Found stuck namespaces:${NC}"
+        echo "$STUCK_NAMESPACES" | while read ns; do
+            echo "  - $ns"
+        done
+        echo ""
+
+        # Clean each stuck namespace
+        echo "$STUCK_NAMESPACES" | while read ns; do
+            if [ -n "$ns" ]; then
+                echo -e "${YELLOW}→ Fixing stuck namespace: $ns${NC}"
+
+                # Step 1: Remove finalizers from all resources in namespace
+                echo -e "${BLUE}  Removing resource finalizers...${NC}"
+                for resource in applications.argoproj.io appprojects.argoproj.io pods jobs deployments statefulsets services pvc configmaps secrets; do
+                    kubectl get $resource -n $ns -o name 2>/dev/null | while read obj; do
+                        kubectl patch $obj -n $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+                    done
+                done
+
+                # Step 2: Force delete remaining resources
+                echo -e "${BLUE}  Force deleting resources...${NC}"
+                kubectl delete all --all -n $ns --force --grace-period=0 2>/dev/null || true
+
+                # Step 3: Remove namespace finalizers
+                echo -e "${BLUE}  Removing namespace finalizers...${NC}"
+                kubectl patch namespace $ns -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+
+                # Step 4: Use finalize API endpoint
+                echo -e "${BLUE}  Calling finalize API...${NC}"
+                kubectl get namespace $ns -o json 2>/dev/null | \
+                    jq '.spec.finalizers=[]' | \
+                    kubectl replace --raw "/api/v1/namespaces/$ns/finalize" -f - 2>/dev/null || true
+
+                sleep 2
+
+                # Check result
+                if kubectl get namespace $ns &>/dev/null; then
+                    echo -e "${YELLOW}  ⚠ Namespace still exists (may need more time)${NC}"
+                else
+                    echo -e "${GREEN}  ✓ Namespace deleted${NC}"
+                fi
+            fi
+        done
+
+        echo ""
+
+        # Final verification
+        sleep 3
+        REMAINING=$(kubectl get namespaces -o json 2>/dev/null | \
+            jq -r '.items[] | select(.status.phase=="Terminating") | .metadata.name' 2>/dev/null || echo "")
+
+        if [ -z "$REMAINING" ]; then
+            echo -e "${GREEN}========================================${NC}"
+            echo -e "${GREEN}✓ All stuck namespaces cleaned!${NC}"
+            echo -e "${GREEN}========================================${NC}"
+            exit 0
+        else
+            echo -e "${YELLOW}========================================${NC}"
+            echo -e "${YELLOW}⚠ Some namespaces still stuck:${NC}"
+            echo "$REMAINING" | sed 's/^/   - /'
+            echo -e "${YELLOW}========================================${NC}"
+            echo ""
+            echo "Try running again or wait a few seconds."
+            exit 1
+        fi
+    fi
+    # ===========================================================================
+    # END STUCK-ONLY MODE
+    # ===========================================================================
+
+    echo -e "${YELLOW}This will clean up the '${ENV}' environment:${NC}"
+    echo ""
+    echo -e "${YELLOW}Namespaces to be removed:${NC}"
     echo "  - argocd"
-    echo "  - fineract-dev"
+    echo "  - $FINERACT_NAMESPACE"
     echo "  - ingress-nginx"
     echo "  - cert-manager"
     echo "  - monitoring"
+    echo "  - logging"
     echo ""
     echo -e "${YELLOW}It will also remove from kube-system:${NC}"
     echo "  - Sealed Secrets Controller"
@@ -822,17 +1174,25 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     echo "  - fineract_default database (if prompted)"
     echo ""
 
-    read -p "Continue? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Cleanup cancelled${NC}"
-        exit 0
+    if [ "$FORCE_MODE" = false ]; then
+        read -p "Continue? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Cleanup cancelled${NC}"
+            exit 0
+        fi
+    else
+        echo -e "${BLUE}[Force mode] Proceeding with cleanup...${NC}"
     fi
 
     echo ""
 
     # Step 0.5: Cleanup RDS databases (optional, before deleting namespaces)
-    cleanup_rds_databases
+    if [ "$SKIP_DB_CLEANUP" = false ]; then
+        cleanup_rds_databases
+    else
+        echo -e "${BLUE}→ Skipping database cleanup (--skip-db flag)${NC}"
+    fi
     echo ""
 
     # Step 1: Delete ArgoCD Applications first (removes finalizers)
@@ -843,10 +1203,18 @@ if [ "$CLUSTER_ACCESSIBLE" = true ]; then
     cleanup_sealed_secrets
     echo ""
 
+    # Step 1.6: Cleanup Reloader from kube-system
+    cleanup_reloader
+    echo ""
+
+    # Step 1.7: Cleanup cluster-scoped resources
+    cleanup_cluster_scoped_resources
+    echo ""
+
     # Step 1.75: Run pre-cleanup diagnostics for all target namespaces
     echo -e "${BLUE}→ Pre-cleanup diagnostics for target namespaces...${NC}"
     echo ""
-    NAMESPACES=("argocd" "fineract-dev" "ingress-nginx" "cert-manager" "monitoring")
+    NAMESPACES=("argocd" "$FINERACT_NAMESPACE" "ingress-nginx" "cert-manager" "monitoring" "logging")
     for ns in "${NAMESPACES[@]}"; do
         status=$(check_namespace_stuck $ns)
         if [ "$status" != "notfound" ]; then
@@ -985,13 +1353,13 @@ else
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "  1. Clean up AWS infrastructure:"
-    echo "     ${BLUE}make destroy ENV=dev${NC}"
+    echo "     ${BLUE}make destroy ENV=${ENV}${NC}"
     echo ""
     echo "  2. Deploy fresh infrastructure:"
-    echo "     ${BLUE}make deploy-infrastructure-dev${NC}"
-    echo "     ${BLUE}aws eks update-kubeconfig --region us-east-2 --name fineract-dev-eks${NC}"
-    echo "     ${BLUE}make deploy-k8s-with-loadbalancer-dns-dev${NC}"
-    echo "     ${BLUE}make deploy-gitops ENV=dev${NC}"
+    echo "     ${BLUE}make deploy-infrastructure-${ENV}${NC}"
+    echo "     ${BLUE}aws eks update-kubeconfig --region eu-central-1 --name fineract-${ENV}-eks${NC}"
+    echo "     ${BLUE}make deploy-k8s-with-loadbalancer-dns-${ENV}${NC}"
+    echo "     ${BLUE}make deploy-gitops ENV=${ENV}${NC}"
     echo ""
     exit 0
 fi

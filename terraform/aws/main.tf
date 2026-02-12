@@ -49,6 +49,9 @@ module "eks" {
   # Cluster access configuration
   cluster_endpoint_public_access_cidrs = var.cluster_endpoint_public_access_cidrs
 
+  # Add-ons configuration
+  enable_cloudwatch_observability = var.enable_cloudwatch_observability
+
   # IRSA configuration
   app_namespace             = var.kubernetes_namespace
   app_service_account_name  = "fineract-app"

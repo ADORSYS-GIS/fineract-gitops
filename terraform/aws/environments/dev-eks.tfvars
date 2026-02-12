@@ -1,16 +1,16 @@
 # Environment Configuration
 environment  = "dev"
-aws_region   = "us-east-2"
-cluster_name = "fineract-dev"
+aws_region   = "eu-central-1"
+cluster_name = "apache-fineract-dev"
 
 # EKS Configuration
 eks_cluster_version = "1.31"
 node_instance_types = ["t3.large"]
-node_desired_size   = 2
+node_desired_size   = 3
 node_min_size       = 2
 node_max_size       = 4
 cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Allow from anywhere for dev
-enable_cloudwatch_observability = false  # Disabled - will use Grafana/Prometheus later
+enable_cloudwatch_observability = false  # Disabled - using Grafana/Prometheus instead
 
 # VPC Configuration
 vpc_cidr = "10.0.0.0/16"

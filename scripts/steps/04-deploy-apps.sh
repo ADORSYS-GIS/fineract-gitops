@@ -16,6 +16,12 @@ echo "→ Deploying app-of-apps..."
 kubectl apply -f argocd/bootstrap/dev/app-of-apps.yaml
 echo -e "${GREEN}✓${NC} App-of-apps deployed"
 
+# Explicitly apply all ArgoCD applications
+# This ensures all apps are created even if app-of-apps sync is delayed
+echo "→ Ensuring all ArgoCD applications are created..."
+kubectl apply -k argocd/applications/dev/
+echo -e "${GREEN}✓${NC} All ArgoCD applications created"
+
 # Watch ArgoCD sync
 echo ""
 echo -e "${BLUE}Watching ArgoCD sync progress...${NC}"

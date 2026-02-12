@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customer-self-service-config
+data:
+  # Keycloak Configuration (Keycloak 17+ serves from root path)
+  KEYCLOAK_URL: "http://keycloak-service:8080"
+  KEYCLOAK_REALM: "fineract"
+  KEYCLOAK_ADMIN_REALM: "master"
+
+  # Fineract API Configuration
+  FINERACT_URL: "https://fineract-service:8443"
+  FINERACT_TENANT: "default"
+
+  # Self-Service Customer Configuration
+  DEFAULT_OFFICE_ID: "1"
+  DEFAULT_GROUP_PATH: "/self-service-customers"
+
+  # KYC Configuration
+  DEFAULT_KYC_TIER: "1"
+  DEFAULT_KYC_STATUS: "pending"
+
+  # Spring Boot Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  SERVER_PORT: "8080"
+
+  # Logging Configuration
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_ADORSYS: "DEBUG"
+
+  # Transaction Limits Configuration (YAML format)
+  # Loaded by Spring Boot from /app/config/transaction-limits.yaml
+  transaction-limits.yaml: |
+    # Self-Service Transaction Limits by KYC Tier
+    # These limits are enforced by the customer-self-service
+    # before forwarding transactions to Fineract
+
+    tiers:
+      # Tier 1: Unverified customers (immediately after registration)
+      tier1:
+        name: "Unverified"
+        description: "Basic access for new customers pending KYC verification"
+        dailyDepositLimit: 50000        # 50,000 XAF
+        dailyWithdrawalLimit: 25000     # 25,000 XAF
+        perTransactionLimit: 25000      # 25,000 XAF per transaction
+        monthlyTransactionLimit: 200000 # 200,000 XAF per month
+        allowedPaymentMethods:
+          - MTN_TRANSFER
+          - ORANGE_TRANSFER
+        # Bank transfers NOT allowed for Tier 1
+        restrictedFeatures:
+          - BANK_TRANSFER
+          - INTERNATIONAL_TRANSFER
+
+      # Tier 2: KYC Verified customers (after staff approval)
+      tier2:
+        name: "Verified"
+        description: "Full access for KYC-verified customers"
+        dailyDepositLimit: 500000       # 500,000 XAF
+        dailyWithdrawalLimit: 250000    # 250,000 XAF
+        perTransactionLimit: 100000     # 100,000 XAF per transaction
+        monthlyTransactionLimit: 2000000 # 2,000,000 XAF per month
+        allowedPaymentMethods:
+          - MTN_TRANSFER
+          - ORANGE_TRANSFER
+          - UBA_BANK_TRANSFER
+          - AFRILAND_BANK_TRANSFER
+        restrictedFeatures: []
+
+    # Payment Method to GL Account Mapping
+    paymentMethodGlMapping:
+      MTN_TRANSFER: "43"        # GL 43: MTN Mobile Money
+      ORANGE_TRANSFER: "44"     # GL 44: Orange Money
+      UBA_BANK_TRANSFER: "45"   # GL 45: UBA Bank Account
+      AFRILAND_BANK_TRANSFER: "46"  # GL 46: Afriland Bank Account
+
+    # Error Messages (for frontend display)
+    errorMessages:
+      DAILY_DEPOSIT_EXCEEDED: "Daily deposit limit of {limit} XAF exceeded. Complete KYC to increase your limits."
+      DAILY_WITHDRAWAL_EXCEEDED: "Daily withdrawal limit of {limit} XAF exceeded. Complete KYC to increase your limits."
+      PER_TRANSACTION_EXCEEDED: "Transaction amount of {amount} XAF exceeds your per-transaction limit of {limit} XAF."
+      PAYMENT_METHOD_NOT_ALLOWED: "{method} is only available for verified customers. Please complete KYC verification."
+      MONTHLY_LIMIT_EXCEEDED: "Monthly transaction limit exceeded. Your limit resets on the 1st of next month."

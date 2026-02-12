@@ -342,6 +342,11 @@ deploy_via_argocd() {
     log "Deploying app-of-apps..."
     kubectl apply -f "$REPO_ROOT/argocd/bootstrap/$ENVIRONMENT/app-of-apps.yaml"
 
+    # Explicitly apply all ArgoCD applications
+    # This ensures all apps are created even if app-of-apps sync is delayed
+    log "Ensuring all ArgoCD applications are created..."
+    kubectl apply -k "$REPO_ROOT/argocd/applications/$ENVIRONMENT/"
+
     log "Waiting for applications to sync..."
     sleep 10
 

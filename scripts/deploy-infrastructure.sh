@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy AWS Infrastructure via Terraform
+# Deploy AWS Infrastructure via Terraform (EKS)
 
 set -e
 
@@ -11,28 +11,17 @@ echo "Deploying infrastructure for $ENV environment..."
 
 cd "$TERRAFORM_DIR"
 
-# Generate SSH key if it doesn't exist
-if [ ! -f "$HOME/.ssh/fineract-k3s" ]; then
-    echo "Generating SSH key..."
-    ssh-keygen -t rsa -b 2048 -f ~/.ssh/fineract-k3s -N '' -C "fineract-k3s"
-
-    # Upload to AWS
-    aws ec2 import-key-pair \
-        --key-name fineract-k3s \
-        --public-key-material fileb://$HOME/.ssh/fineract-k3s.pub \
-        --region us-east-2 2>/dev/null || echo "SSH key already exists in AWS"
-fi
-
 # Initialize Terraform
 echo "Initializing Terraform..."
 terraform init
 
-# Apply infrastructure (but skip Kubernetes provider resources that will fail)
+# Apply infrastructure
 echo "Applying Terraform configuration..."
-echo "NOTE: Kubernetes provider resources will be skipped and handled by post-terraform-setup.sh"
-terraform apply -var-file=environments/${ENV}-k3s.tfvars -auto-approve || {
-    echo "Terraform apply had errors (expected due to Kubernetes provider)."
-    echo "Continuing with post-terraform setup..."
+echo "NOTE: This will create EKS cluster, RDS, S3, and other AWS resources"
+terraform apply -var-file=environments/${ENV}-eks.tfvars -auto-approve || {
+    echo "Terraform apply had errors."
+    echo "Check the output above for details."
+    exit 1
 }
 
 # Use the post-terraform setup script to handle kubeconfig and secrets

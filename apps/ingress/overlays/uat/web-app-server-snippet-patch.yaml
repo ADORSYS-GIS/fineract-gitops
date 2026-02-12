@@ -1,0 +1,98 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-web-app-protected
+  annotations:
+    # Override server-snippet with UAT namespace
+    nginx.ingress.kubernetes.io/server-snippet: |
+      # Cashier app static assets
+      location ~* ^/cashier/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/cashier/(.*)$ /$1 break;
+        proxy_pass http://cashier-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Account manager app static assets
+      location ~* ^/account/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/account/(.*)$ /$1 break;
+        proxy_pass http://account-manager-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Admin app static assets
+      location ~* ^/administration/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/administration/(.*)$ /$1 break;
+        proxy_pass http://admin-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Branch manager app static assets (correct path)
+      location ~* ^/branch/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/branch/(.*)$ /$1 break;
+        proxy_pass http://branch-manager-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Branch manager app static assets (legacy /branchmanager path from build)
+      location ~* ^/branchmanager/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/branchmanager/(.*)$ /$1 break;
+        proxy_pass http://branch-manager-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Reporting app static assets
+      location ~* ^/reporting/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/reporting/(.*)$ /$1 break;
+        proxy_pass http://reporting-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Accounting app static assets
+      location ~* ^/accounting/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/accounting/(.*)$ /$1 break;
+        proxy_pass http://accounting-app.fineract-uat.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Authentication endpoint - NO OAuth2 required to authenticate!
+      location = /fineract-provider/api/v1/authentication {
+        # CORS configuration (allow request origin)
+        if ($http_origin != '') { set $cors 'true'; }
+        if ($request_method = 'OPTIONS') { set $cors ${cors}options; }
+        if ($cors = "true") {
+          more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+          more_set_headers 'Access-Control-Allow-Credentials: true';
+          more_set_headers 'Access-Control-Allow-Methods: GET, POST, OPTIONS';
+          more_set_headers 'Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId';
+          more_set_headers 'Access-Control-Max-Age: 3600';
+        }
+        if ($cors = "trueoptions") {
+          more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+          more_set_headers 'Access-Control-Allow-Credentials: true';
+          more_set_headers 'Access-Control-Allow-Methods: GET, POST, OPTIONS';
+          more_set_headers 'Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId';
+          more_set_headers 'Access-Control-Max-Age: 3600';
+          more_set_headers 'Content-Type: text/plain charset=UTF-8';
+          more_set_headers 'Content-Length: 0';
+          return 204;
+        }
+        # Proxy to write service (NO auth_request here!)
+        proxy_pass https://fineract-write-service.fineract-uat.svc.cluster.local:8443;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port 443;
+      }

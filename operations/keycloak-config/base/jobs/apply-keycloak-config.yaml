@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: keycloak-config-cli
-        image: adorsys/keycloak-config-cli:5.9.0
+        image: adorsys/keycloak-config-cli:6.0.0
         env:
         # Keycloak Connection
         # KEYCLOAK_URL should be set via ConfigMap in environment overlays
@@ -223,6 +223,30 @@ spec:
               name: keycloak-client-secrets
               key: fineract-api-client-secret
               optional: true
+        - name: FINERACT_DATA_LOADER_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-id
+              optional: true
+        - name: FINERACT_DATA_LOADER_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: fineract-data-loader-client-secret
+              optional: true
+        - name: USER_SYNC_SERVICE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: user-sync-service-client-id
+              optional: true
+        - name: USER_SYNC_SERVICE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: user-sync-service-client-secret
+              optional: true
         - name: ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -273,8 +297,8 @@ spec:
 
           until [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
             # Check if master realm is accessible (best indicator Keycloak is ready)
-            # Note: Keycloak is served from /auth path
-            if curl -f -s http://keycloak-service:8080/auth/realms/master > /dev/null 2>&1; then
+            # Keycloak 17+ serves from root path (no /auth prefix)
+            if curl -f -s http://keycloak-service:8080/realms/master > /dev/null 2>&1; then
               echo "✓ Keycloak master realm is accessible!"
               echo "Keycloak is fully ready for realm configuration!"
               exit 0

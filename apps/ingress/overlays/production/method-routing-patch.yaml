@@ -1,0 +1,33 @@
+# Patch to update method-based routing upstream name for Production environment
+# The upstream name format is: <namespace>-<service>-<port>
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fineract-oauth2-protected
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # ============================================================================
+      # Method-Based Routing: Route write methods to fineract-write-service
+      # ============================================================================
+      # Default backend is fineract-read-service (set in spec.rules.backend)
+      # Override $proxy_upstream_name for POST/PUT/DELETE/PATCH to route to write service
+      # Upstream name format: <namespace>-<service>-<port>
+      if ($request_method = POST) {
+        set $proxy_upstream_name "fineract-production-fineract-write-service-8443";
+      }
+      if ($request_method = PUT) {
+        set $proxy_upstream_name "fineract-production-fineract-write-service-8443";
+      }
+      if ($request_method = DELETE) {
+        set $proxy_upstream_name "fineract-production-fineract-write-service-8443";
+      }
+      if ($request_method = PATCH) {
+        set $proxy_upstream_name "fineract-production-fineract-write-service-8443";
+      }
+
+      # OAuth2 token handling
+      auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+      proxy_set_header Authorization "Bearer $access_token";
+      more_set_headers "X-Forwarded-Host: $host";
+      more_set_headers "X-Forwarded-Port: 443";
+      more_set_headers "X-Forwarded-Proto: https";

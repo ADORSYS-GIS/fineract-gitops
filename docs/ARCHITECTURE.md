@@ -45,6 +45,7 @@ graph TB
         WebUser[Web Users]
         MobileUser[Mobile Users]
         APIClient[API Clients]
+        SelfServiceApp[Self-Service App<br/>Customer Portal PWA]
     end
 
     subgraph "Ingress & Gateway Layer"
@@ -72,6 +73,16 @@ graph TB
     subgraph "Integration Services"
         SMTPSender[Direct SMTP/SMS<br/>Email & SMS<br/>via AWS SES/SNS]
         Pentaho[Pentaho Reports<br/>Financial reporting]
+    end
+
+    subgraph "Self-Service Layer"
+        CustomerReg[Customer Registration<br/>Service]
+        PaymentGateway[Payment Gateway<br/>Service]
+    end
+
+    subgraph "External Payment Providers"
+        MTNMoMo[MTN MoMo API<br/>Collection/Disbursement]
+        OrangeMoney[Orange Money API<br/>Web Payments]
     end
 
     subgraph "Observability Stack"
@@ -132,17 +143,34 @@ graph TB
     CertManager -.-> Ingress
     NetworkPolicies -.-> FineractRead
 
+    %% Self-Service connections
+    SelfServiceApp --> Ingress
+    SelfServiceApp --> CustomerReg
+    SelfServiceApp --> PaymentGateway
+    SelfServiceApp --> FineractRead
+
+    CustomerReg --> FineractWrite
+    CustomerReg --> Keycloak
+
+    PaymentGateway --> FineractWrite
+    PaymentGateway --> MTNMoMo
+    PaymentGateway --> OrangeMoney
+
     classDef frontend fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef backend fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef data fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef infra fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
     classDef obs fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef selfservice fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
+    classDef external fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 
-    class WebUser,MobileUser,APIClient frontend
+    class WebUser,MobileUser,APIClient,SelfServiceApp frontend
     class OAuth2Proxy,FineractRead,FineractWrite,FineractBatch,Keycloak,UserSync,SMTPSender,Pentaho backend
     class PostgreSQL,Redis,S3 data
     class Ingress,SealedSecrets,CertManager,ArgoRollouts,NetworkPolicies infra
     class Prometheus,Grafana,Loki obs
+    class CustomerReg,PaymentGateway selfservice
+    class MTNMoMo,OrangeMoney external
 ```
 
 ---

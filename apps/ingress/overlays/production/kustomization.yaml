@@ -5,15 +5,17 @@ namespace: fineract-production
 
 resources:
   - ../../base
+  - ingress-config.yaml  # Load Balancer DNS is automatically updated by: scripts/auto-update-lb-dns.sh
 
-# Override hostname and certificate configuration for production environment
-configMapGenerator:
-  - name: ingress-config
-    namespace: fineract-production
-    literals:
-      - apps-hostname=apps.fineract.com
-      - auth-hostname=auth.fineract.com
-      - cluster-issuer=letsencrypt-prod  # Production uses Let's Encrypt trusted certificates
+patches:
+  - path: web-app-server-snippet-patch.yaml
+    target:
+      kind: Ingress
+      name: fineract-web-app-protected
+  - path: method-routing-patch.yaml
+    target:
+      kind: Ingress
+      name: fineract-oauth2-protected
 
 commonLabels:
   environment: production

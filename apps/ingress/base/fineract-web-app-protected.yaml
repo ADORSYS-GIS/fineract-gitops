@@ -11,26 +11,136 @@ metadata:
     purpose: web-app-oauth2-integration
   annotations:
     # ============================================================================
-    # OAuth2 Proxy Authentication
+    # OAuth2 Proxy Authentication (bypassed for static assets)
     # ============================================================================
-    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.$(NAMESPACE).svc.cluster.local:4180/oauth2/auth"
-    nginx.ingress.kubernetes.io/auth-signin: "https://$(APPS_HOSTNAME)/oauth2/start?rd=$escaped_request_uri"
-    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Roles,X-Auth-Request-Access-Token"
-    nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
-    nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+    nginx.ingress.kubernetes.io/auth-url: "auth-url"
+    nginx.ingress.kubernetes.io/auth-signin: "auth-signin-url"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Groups,X-Auth-Request-Access-Token"
+    # Auth cache disabled to ensure logout works properly
+    # nginx.ingress.kubernetes.io/auth-cache-key: "$cookie_oauth2_proxy"
+    # nginx.ingress.kubernetes.io/auth-cache-duration: "200 202 5m"
+    # Server snippet to bypass OAuth2 for static assets in frontend app paths only
+    nginx.ingress.kubernetes.io/server-snippet: |
+      # Portal app static assets
+      location ~* ^/home/.+\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        auth_request off;
+        rewrite ^/home/(.*)$ /$1 break;
+        proxy_pass http://portal-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Cashier app static assets
+      location ~* ^/cashier/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/cashier/(.*)$ /$1 break;
+        proxy_pass http://cashier-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Account manager app static assets
+      location ~* ^/account/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/account/(.*)$ /$1 break;
+        proxy_pass http://account-manager-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Admin app static assets
+      location ~* ^/administration/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/administration/(.*)$ /$1 break;
+        proxy_pass http://admin-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Branch manager app static assets (correct path)
+      location ~* ^/branch/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/branch/(.*)$ /$1 break;
+        proxy_pass http://branch-manager-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Branch manager app static assets (legacy /branchmanager path from build)
+      location ~* ^/branchmanager/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/branchmanager/(.*)$ /$1 break;
+        proxy_pass http://branch-manager-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Reporting app static assets
+      location ~* ^/reporting/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/reporting/(.*)$ /$1 break;
+        proxy_pass http://reporting-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Accounting app static assets
+      location ~* ^/accounting/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/accounting/(.*)$ /$1 break;
+        proxy_pass http://accounting-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Asset manager app static assets
+      location ~* ^/asset-manager/(assets|dist)/.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$ {
+        auth_request off;
+        rewrite ^/asset-manager/(.*)$ /$1 break;
+        proxy_pass http://asset-manager-app.fineract-dev.svc.cluster.local:80;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+      }
+      # Authentication endpoint - NO OAuth2 required to authenticate!
+      location = /fineract-provider/api/v1/authentication {
+        # CORS configuration (allow request origin)
+        if ($http_origin != '') { set $cors 'true'; }
+        if ($request_method = 'OPTIONS') { set $cors ${cors}options; }
+        if ($cors = "true") {
+          more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+          more_set_headers 'Access-Control-Allow-Credentials: true';
+          more_set_headers 'Access-Control-Allow-Methods: GET, POST, OPTIONS';
+          more_set_headers 'Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId';
+          more_set_headers 'Access-Control-Max-Age: 3600';
+        }
+        if ($cors = "trueoptions") {
+          more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+          more_set_headers 'Access-Control-Allow-Credentials: true';
+          more_set_headers 'Access-Control-Allow-Methods: GET, POST, OPTIONS';
+          more_set_headers 'Access-Control-Allow-Headers: Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId';
+          more_set_headers 'Access-Control-Max-Age: 3600';
+          more_set_headers 'Content-Type: text/plain charset=UTF-8';
+          more_set_headers 'Content-Length: 0';
+          return 204;
+        }
+        # Proxy to write service (NO auth_request here!)
+        proxy_pass https://fineract-write-service.fineract-dev.svc.cluster.local:8443;
+        proxy_ssl_verify off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port 443;
+      }
 
     # ============================================================================
     # CORS and SSL/TLS Configuration
     # ============================================================================
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://$(APPS_HOSTNAME)"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "cors-allow-origin-url"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
     nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With, X-Fineract-Platform-TenantId"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
     nginx.ingress.kubernetes.io/cors-max-age: "3600"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
-    cert-manager.io/cluster-issuer: "$(CLUSTER_ISSUER)"
+    cert-manager.io/cluster-issuer: "cluster-issuer"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
 
     # ============================================================================
@@ -60,8 +170,13 @@ metadata:
     # Configuration Snippet
     # ============================================================================
     nginx.ingress.kubernetes.io/configuration-snippet: |
+      # Extract access token for Authorization header
+      # Note: X-Auth-Request-User/Email/Groups are already passed via auth-response-headers annotation
       auth_request_set $access_token $upstream_http_x_auth_request_access_token;
+
+      # Set Authorization header (not covered by auth-response-headers)
       proxy_set_header Authorization "Bearer $access_token";
+
       more_set_headers "X-Forwarded-Host: $host";
       more_set_headers "X-Forwarded-Port: 443";
       more_set_headers "X-Forwarded-Proto: https";
@@ -69,19 +184,14 @@ metadata:
       # Add cache status header for debugging
       add_header X-Cache-Status $upstream_cache_status always;
 
-      # Cache-Control headers for static assets
-      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-      }
-
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - $(APPS_HOSTNAME)
+    - apps-hostname
     secretName: fineract-tls
   rules:
-  - host: $(APPS_HOSTNAME)
+  - host: apps-hostname
     http:
       paths:
       - path: /reporting(/|$)(.*)
@@ -103,5 +213,47 @@ spec:
         backend:
           service:
             name: web-app
+            port:
+              number: 80
+      - path: /administration(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: admin-app
+            port:
+              number: 80
+      - path: /account(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: account-manager-app
+            port:
+              number: 80
+      - path: /branch(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: branch-manager-app
+            port:
+              number: 80
+      - path: /cashier(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: cashier-app
+            port:
+              number: 80
+      - path: /asset-manager(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: asset-manager-app
+            port:
+              number: 80
+      - path: /home(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: portal-app
             port:
               number: 80

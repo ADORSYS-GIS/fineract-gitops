@@ -1,0 +1,215 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-gateway-service
+  labels:
+    app: payment-gateway-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-gateway-service
+  template:
+    metadata:
+      labels:
+        app: payment-gateway-service
+        app.kubernetes.io/name: payment-gateway-service
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: self-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      serviceAccountName: payment-gateway-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z postgres 5432; do echo "Waiting for database..."; sleep 2; done']
+      containers:
+        - name: payment-gateway-service
+          image: ghcr.io/adorsys-gis/fineract-apps/payment-gateway-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8082
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: payment-gateway-config
+          env:
+            # Java Runtime Configuration
+            - name: JAVA_OPTS
+              value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+            # Keycloak Client Credentials
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: payment-gateway-client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-client-secrets
+                  key: payment-gateway-client-secret
+            # Fineract API Credentials
+            - name: FINERACT_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-api-secrets
+                  key: client-id
+                  optional: true
+            - name: FINERACT_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-api-secrets
+                  key: client-secret
+                  optional: true
+            - name: FINERACT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-api-secrets
+                  key: username
+                  optional: true
+            - name: FINERACT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fineract-api-secrets
+                  key: password
+                  optional: true
+            # MTN MoMo Credentials
+            - name: MTN_COLLECTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: mtn-collection-key
+            - name: MTN_DISBURSEMENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: mtn-disbursement-key
+            - name: MTN_API_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: mtn-api-user-id
+            - name: MTN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: mtn-api-key
+            - name: MTN_GL_ACCOUNT_CODE
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: mtn-gl-account-code
+            # Orange Money Credentials
+            - name: ORANGE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: orange-client-id
+            - name: ORANGE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: orange-client-secret
+            - name: ORANGE_MERCHANT_CODE
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: orange-merchant-code
+            - name: ORANGE_GL_ACCOUNT_CODE
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: orange-gl-account-code
+            # CinetPay Credentials (Gateway - uses existing MTN/Orange GL accounts)
+            - name: CINETPAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-api-key
+            - name: CINETPAY_SITE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-site-id
+            - name: CINETPAY_API_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-api-password
+            - name: CINETPAY_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-secret-key
+            - name: CINETPAY_TRANSFER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: cinetpay-transfer-password
+            # Redis Credentials
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-gateway-secrets
+                  key: redis-password
+                  optional: true
+            # OpenTelemetry Distributed Tracing Configuration
+            - name: OTEL_SERVICE_NAME
+              value: "payment-gateway-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.tracing.svc.cluster.local:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=fineract,deployment.environment=dev,service.version=1.0.0"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

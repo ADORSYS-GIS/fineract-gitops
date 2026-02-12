@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-fineract-config
+spec:
+  template:
+    spec:
+      containers:
+        - name: fineract-config-cli
+          env:
+            # Dev environment: more permissive settings
+            - name: IMPORT_FORCE
+              value: "false"  # Still respect checksums for efficiency
+            - name: IMPORT_DRY_RUN
+              value: "false"  # Actually apply changes
+            - name: LOGGING_LEVEL_ORG_APACHE_FINERACT_CONFIG
+              value: "DEBUG"  # Detailed logging for development
