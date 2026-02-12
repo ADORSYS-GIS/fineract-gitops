@@ -17,7 +17,7 @@ spec:
 
   source:
     repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: deploy-key
+    targetRevision: dev/fineract-deployment
     path: apps/ingress/overlays/dev
 
   destination:

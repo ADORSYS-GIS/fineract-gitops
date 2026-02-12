@@ -494,84 +494,36 @@ clientScopes:
 # See: ROLE_MAPPING.md for complete documentation
 roles:
   realm:
+    - name: Super user
+      description: This role provides all application permissions.
+      composite: false
+
+    - name: Self Service User
+      description: self service user role
+      composite: false
+
     - name: admin
-      description: Full administrative access (Super user)
-      composite: false
-
-    - name: Admin
-      description: Admin role (capitalized for frontend apps)
-      composite: false
-
-    - name: Super User
-      description: Full administrative access (Fineract native role name)
-      composite: false
-
-    - name: staff
-      description: Generic staff member with operational access
-      composite: false
-
-    - name: loan-officer
-      description: Loan officer - create and manage loans, clients
-      composite: false
-
-    - name: teller
-      description: Teller/cashier - cash transactions, deposits, withdrawals
-      composite: false
-
-    - name: accountant
-      description: Accountant - financial reports, manage accounting (lowercase)
-      composite: false
-
-    - name: Accountant
-      description: Accountant role (capitalized for frontend apps)
-      composite: false
-
-    - name: Supervisor Accountant
-      description: Supervisor Accountant - can approve journal entries
-      composite: false
-
-    - name: Manager
-      description: Manager role - can create and view entries but cannot approve
-      composite: false
-
-    - name: Viewer
-      description: Viewer role - read-only access to accounting features
+      description: Super user with full system access
       composite: false
 
     - name: branch-manager
-      description: Branch manager - manage branch operations, approve loans
-      composite: true
-      composites:
-        realm:
-          - loan-officer
-          - staff
-
-    - name: field-officer
-      description: Field officer - field operations, client visits
+      description: Branch manager with approval authority
       composite: false
 
-    - name: operations-manager
-      description: Operations manager - operational oversight
-      composite: true
-      composites:
-        realm:
-          - branch-manager
-          - staff
-
-    - name: credit-committee
-      description: Credit committee member - loan approval authority
+    - name: account-manager
+      description: Loan officer for client and loan management
       composite: false
 
-    - name: checker
-      description: Maker-checker approval workflows
+    - name: cashier
+      description: Cashier for handling cash transactions
       composite: false
 
-    - name: client
-      description: Client/customer - self-service portal access
+    - name: accountant
+      description: Accountant for financial management (Maker)
       composite: false
 
-    - name: readonly
-      description: Read-only access - view only, no modifications
+    - name: supervisor-accountant
+      description: Senior accountant for audit and approval (Checker)
       composite: false
 
     # Asset Management Roles
@@ -600,30 +552,27 @@ groups:
       office_id: ["1"]
     realmRoles:
       - admin
-      - staff
+      - Super user
 
   - name: branch-managers
     path: /branch-managers
     realmRoles:
       - branch-manager
-      - staff
 
   - name: loan-officers
     path: /loan-officers
     realmRoles:
-      - loan-officer
-      - staff
+      - account-manager
 
   - name: tellers
     path: /tellers
     realmRoles:
-      - teller
-      - staff
+      - cashier
 
   - name: clients
     path: /clients
     realmRoles:
-      - client
+      - Self Service User
 
   # Self-Service Customers Group
   # Customers who register via the self-service portal
@@ -880,7 +829,6 @@ users:
         temporary: false
     realmRoles:
       - admin
-      - staff
     groups:
       - /head-office
     attributes:

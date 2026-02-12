@@ -16,7 +16,7 @@ spec:
 
   source:
     repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: deploy-key
+    targetRevision: dev/fineract-deployment
     path: operations/keycloak-database-setup
 
   destination:

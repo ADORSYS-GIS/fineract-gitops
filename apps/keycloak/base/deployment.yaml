@@ -136,18 +136,18 @@ spec:
 
         # OpenTelemetry Distributed Tracing Configuration
         # Keycloak 24+ has built-in OpenTelemetry support
-        - name: KC_TRACING_ENABLED
-          value: "true"
-        - name: KC_TRACING_ENDPOINT
-          value: "http://otel-collector.tracing.svc.cluster.local:4317"
-        - name: KC_TRACING_PROTOCOL
-          value: "grpc"
-        - name: KC_TRACING_SAMPLER_TYPE
-          value: "parentbased_always_on"
-        - name: KC_TRACING_SAMPLER_RATIO
-          value: "1.0"
-        - name: KC_TRACING_RESOURCE_ATTRIBUTES
-          value: "service.name=keycloak,service.namespace=fineract,deployment.environment=dev"
+        # - name: KC_TRACING_ENABLED
+        #   value: "true"
+        # - name: KC_TRACING_ENDPOINT
+        #   value: "http://otel-collector.tracing.svc.cluster.local:4317"
+        # - name: KC_TRACING_PROTOCOL
+        #   value: "grpc"
+        # - name: KC_TRACING_SAMPLER_TYPE
+        #   value: "parentbased_always_on"
+        # - name: KC_TRACING_SAMPLER_RATIO
+        #   value: "1.0"
+        # - name: KC_TRACING_RESOURCE_ATTRIBUTES
+        #   value: "service.name=keycloak,service.namespace=fineract,deployment.environment=dev"
 
         ports:
         - name: http

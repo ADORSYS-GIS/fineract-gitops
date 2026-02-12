@@ -9,7 +9,7 @@
 # Prerequisites:
 # 1. Infrastructure must be deployed (make deploy-infrastructure-dev)
 # 2. Kubeconfig will be auto-configured (or set KUBECONFIG manually)
-# 3. SSH deploy key must exist at ~/.ssh/argocd-deploy-key
+# 3. SSH deploy key must exist at ~/.ssh/argocd-dev/fineract-deployment
 #
 # This script performs:
 # 1. Deploys GitOps tools (ArgoCD, Sealed Secrets, ingress-nginx, cert-manager)

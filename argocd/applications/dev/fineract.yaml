@@ -12,7 +12,7 @@ spec:
 
   source:
     repoURL: "https://github.com/ADORSYS-GIS/fineract-gitops.git"
-    targetRevision: deploy-key  # Auto-sync from eks branch
+    targetRevision: dev/fineract-deployment  # Auto-sync from eks branch
     path: environments/dev
 
   destination:

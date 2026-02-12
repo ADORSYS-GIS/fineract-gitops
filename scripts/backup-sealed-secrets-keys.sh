@@ -137,7 +137,8 @@ echo
 
 # Extract all keys to YAML file
 log_info "Extracting keys to temporary file..."
-kubectl get secrets -n "$NAMESPACE" -l "$SECRET_LABEL" -o yaml > "$BACKUP_FILE"
+KEY_YAML=$(kubectl get secrets -n "$NAMESPACE" -l "$SECRET_LABEL" -o yaml)
+echo "$KEY_YAML" > "$BACKUP_FILE"
 
 if [ ! -s "$BACKUP_FILE" ]; then
     error_exit "Failed to extract keys to YAML file"

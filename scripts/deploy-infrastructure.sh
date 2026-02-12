@@ -13,7 +13,7 @@ cd "$TERRAFORM_DIR"
 
 # Initialize Terraform
 echo "Initializing Terraform..."
-terraform init
+terraform init -reconfigure -backend-config=backend-dev.tfbackend
 
 # Apply infrastructure
 echo "Applying Terraform configuration..."

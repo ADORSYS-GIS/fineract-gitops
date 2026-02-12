@@ -161,7 +161,7 @@ configMapGenerator:
 ```bash
 git add operations/fineract-config/
 git commit -m "feat: add Fineract configuration for offices"
-git push origin deploy-key
+git push origin dev/fineract-deployment
 ```
 
 ### Step 4: ArgoCD Auto-Syncs

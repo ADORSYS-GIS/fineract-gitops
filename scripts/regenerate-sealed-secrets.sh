@@ -97,7 +97,7 @@ echo ""
 
 # ArgoCD SSH credentials
 echo -e "${BLUE}→ Regenerating ArgoCD SSH credentials...${NC}"
-SSH_DEPLOY_KEY="${HOME}/.ssh/argocd-deploy-key"
+SSH_DEPLOY_KEY="${HOME}/.ssh/argocd-dev/fineract-deployment"
 if [ ! -f "$SSH_DEPLOY_KEY" ]; then
     echo -e "${YELLOW}⚠ SSH deploy key not found at $SSH_DEPLOY_KEY, skipping ArgoCD credentials${NC}"
     echo "Generate key with: ssh-keygen -t ed25519 -C \"argocd-fineract-gitops\" -f $SSH_DEPLOY_KEY -N \"\""

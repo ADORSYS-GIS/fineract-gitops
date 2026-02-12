@@ -17,6 +17,7 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "cluster-issuer"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 
     # Proxy Settings
     nginx.ingress.kubernetes.io/proxy-body-size: "1m"
@@ -34,8 +35,8 @@ spec:
   - host: apps-hostname
     http:
       paths:
-      - path: /api/user-sync
-        pathType: Prefix
+      - path: /api/user-sync(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: user-sync-service

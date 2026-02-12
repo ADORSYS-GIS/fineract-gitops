@@ -1737,7 +1737,7 @@ The fineract-gitops repository demonstrates **strong GitOps practices** with exc
 
 **Report Generated**: 2025-01-19
 **Repository**: fineract-gitops
-**Branch**: deploy-key (main equivalent)
+**Branch**: dev/fineract-deployment (main equivalent)
 **Total Files Scanned**: 500+
 **Total Lines of Code**: ~50,000
 

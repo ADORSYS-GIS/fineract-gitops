@@ -109,7 +109,7 @@ Or better, add to the secrets substitution in the init container.
 # Commit the sealed secret
 git add secrets/dev/keycloak-client-secrets-sealed.yaml
 git commit -m "feat: add fineract-data-loader client credentials to sealed secret"
-git push origin deploy-key
+git push origin dev/fineract-deployment
 
 # Wait for ArgoCD to sync or manually sync
 argocd app sync sealed-secrets-dev

@@ -22,12 +22,12 @@ SSH deploy keys are used instead of Personal Access Tokens (PAT) because:
 Generate a new ED25519 SSH key pair specifically for ArgoCD:
 
 ```bash
-ssh-keygen -t ed25519 -C "argocd-fineract-gitops" -f ~/.ssh/argocd-deploy-key -N ""
+ssh-keygen -t ed25519 -C "argocd-fineract-gitops" -f ~/.ssh/argocd-dev/fineract-deployment -N ""
 ```
 
 This creates two files:
-- `~/.ssh/argocd-deploy-key` (private key - keep secret!)
-- `~/.ssh/argocd-deploy-key.pub` (public key - safe to share)
+- `~/.ssh/argocd-dev/fineract-deployment` (private key - keep secret!)
+- `~/.ssh/argocd-dev/fineract-deployment.pub` (public key - safe to share)
 
 **IMPORTANT**: Do not set a passphrase (use `-N ""`) as ArgoCD cannot handle passphrase-protected keys automatically.
 
@@ -35,7 +35,7 @@ This creates two files:
 
 1. Copy the public key to your clipboard:
    ```bash
-   cat ~/.ssh/argocd-deploy-key.pub
+   cat ~/.ssh/argocd-dev/fineract-deployment.pub
    ```
 
 2. Navigate to the GitHub repository:
@@ -54,7 +54,7 @@ Before deploying, verify SSH access works:
 
 ```bash
 # Test SSH connection to GitHub
-ssh -T -i ~/.ssh/argocd-deploy-key git@github.com
+ssh -T -i ~/.ssh/argocd-dev/fineract-deployment git@github.com
 
 # Expected output:
 # Hi ADORSYS-GIS/fineract-gitops! You've successfully authenticated, but GitHub does not provide shell access.
@@ -62,7 +62,7 @@ ssh -T -i ~/.ssh/argocd-deploy-key git@github.com
 
 If you see an error, check:
 - The deploy key was added to the correct repository
-- The private key file has correct permissions: `chmod 600 ~/.ssh/argocd-deploy-key`
+- The private key file has correct permissions: `chmod 600 ~/.ssh/argocd-dev/fineract-deployment`
 - You're using the correct SSH URL format: `git@github.com:ADORSYS-GIS/fineract-gitops.git`
 
 ## Step 4: Create Sealed Secret for ArgoCD
@@ -73,7 +73,7 @@ The repository includes a script to create the ArgoCD repository credentials as 
 # Navigate to repository root
 cd /path/to/fineract-gitops
 
-# Run the seal script (it will use ~/.ssh/argocd-deploy-key by default)
+# Run the seal script (it will use ~/.ssh/argocd-dev/fineract-deployment by default)
 ./scripts/seal-argocd-ssh-credentials.sh
 ```
 
@@ -90,7 +90,7 @@ If you prefer to create the sealed secret manually:
 ```bash
 # Set environment variables
 export KUBECONFIG=/path/to/your/kubeconfig
-export SSH_KEY_PATH="${HOME}/.ssh/argocd-deploy-key"
+export SSH_KEY_PATH="${HOME}/.ssh/argocd-dev/fineract-deployment"
 export SECRET_NAME="repo-fineract-gitops"
 export NAMESPACE="argocd"
 export REPO_URL="git@github.com:ADORSYS-GIS/fineract-gitops.git"
@@ -328,7 +328,7 @@ If ArgoCD shows "authentication failed" for the repository:
    ```bash
    kubectl get secret repo-fineract-gitops -n argocd -o jsonpath='{.data.sshPrivateKey}' | base64 -d
    ```
-   Compare with `cat ~/.ssh/argocd-deploy-key`
+   Compare with `cat ~/.ssh/argocd-dev/fineract-deployment`
 
 2. **Check deploy key in GitHub**:
    - Go to repository Settings → Deploy keys
@@ -369,7 +369,7 @@ If ArgoCD shows connection timeout:
 
 1. **Protect the private key**:
    ```bash
-   chmod 600 ~/.ssh/argocd-deploy-key
+   chmod 600 ~/.ssh/argocd-dev/fineract-deployment
    ```
 
 2. **Never commit the private key to Git** (it's in `.gitignore`)

@@ -1,0 +1,48 @@
+---
+# ServiceMonitor for all frontend applications (nginx-based)
+# Scrapes metrics from nginx-prometheus-exporter sidecar containers
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: frontend-apps
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: frontend-apps
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  namespaceSelector:
+    matchNames:
+    - fineract-dev
+  selector:
+    matchLabels:
+      component: frontend
+  endpoints:
+  - port: metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+  # Target frontend apps by their common label
+  # This will scrape: web-app, admin-app, accounting-app, reporting-app,
+  # account-manager-app, branch-manager-app, cashier-app
+---
+# PodMonitor as alternative for direct pod scraping
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: frontend-apps
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: frontend-apps
+    app.kubernetes.io/part-of: monitoring-stack
+spec:
+  namespaceSelector:
+    matchNames:
+    - fineract-dev
+  selector:
+    matchLabels:
+      component: frontend
+  podMetricsEndpoints:
+  - port: metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics

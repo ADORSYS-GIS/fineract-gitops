@@ -18,7 +18,7 @@ resources:
   - network-policies.yaml
   - oauth2-proxy.yaml
   - sealed-secrets-controller.yaml
-  # - web-app.yaml
+  - web-app.yaml
   - reporting-app.yaml  # Reporting frontend application
   - accounting-app.yaml  # Accounting frontend application
   - account-manager-app.yaml # Account Manager frontend application
